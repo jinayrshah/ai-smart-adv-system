@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
-import { agricultureService } from './src/services/aiService.ts';
+import { agricultureService } from './src/services/aiService.js';
 
 const MARKET_CACHE_TIME = 10 * 60 * 1000;
 const MARKET_RESOURCE_ID = '9ef84268-d588-465a-a308-a864a43d0070';
