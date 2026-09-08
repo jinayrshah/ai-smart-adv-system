@@ -116,7 +116,7 @@ export const useWeather = (defaultCity: string = 'Bangalore', initialLat?: numbe
 
     try {
       let url = '';
-      const apiKey = '19927003d654bcd63f64e32840eeba91';
+      const apiKey = import.meta.env.VITE_WEATHER_API_KEY;
       
       const targetLat = lat ?? initialLat;
       const targetLon = lon ?? initialLon;
