@@ -53,7 +53,7 @@ export const ChatWidget: React.FC = () => {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
-            const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${position.coords.latitude}&lon=${position.coords.longitude}&appid=19927003d654bcd63f64e32840eeba91`, {
+            const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${position.coords.latitude}&lon=${position.coords.longitude}&appid=${import.meta.env.VITE_WEATHER_API_KEY}`, {
               signal: controller.signal
             });
             const data = await res.json();
