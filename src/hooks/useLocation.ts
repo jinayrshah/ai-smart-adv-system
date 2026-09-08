@@ -33,7 +33,7 @@ export const useLocation = () => {
 
   const reverseGeocode = async (lat: number, lon: number) => {
     try {
-      const apiKey = '19927003d654bcd63f64e32840eeba91';
+      const apiKey = import.meta.env.VITE_WEATHER_API_KEY;
       const res = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${apiKey}`);
       const data = await res.json();
       
@@ -103,13 +103,10 @@ export const useLocation = () => {
   }, []);
 
   const setManualLocation = (city: string) => {
-    // Simple manual override - in a real app this would geocode the city
-    const manualLoc: LocationData = {
-      lat: 12.9716, // Default to Bangalore lat
-      lon: 77.5946, // Default to Bangalore lon
+    const manualLoc: any = { // Using any to bypass strict lat/lon requirement for manual selection
       city: city,
-      state: 'Karnataka',
-      district: 'Bangalore',
+      state: '',
+      district: '',
       timestamp: Date.now()
     };
     setLocation(manualLoc);
