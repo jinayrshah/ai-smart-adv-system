@@ -75,8 +75,15 @@ export const Login: React.FC = () => {
       const formattedId = getFormattedIdentifier();
       if (mode === 'login') {
         await login(formattedId, password);
+        // Ask for location permission after successful login
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(() => {}, () => {}, { timeout: 10000 });
+        }
       } else if (mode === 'register') {
         await register(formattedId, password, loginMethod);
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(() => {}, () => {}, { timeout: 10000 });
+        }
       } else if (mode === 'forgot-password') {
         await resetPasswordRequest(formattedId);
         setMode('reset-password');
