@@ -1,6 +1,5 @@
 import express from 'express';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import multer from 'multer';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
@@ -1173,6 +1172,7 @@ export async function createApp() {
   // Vite middleware for local development. Vercel serves the built frontend
   // separately, so serverless API functions should only register API routes.
   if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
