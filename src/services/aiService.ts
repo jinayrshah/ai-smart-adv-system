@@ -1,7 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
 
 const getGeminiApiKey = () => {
-  const viteKey = import.meta.env?.VITE_GEMINI_API_KEY;
+  let viteKey = '';
+  try {
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      viteKey = import.meta.env.VITE_GEMINI_API_KEY;
+    }
+  } catch (e) {
+    // Ignore error if import.meta is not available in Node.js
+  }
   const serverKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
   return viteKey || serverKey || '';
 };
