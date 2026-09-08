@@ -957,7 +957,7 @@ export async function createApp() {
   app.get('/api/weather/:city', async (req, res) => {
     const { city } = req.params;
     const { lat, lon } = req.query;
-    const apiKey = process.env.WEATHER_API_KEY || '19927003d654bcd63f64e32840eeba91';
+    const apiKey = process.env.WEATHER_API_KEY || '';
 
     const fallbackData = {
       status: 'ok', 
@@ -1070,7 +1070,7 @@ export async function createApp() {
   app.get('/api/market', async (req, res) => {
     try {
       console.log(`[API] Fetching market data: ${req.url}`);
-      const apiKey = process.env.MARKET_API_KEY || '579b464db66ec23bdd0000012ed5666eba6749fd7423718378c732ff';
+      const apiKey = process.env.MARKET_API_KEY || '';
       const { state, district, commodity, limit = 100 } = req.query;
       const cacheKey = buildMarketCacheKey({
         state: state as string | undefined,
