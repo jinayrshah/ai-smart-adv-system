@@ -212,13 +212,37 @@ export function AppContent() {
 
       updateModuleData('market', data);
       setLastMarketUpdate(new Date());
-      
-      const insight = await agricultureService.generateMarketInsights(data);
-      updateModuleData('priceTrends', insight);
 
-      if (!appData.selectedMarketCrop || !data.some((item) => item.id === appData.selectedMarketCrop.id)) {
-        updateModuleData('selectedMarketCrop', data[0]);
+      let selected = appData.selectedMarketCrop;
+      if (!selected || !data.some((item) => item.id === selected.id)) {
+        selected = data[0];
+        updateModuleData('selectedMarketCrop', selected);
       }
+
+      // Fetch insight for the selected crop
+      if (selected) {
+        try {
+          const insightData = await marketService.getMarketInsight({
+            state: selected.state,
+            district: selected.district,
+            commodity: selected.commodity
+          });
+          updateModuleData('priceTrends', insightData.ai_summary);
+          
+          // Update the selected crop with real history from the backend
+          const updatedSelected = {
+            ...selected,
+            history: insightData.history.map((h: any) => ({
+              date: h.arrival_date,
+              price: Number(h.modal_price)
+            }))
+          };
+          updateModuleData('selectedMarketCrop', updatedSelected);
+        } catch (e) {
+          console.error("Failed to fetch insight", e);
+        }
+      }
+
     } catch (err: any) {
       console.error("Failed to fetch market data");
       updateModuleData('marketError', err.message || "Failed to connect to market service.");
@@ -231,6 +255,31 @@ export function AppContent() {
     const updated = { ...appData.marketFilters, ...newFilters };
     updateModuleData('marketFilters', updated);
     fetchMarketData(updated);
+  };
+
+  const handleCropSelect = async (crop: any) => {
+    updateModuleData('selectedMarketCrop', crop);
+    updateModuleData('priceTrends', 'Analyzing market trends...');
+    try {
+      const insightData = await marketService.getMarketInsight({
+        state: crop.state,
+        district: crop.district,
+        commodity: crop.commodity
+      });
+      updateModuleData('priceTrends', insightData.ai_summary);
+      
+      const updatedCrop = {
+        ...crop,
+        history: insightData.history.map((h: any) => ({
+          date: h.arrival_date,
+          price: Number(h.modal_price)
+        }))
+      };
+      updateModuleData('selectedMarketCrop', updatedCrop);
+    } catch (e) {
+      console.error("Failed to fetch crop insight", e);
+      updateModuleData('priceTrends', 'Analysis unavailable.');
+    }
   };
 
   const fetchWeather = async (city: string, lat?: number, lon?: number) => {
@@ -1103,7 +1152,7 @@ export function AppContent() {
                     appData.market.map((crop: any) => (
                       <button 
                         key={crop.id} 
-                        onClick={() => updateModuleData('selectedMarketCrop', crop)}
+                        onClick={() => handleCropSelect(crop)}
                         className={cn(
                           "w-full flex items-center justify-between p-4 border-b border-dark-border last:border-0 hover:bg-white/5 transition-colors text-left",
                           appData.selectedMarketCrop?.id === crop.id && "bg-brand-green/10 border-l-4 border-l-brand-green"

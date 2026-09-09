@@ -219,27 +219,5 @@ export const agricultureService = {
       }
       throw new Error("Failed to detect plant disease.");
     }
-  },
-
-  async generateMarketInsights(marketData: any[]): Promise<string> {
-    const dataSummary = marketData.map(d => `${d.commodity}: ₹${d.modal_price} (${d.trend > 0 ? '+' : ''}${d.trend}%)`).join(', ');
-    const prompt = `As an agricultural market analyst, provide a concise (2-3 sentences) market insight based on the following real-time crop price trends in India: ${dataSummary}. 
-    Focus on which crops are good to sell, which to hold, and any significant price movements.`;
-
-    const ai = getGeminiClient();
-    if (!ai) {
-      return "AI insights are unavailable because Gemini is not configured. Review the listed market prices directly and prefer selling crops with positive price trends.";
-    }
-
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt
-      });
-      return response.text || "Market trends are currently stable. Monitor daily for significant changes.";
-    } catch (error) {
-      console.error("Market insight error:", error);
-      return "Unable to generate AI insights at this moment.";
-    }
   }
 };

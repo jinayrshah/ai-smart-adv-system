@@ -208,6 +208,19 @@ export const marketService = {
     }
   },
 
+  async getMarketInsight(params: { state: string, district: string, commodity: string }) {
+    const query = new URLSearchParams({
+      state: params.state,
+      district: params.district,
+      commodity: params.commodity
+    });
+    const response = await fetch(`/api/market/insight?${query.toString()}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch market insight');
+    }
+    return response.json();
+  },
+
   getStates(): string[] {
     return [
       'All States',
