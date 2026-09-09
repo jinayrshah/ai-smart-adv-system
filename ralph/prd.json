@@ -1,0 +1,74 @@
+{
+  "project": "AI-Smart-Agriculture-System",
+  "branchName": "ralph/firebase-migration",
+  "description": "Migrate data persistence from ephemeral local JSON files to Firebase (Firestore for data, Storage for images).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Set up Firebase Admin SDK",
+      "description": "As a developer, I need the Express backend to securely connect to Firebase so that it can read and write to Firestore.",
+      "acceptanceCriteria": [
+        "Add firebase-admin to dependencies",
+        "Create a Firebase initialization module for the backend server",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Migrate User Authentication Data to Firestore",
+      "description": "As a developer, I need to store user data in Firestore instead of users.json to ensure persistence on Vercel.",
+      "acceptanceCriteria": [
+        "Replace users.json reads/writes in server.ts with Firestore 'users' collection operations",
+        "Update /api/auth/* endpoints to use the new Firestore logic",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Migrate History Data to Firestore",
+      "description": "As a user, I want my analysis history saved persistently in the cloud so it is not lost on server restarts.",
+      "acceptanceCriteria": [
+        "Replace history.json and fertilizer_history.json logic with Firestore 'history' collections",
+        "Update /api/history and /api/fertilizer/history endpoints to fetch/save from Firestore",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Migrate Products Data to Firestore",
+      "description": "As a user, I want my marketplace products saved persistently so they remain available to buyers.",
+      "acceptanceCriteria": [
+        "Replace products.json logic with a Firestore 'products' collection",
+        "Update all /api/products endpoints (GET, POST, PUT, DELETE) to use Firestore",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Migrate Image Uploads to Cloud Storage",
+      "description": "As a user, I want uploaded images to persist across server restarts.",
+      "acceptanceCriteria": [
+        "Configure Firebase Storage (or similar cloud storage) for image uploads in the backend",
+        "Replace local multer upload logic (saving to /uploads) with cloud storage uploads",
+        "Update frontend to properly render cloud storage URLs",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
