@@ -142,10 +142,10 @@ class DatagovLiveSource:
         for _ in range(max_pages):
             params = self._build_params(state=state, commodity=commodity, limit=1000, offset=offset)
             try:
-                data = await fetch_with_retry(client, BASE_URL, params=params, retries=3, timeout=30.0)
+                data = await fetch_with_retry(client, BASE_URL, params=params, retries=2, timeout=10.0)
             except Exception as exc:
                 logger.error(f"Error fetching {state} / {commodity} at offset {offset}: {exc}")
-                break
+                raise exc
 
             raw_records = data.get("records", [])
             if not raw_records:
@@ -172,8 +172,11 @@ class DatagovLiveSource:
         end: date,
         scope: TrackedScope,
     ) -> list[MandiRecord]:
-        """Fetch current data for all tracked states x tracked crops."""
+        """Fetch current data for all tracked states x tracked crops with circuit breaker."""
         results: list[MandiRecord] = []
+        self.circuit_broken = False
+        consecutive_failures = 0
+
         async with httpx.AsyncClient() as client:
             # Check demo key once
             try:
@@ -184,10 +187,22 @@ class DatagovLiveSource:
                 logger.warning(f"Demo key pre-check warning: {exc}")
 
             for crop in scope.crops:
+                if self.circuit_broken:
+                    break
                 for state in scope.states:
-                    # Query data.gov.in using the canonical display name
-                    records = await self.fetch_scope_pair(client, state=state, commodity=crop.display)
-                    results.extend(records)
+                    try:
+                        records = await self.fetch_scope_pair(client, state=state, commodity=crop.display)
+                        results.extend(records)
+                        consecutive_failures = 0
+                    except Exception:
+                        consecutive_failures += 1
+                        if consecutive_failures >= 5:
+                            logger.warning(
+                                "Circuit breaker tripped after 5 consecutive failures from data.gov.in. "
+                                "Halting requests for the remainder of this run."
+                            )
+                            self.circuit_broken = True
+                            break
 
         return results
 

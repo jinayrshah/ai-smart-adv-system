@@ -55,6 +55,8 @@ async def run_ingestion() -> int:
         repo.run_outlier_flagging(days=7)
 
         unmapped_report = canonicalizer.get_unmapped_report()
+        circuit_broken = getattr(source, "circuit_broken", False)
+        status = "partial" if circuit_broken else "ok"
         notes = {
             "unmapped_report": unmapped_report,
             "duration_s": round(time.time() - start_time, 2),
@@ -62,11 +64,12 @@ async def run_ingestion() -> int:
             "rows_deduped": len(deduped_records),
             "rows_flagged": rows_flagged,
             "rows_upserted": rows_upserted,
+            "circuit_broken": circuit_broken,
         }
 
         repo.finish_ingestion_run(
             run_id=run_id,
-            status="ok",
+            status=status,
             rows_in=rows_in,
             rows_upserted=rows_upserted,
             rows_flagged=rows_flagged,
