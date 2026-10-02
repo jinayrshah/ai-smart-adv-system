@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --import tsx server.ts",
+    "dev:backend": "PYTHONPATH=backend backend/.venv/bin/uvicorn app.main:app --port 8000 --reload",
     "start": "NODE_ENV=production node --import tsx server.ts",
     "build": "vite build",
     "preview": "vite preview",
