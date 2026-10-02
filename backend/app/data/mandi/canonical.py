@@ -16,6 +16,13 @@ def clean_string(val: str | None) -> str:
     return cleaned
 
 
+def clean_market_name(val: str | None) -> str:
+    cleaned = clean_string(val)
+    cleaned = re.sub(r"(?i)^\s*apmc\s+", "", cleaned)
+    cleaned = re.sub(r"(?i)\s+apmc\s*$", "", cleaned)
+    return clean_string(cleaned)
+
+
 def normalize_lookup_key(val: str) -> str:
     """Lowercase and remove non-alphanumeric characters for fuzzy alias matching."""
     cleaned = clean_string(val).casefold()
@@ -56,7 +63,7 @@ class Canonicalizer:
 
     def canonicalize_market(self, state: str, raw_market: str) -> str:
         st_clean = clean_string(state)
-        mkt_clean = clean_string(raw_market)
+        mkt_clean = clean_market_name(raw_market)
         key = normalize_lookup_key(mkt_clean)
         if st_clean in self.market_alias_map and key in self.market_alias_map[st_clean]:
             return self.market_alias_map[st_clean][key]

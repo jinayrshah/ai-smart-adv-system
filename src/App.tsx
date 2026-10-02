@@ -58,6 +58,7 @@ import {
 import { agricultureService, CropInput, PredictionResult } from './services/aiService';
 import { initKnowledgeBase } from './services/ragService';
 import { marketService, MarketPrice, MarketFilters } from './services/marketService';
+import { MarketDataView } from './components/market/MarketDataView';
 import { articles, Article } from './data/articles';
 import { useGreeting, useWeather, getFarmingInsights } from './hooks/useAgricultureDashboard';
 import { useLocation } from './hooks/useLocation';
@@ -254,7 +255,11 @@ export function AppContent() {
   const handleMarketFilterChange = (newFilters: Partial<MarketFilters>) => {
     const updated = { ...appData.marketFilters, ...newFilters };
     updateModuleData('marketFilters', updated);
-    fetchMarketData(updated);
+    
+    // Only fetch from API if state or district changed
+    if (newFilters.state !== undefined || newFilters.district !== undefined) {
+      fetchMarketData(updated);
+    }
   };
 
   const handleCropSelect = async (crop: any) => {
@@ -1070,201 +1075,9 @@ export function AppContent() {
   );
 
   const renderPriceTrends = () => {
-    const states = marketService.getStates();
-    const districts = marketService.getDistricts(appData.marketFilters.state);
-
     return (
       <div className="space-y-6 pb-24">
-        {/* Market Controls */}
-        <div className="bg-dark-card p-6 rounded-3xl border border-dark-border space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold flex items-center">
-              <TrendingUp size={24} className="mr-2 text-brand-green" />
-              {t('market.priceTrends')}
-            </h2>
-            <div className="flex items-center text-[10px] text-stone-500 font-bold uppercase">
-              <RefreshCw size={12} className={cn("mr-1", appData.marketLoading && "animate-spin")} />
-              Last updated: {lastMarketUpdate.toLocaleTimeString()}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" size={16} />
-              <select 
-                value={appData.marketFilters.state}
-                onChange={(e) => handleMarketFilterChange({ state: e.target.value, district: 'All Districts' })}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm appearance-none"
-              >
-                {states.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div className="relative">
-              <Map className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" size={16} />
-              <select 
-                value={appData.marketFilters.district}
-                onChange={(e) => handleMarketFilterChange({ district: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm appearance-none"
-              >
-                {districts.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search crops..." 
-                value={appData.marketFilters.commodity}
-                onChange={(e) => handleMarketFilterChange({ commodity: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm"
-              />
-            </div>
-          </div>
-        </div>
-
-        {appData.marketLoading && (!appData.market || appData.market.length === 0) ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-dark-card p-6 rounded-3xl border border-dark-border h-64 animate-pulse"></div>
-            <div className="bg-dark-card p-6 rounded-3xl border border-dark-border h-64 animate-pulse"></div>
-          </div>
-        ) : appData.marketError ? (
-          <div className="bg-dark-card p-12 rounded-3xl border border-dark-border flex flex-col items-center justify-center text-center">
-            <AlertCircle size={48} className="text-red-500/20 mb-4" />
-            <h3 className="text-lg font-bold text-white mb-2">Market Data Error</h3>
-            <p className="text-stone-500 text-sm max-w-md mx-auto mb-6">{appData.marketError}</p>
-            <button 
-              onClick={() => fetchMarketData()}
-              className="px-6 py-2 bg-brand-green text-white rounded-xl font-bold text-sm"
-            >
-              Retry Connection
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Crop List */}
-              <div className="lg:col-span-1 bg-dark-card rounded-3xl border border-dark-border overflow-hidden flex flex-col h-[500px]">
-                <div className="p-4 border-b border-dark-border bg-dark-bg/30">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-stone-500">Live Prices</h3>
-                </div>
-                <div className="flex-1 overflow-y-auto no-scrollbar">
-                  {appData.market && appData.market.length > 0 ? (
-                    appData.market.map((crop: any) => (
-                      <button 
-                        key={crop.id} 
-                        onClick={() => handleCropSelect(crop)}
-                        className={cn(
-                          "w-full flex items-center justify-between p-4 border-b border-dark-border last:border-0 hover:bg-white/5 transition-colors text-left",
-                          appData.selectedMarketCrop?.id === crop.id && "bg-brand-green/10 border-l-4 border-l-brand-green"
-                        )}
-                      >
-                        <div>
-                          <div className="font-bold text-sm">{crop.commodity}</div>
-                          <div className="text-[10px] text-stone-500 uppercase font-bold">{crop.market}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold text-sm">₹{crop.modal_price.toLocaleString()}</div>
-                          <div className={cn(
-                            "text-[10px] font-bold flex items-center justify-end", 
-                            crop.trend > 0 ? "text-emerald-500" : "text-red-500"
-                          )}>
-                            {crop.trend > 0 ? <TrendingUpIcon size={10} className="mr-0.5" /> : <TrendingDownIcon size={10} className="mr-0.5" />}
-                            {Math.abs(crop.trend)}%
-                          </div>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="p-8 text-center text-stone-500 text-sm italic">
-                      No market data found for this selection.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Visualization & Insights */}
-              <div className="lg:col-span-2 space-y-6">
-                {appData.selectedMarketCrop && appData.selectedMarketCrop.history && appData.selectedMarketCrop.history.length > 0 && (
-                  <div className="bg-dark-card p-6 rounded-3xl border border-dark-border">
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h3 className="text-xl font-bold">{appData.selectedMarketCrop.commodity} Price Trend</h3>
-                        <p className="text-stone-500 text-xs">7-Day Historical Data (₹ per quintal)</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-brand-green">₹{appData.selectedMarketCrop.modal_price.toLocaleString()}</div>
-                        <div className="text-[10px] text-stone-500 font-bold uppercase">Current Modal Price</div>
-                      </div>
-                    </div>
-                    
-                    <div className="h-64 w-full min-h-[256px]" style={{ height: 256 }}>
-                      <ResponsiveContainer width="100%" height={256} minWidth={1} minHeight={1}>
-                        <LineChart data={appData.selectedMarketCrop.history}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#2d323d" vertical={false} />
-                          <XAxis 
-                            dataKey="date" 
-                            stroke="#57534e" 
-                            fontSize={10} 
-                            tickFormatter={(val) => new Date(val).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                          />
-                          <YAxis stroke="#57534e" fontSize={10} domain={['auto', 'auto']} />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: '#1a1d23', border: '1px solid #2d323d', borderRadius: '12px' }}
-                            itemStyle={{ color: '#22c55e' }}
-                          />
-                          <Line 
-                            type="monotone" 
-                            dataKey="price" 
-                            stroke="#22c55e" 
-                            strokeWidth={3} 
-                            dot={{ fill: '#22c55e', strokeWidth: 2 }} 
-                            activeDot={{ r: 6 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )}
-
-                {/* Price Comparison */}
-                {appData.market && appData.market.length > 0 && (
-                  <div className="bg-dark-card p-6 rounded-3xl border border-dark-border">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-stone-500 mb-4">Price Comparison (₹/Quintal)</h3>
-                    <div className="h-48 w-full min-h-[192px]" style={{ height: 192 }}>
-                      <ResponsiveContainer width="100%" height={192} minWidth={1} minHeight={1}>
-                        <BarChart data={appData.market.slice(0, 5)}>
-                          <XAxis dataKey="commodity" stroke="#57534e" fontSize={10} />
-                          <YAxis stroke="#57534e" fontSize={10} />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: '#1a1d23', border: '1px solid #2d323d', borderRadius: '12px' }}
-                          />
-                          <Bar dataKey="modal_price" radius={[4, 4, 0, 0]}>
-                            {appData.market.slice(0, 5).map((entry: any, index: number) => (
-                              <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#22c55e' : '#16a34a'} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )}
-
-                {/* AI Insights */}
-                <div className="bg-brand-green/10 border border-brand-green/20 p-6 rounded-3xl">
-                  <div className="flex items-center mb-3">
-                    <div className="w-8 h-8 bg-brand-green rounded-lg flex items-center justify-center mr-3">
-                      <TrendingUpIcon size={16} className="text-white" />
-                    </div>
-                    <h3 className="font-bold text-brand-green">AI Market Insight</h3>
-                  </div>
-                  <p className="text-stone-400 text-sm leading-relaxed italic">
-                    {appData.priceTrends || "Analyzing market trends..."}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+        <MarketDataView />
       </div>
     );
   };
@@ -1624,7 +1437,7 @@ export function AppContent() {
       {/* Main Content */}
       <main className={cn(
         "pt-24 px-6 mx-auto",
-        activeTab === 'marketplace' || activeTab === 'fertilizer' ? "max-w-6xl" : "max-w-lg"
+        activeTab === 'marketplace' || activeTab === 'fertilizer' || activeTab === 'priceTrends' ? "max-w-6xl" : "max-w-lg"
       )}>
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}

@@ -193,5 +193,20 @@
     "instructions": "Apply as a basal dose during sowing or transplanting.",
     "reason": "Your soil nutrients are balanced. A general NPK fertilizer is recommended for healthy growth.",
     "timestamp": "2026-04-22T08:35:50.618Z"
+  },
+  {
+    "id": "5f58e280-0e69-4a3e-93d6-3f1088b96c61",
+    "userId": "97275132-99bc-41e2-a065-2f990fb2e795",
+    "cropType": "Rice",
+    "soilType": "Sandy",
+    "n": 90,
+    "p": 70,
+    "k": 100,
+    "location": "Mumbai",
+    "fertilizerName": "NPK 19-19-19 (Balanced)",
+    "quantity": "50kg per acre",
+    "instructions": "Apply as a basal dose during sowing or transplanting.",
+    "reason": "Your soil nutrients are balanced. A general NPK fertilizer is recommended for healthy growth.",
+    "timestamp": "2026-09-23T03:19:41.085Z"
   }
 ]
