@@ -1,0 +1,45 @@
+crops:
+  - key: wheat
+    display: Wheat
+    aliases: ["Wheat", "WHEAT"]
+  - key: rice
+    display: Rice
+    aliases: ["Rice", "Paddy(Dhan)(Common)", "Paddy(Dhan)(Grade A)", "RICE", "Paddy"]
+  - key: maize
+    display: Maize
+    aliases: ["Maize", "MAIZE", "Corn"]
+  - key: sugarcane
+    display: Sugarcane
+    aliases: ["Sugarcane", "SUGARCANE", "Gur(Jaggery)"]
+  - key: potato
+    display: Potato
+    aliases: ["Potato", "POTATO", "Potato(Red)"]
+  - key: cotton
+    display: Cotton
+    aliases: ["Cotton", "COTTON", "Cotton(Adhiya/Unhusked)"]
+
+states:
+  - "Gujarat"
+  - "Maharashtra"
+  - "Uttar Pradesh"
+  - "Punjab"
+  - "Madhya Pradesh"
+  - "Karnataka"
+  - "Rajasthan"
+
+priority_markets:
+  Maharashtra: ["Lasalgaon", "Pune", "Nashik", "Nagpur"]
+  Gujarat: ["Rajkot", "Surat", "Ahmedabad", "Gondal"]
+  Punjab: ["Khanna", "Ludhiana", "Amritsar"]
+  Uttar Pradesh: ["Agra", "Kanpur", "Varanasi"]
+  Madhya Pradesh: ["Indore", "Bhopal", "Ujjain"]
+  Karnataka: ["Bengaluru", "Hubli", "Belgaum"]
+  Rajasthan: ["Kota", "Jaipur", "Sri Ganganagar"]
+
+market_aliases:
+  Maharashtra:
+    Lasalgaon: ["Lasalgaon", "Lasalgaon(Niphad)"]
+
+tier_b:
+  mandi_watch_max_tracked: 300
+  weather_ondemand_max_new_grids: 300
