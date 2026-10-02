@@ -1,0 +1,37 @@
+name: ingest-mandi
+
+on:
+  workflow_dispatch: {}
+  # Cron schedules will be activated in Phase 2 once merged to main:
+  # schedule:
+  #   - cron: "0 10 * * *"   # 15:30 IST
+  #   - cron: "0 16 * * *"   # 21:30 IST
+
+concurrency:
+  group: ingest-mandi
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Run daily mandi ingestion
+        working-directory: backend
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATA_GOV_IN_KEY: ${{ secrets.DATA_GOV_IN_KEY }}
+        run: python -m jobs.ingest_mandi_daily
