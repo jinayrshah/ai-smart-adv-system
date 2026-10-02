@@ -1,0 +1,1 @@
+"""Mandi data source adapters."""
