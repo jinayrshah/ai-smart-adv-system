@@ -116,7 +116,9 @@ export const authService = {
       });
 
       if (!response.ok) {
-        localStorage.removeItem('agri_auth_token');
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem('agri_auth_token');
+        }
         return null;
       }
 
@@ -127,7 +129,8 @@ export const authService = {
       }
       return data;
     } catch (err) {
-      localStorage.removeItem('agri_auth_token');
+      console.error('Network error while fetching profile:', err);
+      // Do not remove token on network error (e.g. server restart)
       return null;
     }
   },

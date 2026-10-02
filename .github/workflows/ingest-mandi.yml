@@ -2,10 +2,9 @@ name: ingest-mandi
 
 on:
   workflow_dispatch: {}
-  # Cron schedules will be activated in Phase 2 once merged to main:
-  # schedule:
-  #   - cron: "0 10 * * *"   # 15:30 IST
-  #   - cron: "0 16 * * *"   # 21:30 IST
+  schedule:
+    - cron: "0 10 * * *"   # 15:30 IST
+    - cron: "0 16 * * *"   # 21:30 IST
 
 concurrency:
   group: ingest-mandi
