@@ -1098,6 +1098,22 @@ export async function createApp() {
     }
   });
 
+  // Proxy FastAPI data-layer endpoints (trend, latest prices, health)
+  app.get(['/api/market/trend', '/api/market/prices/latest', '/api/health/data'], async (req, res) => {
+    try {
+      const fastApiUrl = `http://127.0.0.1:8000${req.originalUrl}`;
+      const response = await fetch(fastApiUrl);
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (err: any) {
+      res.status(502).json({
+        error: 'FastAPI backend unavailable',
+        hint: 'Make sure the FastAPI backend is running on port 8000 (python -m uvicorn app.main:app --port 8000)',
+        details: err.message,
+      });
+    }
+  });
+
   // Market API Route (Data.gov.in Proxy)
   app.get('/api/market', async (req, res) => {
     try {
