@@ -96,7 +96,7 @@ export const initKnowledgeBase = async () => {
   try {
     // Batch embedding request
     const result = await ai.models.embedContent({
-      model: "gemini-embedding-2-preview",
+      model: "gemini-embedding-2",
       contents: chunksToEmbed.map(chunk => chunk.content)
     });
 
@@ -127,7 +127,7 @@ export const initKnowledgeBase = async () => {
         while (retries > 0 && !success) {
           try {
             const result = await ai.models.embedContent({
-              model: "gemini-embedding-2-preview",
+              model: "gemini-embedding-2",
               contents: [chunk.content]
             });
             chunk.embedding = result.embeddings[0].values;
@@ -195,7 +195,7 @@ const retrieveChunks = async (query: string, k: number = 2) => {
   while (retries > 0) {
     try {
       const result = await ai.models.embedContent({
-        model: "gemini-embedding-2-preview",
+        model: "gemini-embedding-2",
         contents: [query]
       });
       const queryEmbedding = result.embeddings[0].values;
@@ -263,7 +263,7 @@ export const generateChatResponse = async (query: string, history: any[] = []) =
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: [
         ...history.map(h => ({ role: h.role, parts: [{ text: h.content }] })),
         { role: 'user', parts: [{ text: query }] }

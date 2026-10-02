@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import path from 'path';
 import multer from 'multer';
@@ -1240,21 +1243,8 @@ export async function createApp() {
         h.commodity === currentData.commodity
       );
 
-      // Add dummy historical data to ensure the graph looks good for demo if there's only 1 point.
-      if (historyFiltered.length <= 1) {
-        const modalPrice = Number(currentData.modal_price) || 1000;
-        for (let i = 6; i >= 1; i--) {
-          const date = new Date();
-          date.setDate(date.getDate() - i);
-          const variation = ((Math.random() * 10) - 5) / 100; // +/- 5%
-          historyFiltered.unshift({
-            ...currentData,
-            arrival_date: `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`,
-            modal_price: Math.round(modalPrice * (1 + variation)).toString(),
-            _is_dummy: true // Flag to indicate dummy data generated for UI
-          });
-        }
-      }
+      // Removed dummy historical data generation as per PRD requirements.
+      // History will now naturally build up as data is collected day-by-day.
       
       // Sort history by date assuming format dd/mm/yyyy
       historyFiltered.sort((a: any, b: any) => {
@@ -1289,7 +1279,7 @@ Period high: ₹${highest}, Period low: ₹${lowest}.
 Summarize this trend factually in plain language for a farmer, and note any significant pattern. Do not give direct financial advice on whether to sell — describe the pattern factually and let the farmer decide.`;
 
           const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
+            model: "gemini-2.5-flash",
             contents: prompt
           });
           ai_summary = response.text || "Market trend analysis currently unavailable.";

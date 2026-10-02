@@ -361,14 +361,32 @@ export const Login: React.FC = () => {
             </p>
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 setLoginMethod('mobile');
                 setIdentifier('0000000000');
                 setPassword('password123');
+                try {
+                  setLoading(true);
+                  setError(null);
+                  try {
+                    await login('+910000000000', 'password123');
+                  } catch (e) {
+                    // If account doesn't exist, register it automatically
+                    await register('+910000000000', 'password123', 'mobile');
+                  }
+                  if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(() => {}, () => {}, { timeout: 10000 });
+                  }
+                } catch (err: any) {
+                  setError("Quick Test failed: " + err.message);
+                } finally {
+                  setLoading(false);
+                }
               }}
-              className="w-full bg-stone-900/50 hover:bg-stone-800 text-stone-400 hover:text-emerald-500 py-2 rounded-lg text-xs transition-colors border border-dark-border"
+              className="w-full bg-stone-900/50 hover:bg-stone-800 text-stone-400 hover:text-emerald-500 py-2 rounded-lg text-xs transition-colors border border-dark-border flex items-center justify-center space-x-2"
             >
-              Demo: +91 00000 00000 / password123
+              <span>Demo: Auto-Login as Test User</span>
+              <ArrowRight size={14} />
             </button>
           </div>
         )}

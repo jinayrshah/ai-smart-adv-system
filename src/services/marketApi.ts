@@ -1,0 +1,102 @@
+/**
+ * Typed client for Market Price and Trend API endpoints.
+ * Mirrors the Pydantic schemas in backend/app/schemas/market.py.
+ */
+
+export interface DateRange {
+  from: string;
+  to: string;
+}
+
+export interface CoverageStats {
+  expected_days: number;
+  days_with_data: number;
+  gaps: string[];
+}
+
+export interface TrendPoint {
+  date: string;
+  modal: number | null;
+  min: number | null;
+  max: number | null;
+  n_varieties: number;
+}
+
+export interface MarketTrendResponse {
+  commodity: string;
+  market: string;
+  state: string;
+  unit: string;
+  range: DateRange;
+  coverage: CoverageStats;
+  sources: Record<string, number>;
+  as_of: string;
+  stale: boolean;
+  points: TrendPoint[];
+}
+
+export interface LatestPriceRecord {
+  id?: number;
+  state: string;
+  district: string;
+  market: string;
+  commodity: string;
+  variety: string;
+  grade: string;
+  arrival_date: string;
+  min_price: number | null;
+  max_price: number | null;
+  modal_price: number | null;
+  unit: string;
+  source: string;
+  quality_flag: string;
+}
+
+export interface LatestPricesResponse {
+  status: string;
+  count: number;
+  records: LatestPriceRecord[];
+  as_of: string;
+  stale: boolean;
+}
+
+const API_BASE = (typeof window !== "undefined" && (window as any).__API_BASE__) || "";
+
+export async function fetchMarketTrend(
+  commodity: string,
+  market: string,
+  state: string,
+  days: 7 | 30 | 90 | 180 = 30
+): Promise<MarketTrendResponse> {
+  const params = new URLSearchParams({
+    commodity,
+    market,
+    state,
+    days: days.toString(),
+  });
+  const res = await fetch(`${API_BASE}/api/market/trend?${params.toString()}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch market trend: HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchLatestPrices(
+  commodity?: string,
+  state?: string,
+  district?: string,
+  market?: string,
+  limit: number = 50
+): Promise<LatestPricesResponse> {
+  const params = new URLSearchParams({ limit: limit.toString() });
+  if (commodity) params.set("commodity", commodity);
+  if (state) params.set("state", state);
+  if (district) params.set("district", district);
+  if (market) params.set("market", market);
+
+  const res = await fetch(`${API_BASE}/api/market/prices/latest?${params.toString()}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch latest prices: HTTP ${res.status}`);
+  }
+  return res.json();
+}
