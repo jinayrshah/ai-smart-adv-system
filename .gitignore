@@ -15,3 +15,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .coverage
+.planning/
+graphify-out/
+localhost.md
+scratch_gemini.ts

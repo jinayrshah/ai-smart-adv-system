@@ -31,5 +31,38 @@
     "name": "Deekshitha",
     "location": "Bangalore",
     "farmType": "Vegetable"
+  },
+  "rushabh@gmail.com": {
+    "id": "549a68fe-6a2f-4352-833b-96e88f19938b",
+    "identifier": "rushabh@gmail.com",
+    "password": "$2b$10$nZLzsukIs1R/Z68LDcmCQ.gvuKRtR71ncssh9n1/cNzkz6LJpnSxu",
+    "type": "email",
+    "role": "farmer",
+    "createdAt": "2026-09-09T09:27:28.768Z",
+    "name": "xyz",
+    "location": "mumbai",
+    "farmType": "Vegetable"
+  },
+  "+919999999999": {
+    "id": "0a082aac-ecc6-4030-8d48-76766f9c4479",
+    "identifier": "+919999999999",
+    "password": "$2b$10$eKCGSIZO0sHqTtfWDC/fGuPxwYIi3DtYwPFls5zKN2FEUJHAx.p.e",
+    "type": "mobile",
+    "role": "farmer",
+    "createdAt": "2026-09-12T16:55:28.959Z",
+    "name": "jiin",
+    "location": "mumbai",
+    "farmType": "Vegetable"
+  },
+  "+910000000000": {
+    "id": "97275132-99bc-41e2-a065-2f990fb2e795",
+    "identifier": "+910000000000",
+    "password": "$2b$10$N6GQYQHQhwVJOu3aNRT/H.f/kfApfUUvVBjMWam5H6z98o62pjJw6",
+    "type": "mobile",
+    "role": "farmer",
+    "createdAt": "2026-09-22T15:10:56.814Z",
+    "name": "jinay",
+    "location": "mumbai",
+    "farmType": "Vegetable"
   }
 }
