@@ -130,7 +130,7 @@ class DatagovLiveSource:
 
     async def fetch_scope_pair(
         self,
-        client: httpx.AsyncClient,
+        client: httpx.AsyncClient | None,
         state: str,
         commodity: str,
         max_pages: int = 50,
@@ -138,31 +138,39 @@ class DatagovLiveSource:
         """Fetch all records for a state x commodity pair using correct offset pagination."""
         records: list[MandiRecord] = []
         offset = 0
+        owns_client = client is None
 
-        for _ in range(max_pages):
-            params = self._build_params(state=state, commodity=commodity, limit=1000, offset=offset)
-            try:
-                data = await fetch_with_retry(client, BASE_URL, params=params, retries=2, timeout=10.0)
-            except Exception as exc:
-                logger.error(f"Error fetching {state} / {commodity} at offset {offset}: {exc}")
-                raise exc
+        if owns_client:
+            client = httpx.AsyncClient()
 
-            raw_records = data.get("records", [])
-            if not raw_records:
-                break
+        try:
+            for _ in range(max_pages):
+                params = self._build_params(state=state, commodity=commodity, limit=1000, offset=offset)
+                try:
+                    data = await fetch_with_retry(client, BASE_URL, params=params, retries=2, timeout=10.0)
+                except Exception as exc:
+                    logger.error(f"Error fetching {state} / {commodity} at offset {offset}: {exc}")
+                    raise exc
 
-            for r in raw_records:
-                parsed = self.parse_record(r)
-                if parsed:
-                    records.append(parsed)
+                raw_records = data.get("records", [])
+                if not raw_records:
+                    break
 
-            total = int(data.get("total", 0) or 0)
-            # CRITICAL: Advance offset by len(records) returned, not by requested limit
-            returned_count = len(raw_records)
-            offset += returned_count
+                for r in raw_records:
+                    parsed = self.parse_record(r)
+                    if parsed:
+                        records.append(parsed)
 
-            if offset >= total or returned_count == 0:
-                break
+                total = int(data.get("total", 0) or 0)
+                # CRITICAL: Advance offset by len(records) returned, not by requested limit
+                returned_count = len(raw_records)
+                offset += returned_count
+
+                if offset >= total or returned_count == 0:
+                    break
+        finally:
+            if owns_client:
+                await client.aclose()
 
         return records
 

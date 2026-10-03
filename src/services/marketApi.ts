@@ -100,3 +100,47 @@ export async function fetchLatestPrices(
   }
   return res.json();
 }
+
+// ===== Phase 2B: Mandi Explore =====
+
+export interface MarketSearchResult {
+  market: string;
+  district: string;
+  state: string;
+  latest_date: string | null;
+  latest_modal: number | null;
+  latest_min: number | null;
+  latest_max: number | null;
+  variety: string;
+  source: string;
+  records_available: number;
+}
+
+export interface MarketSearchResponse {
+  status: string;
+  commodity: string;
+  state: string;
+  market_filter: string;
+  tier: "advisory" | "explore";
+  history_available: boolean;
+  markets: MarketSearchResult[];
+  total_records: number;
+  as_of: string;
+}
+
+export async function fetchMarketSearch(
+  commodity: string,
+  state: string,
+  market?: string,
+  district?: string
+): Promise<MarketSearchResponse> {
+  const params = new URLSearchParams({ commodity, state });
+  if (market) params.set("market", market);
+  if (district) params.set("district", district);
+
+  const res = await fetch(`${API_BASE}/api/market/search?${params.toString()}`);
+  if (!res.ok) {
+    throw new Error(`Failed to search market: HTTP ${res.status}`);
+  }
+  return res.json();
+}

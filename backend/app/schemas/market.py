@@ -57,3 +57,28 @@ class LatestPricesResponse(BaseModel):
     records: list[LatestPriceRecord]
     as_of: str
     stale: bool
+
+
+class MarketSearchResult(BaseModel):
+    market: str
+    district: str
+    state: str
+    latest_date: str | None = None
+    latest_modal: float | None = None
+    latest_min: float | None = None
+    latest_max: float | None = None
+    variety: str = ""
+    source: str = ""
+    records_available: int = 0
+
+
+class MarketSearchResponse(BaseModel):
+    status: str = "ok"
+    commodity: str
+    state: str
+    market_filter: str = ""
+    tier: str  # "advisory" or "explore"
+    history_available: bool
+    markets: list[MarketSearchResult]
+    total_records: int
+    as_of: str
