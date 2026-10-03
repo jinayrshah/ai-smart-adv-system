@@ -59,6 +59,7 @@ import { agricultureService, CropInput, PredictionResult } from './services/aiSe
 import { initKnowledgeBase } from './services/ragService';
 import { marketService, MarketPrice, MarketFilters } from './services/marketService';
 import { MarketDataView } from './components/market/MarketDataView';
+import { MandiExplore } from './components/market/MandiExplore';
 import { articles, Article } from './data/articles';
 import { useGreeting, useWeather, getFarmingInsights } from './hooks/useAgricultureDashboard';
 import { useLocation } from './hooks/useLocation';
@@ -1078,6 +1079,11 @@ export function AppContent() {
     return (
       <div className="space-y-6 pb-24">
         <MarketDataView />
+
+        {/* Phase 2B: Mandi Explorer — search any crop at any market */}
+        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-8">
+          <MandiExplore />
+        </div>
       </div>
     );
   };

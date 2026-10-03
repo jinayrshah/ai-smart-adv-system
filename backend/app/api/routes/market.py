@@ -4,9 +4,12 @@ from fastapi import APIRouter, Depends, Query
 from app.core.timeutil import now_utc_iso
 from app.data.mandi.repository import MandiRepository
 from app.data.mandi.series import build_market_trend, is_stale_data
+from app.data.mandi.service import get_market_search
 from app.schemas.market import (
     LatestPriceRecord,
     LatestPricesResponse,
+    MarketSearchResponse,
+    MarketSearchResult,
     MarketTrendResponse,
 )
 
@@ -91,4 +94,37 @@ def get_price_trend(
         market=market,
         state=state,
         days=days,
+    )
+
+
+@router.get("/search", response_model=MarketSearchResponse)
+def search_market(
+    commodity: str = Query(..., description="Commodity name (any crop)"),
+    state: str = Query(..., description="State name"),
+    market: str = Query("", description="Market name (optional)"),
+    district: str = Query("", description="District name (optional)"),
+    repo: MandiRepository = Depends(get_repo),
+):
+    """
+    Search any crop at any market in India (Tier B Explore).
+    Returns today's price (live lookup on cache miss for untracked pairs),
+    registers the pair in mandi_watch for future daily ingestion,
+    and enforces LRU eviction at the configured cap.
+    """
+    result = get_market_search(
+        repo=repo,
+        commodity=commodity,
+        state=state,
+        market=market,
+        district=district,
+    )
+    return MarketSearchResponse(
+        commodity=result["commodity"],
+        state=result["state"],
+        market_filter=result["market_filter"],
+        tier=result["tier"],
+        history_available=result["history_available"],
+        markets=[MarketSearchResult(**m) for m in result["markets"]],
+        total_records=result["total_records"],
+        as_of=now_utc_iso(),
     )
