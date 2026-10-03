@@ -7,6 +7,7 @@ from app.core.timeutil import today_ist
 from app.data.mandi.canonical import Canonicalizer, load_tracked_scope
 from app.data.mandi.reconcile import dedupe_by_key
 from app.data.mandi.repository import MandiRepository
+from app.data.mandi.service import get_watched_pairs
 from app.data.mandi.sources.datagov_live import DatagovLiveSource
 from app.data.mandi.validate import flag_quality
 from app.data.types import MandiRecord
@@ -32,13 +33,44 @@ async def run_ingestion() -> int:
     status = "ok"
 
     try:
+        # Phase 1: Fetch tracked scope (Tier A advisory crops)
         raw_records = await source.fetch(start=current_date, end=current_date, scope=scope)
         rows_in = len(raw_records)
-        logger.info(f"Fetched {rows_in} raw records from data.gov.in", extra={"job": "ingest_mandi_daily", "rows": rows_in})
+        logger.info(f"Fetched {rows_in} raw records from data.gov.in (Tier A)", extra={"job": "ingest_mandi_daily", "rows": rows_in})
+
+        # Phase 2B: Also fetch watched pairs (Tier B graduated combos)
+        watched_pairs = get_watched_pairs(repo)
+        watch_records: list[MandiRecord] = []
+        if watched_pairs:
+            logger.info(f"Fetching {len(watched_pairs)} mandi_watch tracked pairs (Tier B)")
+            seen_pairs: set[tuple[str, str]] = set()
+            import httpx
+            async with httpx.AsyncClient() as client:
+                for pair in watched_pairs:
+                    pair_key = (pair["state"], pair["commodity"])
+                    if pair_key in seen_pairs:
+                        continue
+                    seen_pairs.add(pair_key)
+                    try:
+                        pair_records = await source.fetch_scope_pair(
+                            client=client,
+                            state=pair["state"],
+                            commodity=pair["commodity"],
+                            max_pages=5,  # Limit for Tier B
+                        )
+                        watch_records.extend(pair_records)
+                    except Exception as exc:
+                        logger.warning(f"Watch pair fetch failed for {pair_key}: {exc}")
+
+            if watch_records:
+                raw_records.extend(watch_records)
+                rows_in = len(raw_records)
+                logger.info(f"Total records after Tier B: {rows_in}")
 
         canonical_records: list[MandiRecord] = []
         for r in raw_records:
-            canon = canonicalizer.canonicalize(r, strict_crop=True)
+            # Use strict_crop=False for Tier B records to accept any commodity
+            canon = canonicalizer.canonicalize(r, strict_crop=False)
             if canon:
                 canonical_records.append(canon)
 
