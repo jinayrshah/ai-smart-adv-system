@@ -58,7 +58,26 @@ curl -s "http://127.0.0.1:8000/api/weather/search?query=Nagpur"
 curl -s "http://127.0.0.1:8000/api/context/market-weather?commodity=Wheat&market=Malegaon&days=30"
 ```
 
-### 6. Run All Automated Tests
+### 6. Phase 4B Crop Margin Calculator (DES Benchmark)
+```bash
+curl -s "http://127.0.0.1:8000/api/market/margin?crop=Wheat&state=Punjab&field_size_acres=2.5&price_per_qtl=2400"
+```
+
+### 7. Phase 4B Storage Estimator (Hold vs Sell & Non-Storable Refusal)
+```bash
+# Storable crop (Wheat):
+curl -s "http://127.0.0.1:8000/api/market/storage-estimate?crop=Wheat&market=Khanna&state=Punjab&storage_cost_per_qtl_per_month=30&months=3&current_price=2200"
+
+# Non-storable crop refusal (Sugarcane):
+curl -s "http://127.0.0.1:8000/api/market/storage-estimate?crop=Sugarcane&market=Kolhapur&state=Maharashtra"
+```
+
+### 8. Phase 4B Mandi Logistics Weather (Market Arrival Disruption)
+```bash
+curl -s "http://127.0.0.1:8000/api/weather/summary?mandi=Malegaon&state=Maharashtra"
+```
+
+### 9. Run All Automated Tests
 ```bash
 cd backend && .venv/bin/pytest tests/ -v
 npx tsc --noEmit
