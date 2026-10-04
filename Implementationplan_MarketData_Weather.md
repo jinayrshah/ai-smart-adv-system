@@ -173,28 +173,28 @@ Phase 3's on-demand path (Architecture §9.4) already does most of this — this
 ## Phase 4 — Context layer (price ↔ weather)
 
 **Tasks**
-- [ ] `GET /api/context/market-weather` (Architecture §10.4): price block + weather block for the market's district grid + ≤ 3 rule-based `signals[]` from config.
-- [ ] UI: a compact "Context" card on the market page. Signals are descriptive only — never phrased as predictions.
+- [x] `GET /api/context/market-weather` (Architecture §10.4): price block + weather block for the market's district grid + ≤ 3 rule-based `signals[]` from config.
+- [x] UI: a compact "Context" card on the market page. Signals are descriptive only — never phrased as predictions.
 
 **Acceptance**
-- [ ] Endpoint returns coherent price and weather blocks for a tracked market; `signals` carry their evidence numbers.
-- [ ] Copy reviewed: no wording implies a price forecast.
+- [x] Endpoint returns coherent price and weather blocks for a tracked market; `signals` carry their evidence numbers.
+- [x] Copy reviewed: no wording implies a price forecast.
 
 ---
 
 ## Phase 4B — Margin & storage calculators, market-level weather
 
 **Tasks**
-- [ ] Migration: `crop_cost_reference`, `crop_storage_reference` (Architecture §9b).
-- [ ] One-time load job for `crop_cost_reference` from the DES Cost of Cultivation dataset, scoped to tracked crops × tracked states — this is manual sourcing/verification work (which year, which exact DES release), not a live API pull.
-- [ ] Populate `crop_storage_reference` by hand for the 6 tracked crops (`storable`, `max_storage_days`, loss rate) — sourced from the same PoP documents already in use for the advisory layer, not invented.
-- [ ] `GET /api/market/margin` and `GET /api/market/storage-estimate` (Architecture §9b, §10.1).
-- [ ] Wire `locations.kind='mandi'` through to `weather.service.get_summary()` for a market-level weather panel (§9b.3) — no new backend code, just a new call site.
+- [x] Migration: `crop_cost_reference`, `crop_storage_reference` (Architecture §9b).
+- [x] One-time load job for `crop_cost_reference` from the DES Cost of Cultivation dataset, scoped to tracked crops × tracked states — this is manual sourcing/verification work (which year, which exact DES release), not a live API pull.
+- [x] Populate `crop_storage_reference` by hand for the 6 tracked crops (`storable`, `max_storage_days`, loss rate) — sourced from the same PoP documents already in use for the advisory layer, not invented.
+- [x] `GET /api/market/margin` and `GET /api/market/storage-estimate` (Architecture §9b, §10.1).
+- [x] Wire `locations.kind='mandi'` through to `weather.service.get_summary()` for a market-level weather panel (§9b.3) — no new backend code, just a new call site.
 
 **Acceptance**
-- [ ] Margin endpoint returns `null` with a clear reason for a crop/state combo with no cost data on file, never a fabricated number.
-- [ ] Storage endpoint correctly refuses non-storable crops rather than estimating something meaningless.
-- [ ] `cost_year` is present and surfaced in every margin response.
+- [x] Margin endpoint returns `null` with a clear reason for a crop/state combo with no cost data on file, never a fabricated number.
+- [x] Storage endpoint correctly refuses non-storable crops rather than estimating something meaningless.
+- [x] `cost_year` is present and surfaced in every margin response.
 
 ---
 

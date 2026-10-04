@@ -17,8 +17,11 @@ def test_is_stale_data_none():
     assert is_stale_data(None) is True
 
 
+from app.core.timeutil import today_ist
+
+
 def test_is_stale_data_fresh_vs_stale():
-    today = date(2026, 10, 2)
+    today = today_ist()
     # Today's date is not stale
     assert is_stale_data(today) is False
     # A date 10 days ago is definitely stale
