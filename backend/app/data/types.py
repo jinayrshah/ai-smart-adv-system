@@ -97,6 +97,66 @@ class WeatherCurrent:
 
 
 @dataclass
+class FusedDay:
+    grid_key: str
+    date: date
+    phase: str  # past | today | future
+    tmax_c: float | None = None
+    tmin_c: float | None = None
+    precip_mm: float | None = None
+    precip_prob_pct: float | None = None
+    rh_mean_pct: float | None = None
+    radiation_mj_m2: float | None = None
+    et0_mm: float | None = None
+    primary_source: str = "open_meteo"
+    validators: list[str] = field(default_factory=list)
+    confidence: str = "high"  # high | medium | low
+    degraded: bool = False
+    disagreement: dict[str, Any] | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "grid_key": self.grid_key,
+            "date": self.date.isoformat(),
+            "phase": self.phase,
+            "tmax_c": self.tmax_c,
+            "tmin_c": self.tmin_c,
+            "precip_mm": self.precip_mm,
+            "precip_prob_pct": self.precip_prob_pct,
+            "rh_mean_pct": self.rh_mean_pct,
+            "radiation_mj_m2": self.radiation_mj_m2,
+            "et0_mm": self.et0_mm,
+            "primary_source": self.primary_source,
+            "validators": self.validators,
+            "confidence": self.confidence,
+            "degraded": self.degraded,
+            "disagreement": self.disagreement,
+        }
+
+
+@dataclass
+class AgroMetrics:
+    rain_7d_mm: float = 0.0
+    rain_30d_mm: float = 0.0
+    rain_30d_vs_normal_pct: float | None = None
+    dry_spell_days: int = 0
+    tmax_7d_anomaly_c: float | None = None
+    et0_7d_mm: float | None = None
+    confidence: str = "medium"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "rain_7d_mm": round(self.rain_7d_mm, 1),
+            "rain_30d_mm": round(self.rain_30d_mm, 1),
+            "rain_30d_vs_normal_pct": round(self.rain_30d_vs_normal_pct, 1) if self.rain_30d_vs_normal_pct is not None else None,
+            "dry_spell_days": self.dry_spell_days,
+            "tmax_7d_anomaly_c": round(self.tmax_7d_anomaly_c, 1) if self.tmax_7d_anomaly_c is not None else None,
+            "et0_7d_mm": round(self.et0_7d_mm, 1) if self.et0_7d_mm is not None else None,
+            "confidence": self.confidence,
+        }
+
+
+@dataclass
 class CropScope:
     key: str
     display: str

@@ -1,0 +1,24 @@
+kind,name,state,district,lat,lon,grid_key,geocode_source,verified,tracked
+mandi,Lasalgaon,Maharashtra,Nashik,20.1427,74.23946,"20.1,74.2",open_meteo,False,True
+mandi,Pune,Maharashtra,Pune,18.51957,73.85535,"18.5,73.9",open_meteo,False,True
+mandi,Nashik,Maharashtra,Nashik,19.99727,73.79096,"20.0,73.8",open_meteo,False,True
+mandi,Nagpur,Maharashtra,Nagpur,21.14631,79.08491,"21.1,79.1",open_meteo,False,True
+mandi,Rajkot,Gujarat,Rajkot,22.29161,70.79322,"22.3,70.8",open_meteo,False,True
+mandi,Surat,Gujarat,Surat District,21.19594,72.83023,"21.2,72.8",open_meteo,False,True
+mandi,Ahmedabad,Gujarat,Ahmadābād District,23.02579,72.58727,"23.0,72.6",open_meteo,False,True
+mandi,Gondal,Gujarat,Rajkot,21.96074,70.80255,"22.0,70.8",open_meteo,False,True
+mandi,Khanna,Punjab,Ludhiana district,30.70547,76.22196,"30.7,76.2",open_meteo,False,True
+mandi,Ludhiana,Punjab,Ludhiana district,30.91204,75.85379,"30.9,75.9",open_meteo,False,True
+mandi,Amritsar,Punjab,Amritsar,31.62234,74.87534,"31.6,74.9",open_meteo,False,True
+mandi,Agra,Uttar Pradesh,Agra,27.18333,78.01667,"27.2,78.0",open_meteo,False,True
+mandi,Kanpur,Uttar Pradesh,Kanpur Nagar,26.46523,80.34975,"26.5,80.3",open_meteo,False,True
+mandi,Varanasi,Uttar Pradesh,Varanasi,25.31668,83.01041,"25.3,83.0",open_meteo,False,True
+mandi,Indore,Madhya Pradesh,Indore district,22.71792,75.8333,"22.7,75.8",open_meteo,False,True
+mandi,Bhopal,Madhya Pradesh,Bhopal District,23.25469,77.40289,"23.3,77.4",open_meteo,False,True
+mandi,Ujjain,Madhya Pradesh,Ujjain district,23.18239,75.77643,"23.2,75.8",open_meteo,False,True
+mandi,Bengaluru,Karnataka,Bengaluru Urban,12.97194,77.59369,"13.0,77.6",open_meteo,False,True
+mandi,Hubli,Karnataka,Kalaburagi,17.58662,76.51148,"17.6,76.5",open_meteo,False,True
+mandi,Belgaum,Karnataka,Belgaum district,15.85929,74.61829,"15.9,74.6",open_meteo,False,True
+mandi,Kota,Rajasthan,Kota District,25.18254,75.83907,"25.2,75.8",open_meteo,False,True
+mandi,Jaipur,Rajasthan,Jaipur district,26.91962,75.78781,"26.9,75.8",open_meteo,False,True
+mandi,Sri Ganganagar,Rajasthan,Ganganagar,29.92009,73.87496,"29.9,73.9",open_meteo,False,True

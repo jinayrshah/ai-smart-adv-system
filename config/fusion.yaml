@@ -1,0 +1,43 @@
+primary_order:
+  past_archive:
+    - open_meteo
+    - nasa_power
+  past_recent:
+    - open_meteo
+    - nasa_power
+  today:
+    - open_meteo
+    - openweather
+  future:
+    - open_meteo
+    - openweather
+
+validators:
+  past_archive:
+    - nasa_power
+  past_recent:
+    - nasa_power
+  today:
+    - openweather
+  future:
+    - openweather
+
+tolerances:
+  temp_c: 2.5
+  rh_pct: 15.0
+  radiation_rel: 0.20
+  precip:
+    abs_mm: 2.0
+    rel: 0.30
+    bucket_mismatch_is_disagreement: true
+
+spread:
+  tmax_c: 3.0
+
+rain_buckets_mm:
+  - 0.1
+  - 2.5
+  - 15.6
+  - 64.5
+  - 115.6
+  - 204.5
