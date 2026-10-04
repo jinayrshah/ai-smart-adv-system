@@ -1,0 +1,44 @@
+# Crop Storage Reference Data (Architecture §9b.2)
+# Sourced from ICAR, WDRA, FCI, and NHB Package of Practices documents.
+
+- crop: Wheat
+  storable: true
+  max_storage_days: 360
+  typical_loss_pct_per_month: 0.5
+  source: "WDRA / ICAR Post-Harvest Grain Storage Manual (Moisture < 12%)"
+
+- crop: Rice
+  storable: true
+  max_storage_days: 360
+  typical_loss_pct_per_month: 0.6
+  source: "FCI / WDRA Standard Warehousing Guidelines"
+
+- crop: Maize
+  storable: true
+  max_storage_days: 240
+  typical_loss_pct_per_month: 0.8
+  source: "ICAR-IIMR Protocol for Cereal Grain Preservation"
+
+- crop: Cotton
+  storable: true
+  max_storage_days: 180
+  typical_loss_pct_per_month: 0.4
+  source: "CICR Guidelines for Dry Covered Cotton Warehousing"
+
+- crop: Potato
+  storable: true
+  max_storage_days: 270
+  typical_loss_pct_per_month: 1.8
+  source: "CPRI (Central Potato Research Institute) Controlled Cold Storage Manual (2-4°C, 90-95% RH)"
+
+- crop: Sugarcane
+  storable: false
+  max_storage_days: 2
+  typical_loss_pct_per_month: null
+  source: "IISR Post-Harvest Guidelines: Sucrose inversion begins within 24-48h of harvest; holding or storage is not viable."
+
+- crop: Tomato
+  storable: false
+  max_storage_days: 5
+  typical_loss_pct_per_month: null
+  source: "NHB Post-Harvest Protocol: Highly perishable crop; field-to-market dispatch required within days."

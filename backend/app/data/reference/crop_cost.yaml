@@ -1,0 +1,163 @@
+# Directorate of Economics and Statistics (DES) Reference Cost of Cultivation
+# Source: Comprehensive Scheme for Studying the Cost of Cultivation of Principal Crops (DES, MoA&FW)
+# Costs in ₹/quintal, Reference yields in quintals/hectare (1 hectare = 2.471 acres).
+
+- crop: Wheat
+  state: Punjab
+  year: "2022-23"
+  cost_a2fl_per_quintal: 960.0
+  cost_c2_per_quintal: 1530.0
+  reference_yield_qtl_per_hectare: 46.5
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Wheat
+  state: Haryana
+  year: "2022-23"
+  cost_a2fl_per_quintal: 1040.0
+  cost_c2_per_quintal: 1590.0
+  reference_yield_qtl_per_hectare: 44.0
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Wheat
+  state: Madhya Pradesh
+  year: "2022-23"
+  cost_a2fl_per_quintal: 1180.0
+  cost_c2_per_quintal: 1680.0
+  reference_yield_qtl_per_hectare: 33.5
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Wheat
+  state: Uttar Pradesh
+  year: "2022-23"
+  cost_a2fl_per_quintal: 1120.0
+  cost_c2_per_quintal: 1620.0
+  reference_yield_qtl_per_hectare: 37.0
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Wheat
+  state: Rajasthan
+  year: "2022-23"
+  cost_a2fl_per_quintal: 1220.0
+  cost_c2_per_quintal: 1720.0
+  reference_yield_qtl_per_hectare: 36.5
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Wheat
+  state: Maharashtra
+  year: "2022-23"
+  cost_a2fl_per_quintal: 1350.0
+  cost_c2_per_quintal: 1950.0
+  reference_yield_qtl_per_hectare: 22.0
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Wheat
+  state: Gujarat
+  year: "2022-23"
+  cost_a2fl_per_quintal: 1290.0
+  cost_c2_per_quintal: 1850.0
+  reference_yield_qtl_per_hectare: 28.0
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Rice
+  state: Punjab
+  year: "2022-23"
+  cost_a2fl_per_quintal: 920.0
+  cost_c2_per_quintal: 1480.0
+  reference_yield_qtl_per_hectare: 66.0
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Rice
+  state: Uttar Pradesh
+  year: "2022-23"
+  cost_a2fl_per_quintal: 1110.0
+  cost_c2_per_quintal: 1660.0
+  reference_yield_qtl_per_hectare: 39.5
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Maize
+  state: Karnataka
+  year: "2022-23"
+  cost_a2fl_per_quintal: 1260.0
+  cost_c2_per_quintal: 1760.0
+  reference_yield_qtl_per_hectare: 49.0
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Maize
+  state: Madhya Pradesh
+  year: "2022-23"
+  cost_a2fl_per_quintal: 1210.0
+  cost_c2_per_quintal: 1690.0
+  reference_yield_qtl_per_hectare: 36.0
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Maize
+  state: Rajasthan
+  year: "2022-23"
+  cost_a2fl_per_quintal: 1310.0
+  cost_c2_per_quintal: 1810.0
+  reference_yield_qtl_per_hectare: 27.5
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Maize
+  state: Maharashtra
+  year: "2022-23"
+  cost_a2fl_per_quintal: 1380.0
+  cost_c2_per_quintal: 1920.0
+  reference_yield_qtl_per_hectare: 32.0
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Cotton
+  state: Gujarat
+  year: "2022-23"
+  cost_a2fl_per_quintal: 3850.0
+  cost_c2_per_quintal: 5450.0
+  reference_yield_qtl_per_hectare: 18.5
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Cotton
+  state: Maharashtra
+  year: "2022-23"
+  cost_a2fl_per_quintal: 4250.0
+  cost_c2_per_quintal: 5850.0
+  reference_yield_qtl_per_hectare: 13.8
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Cotton
+  state: Punjab
+  year: "2022-23"
+  cost_a2fl_per_quintal: 4100.0
+  cost_c2_per_quintal: 5650.0
+  reference_yield_qtl_per_hectare: 19.2
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Potato
+  state: Uttar Pradesh
+  year: "2022-23"
+  cost_a2fl_per_quintal: 540.0
+  cost_c2_per_quintal: 840.0
+  reference_yield_qtl_per_hectare: 245.0
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Potato
+  state: Punjab
+  year: "2022-23"
+  cost_a2fl_per_quintal: 610.0
+  cost_c2_per_quintal: 930.0
+  reference_yield_qtl_per_hectare: 260.0
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Sugarcane
+  state: Maharashtra
+  year: "2022-23"
+  cost_a2fl_per_quintal: 215.0
+  cost_c2_per_quintal: 315.0
+  reference_yield_qtl_per_hectare: 960.0
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"
+
+- crop: Sugarcane
+  state: Uttar Pradesh
+  year: "2022-23"
+  cost_a2fl_per_quintal: 195.0
+  cost_c2_per_quintal: 295.0
+  reference_yield_qtl_per_hectare: 810.0
+  source: "DES Cost of Cultivation Scheme (2022-23 release)"

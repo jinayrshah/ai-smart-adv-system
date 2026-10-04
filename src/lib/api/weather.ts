@@ -61,11 +61,15 @@ export async function fetchWeatherSummary(params: {
   locationId?: number;
   lat?: number;
   lon?: number;
+  mandi?: string;
+  state?: string;
 }): Promise<WeatherSummaryResponse> {
   const query = new URLSearchParams();
   if (params.locationId) query.set('location_id', params.locationId.toString());
   if (params.lat !== undefined) query.set('lat', params.lat.toString());
   if (params.lon !== undefined) query.set('lon', params.lon.toString());
+  if (params.mandi) query.set('mandi', params.mandi);
+  if (params.state) query.set('state', params.state);
 
   const res = await fetch(`/api/weather/summary?${query.toString()}`);
   if (!res.ok) {

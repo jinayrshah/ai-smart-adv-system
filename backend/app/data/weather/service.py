@@ -42,12 +42,21 @@ class WeatherService:
         location_id: int | None = None,
         lat: float | None = None,
         lon: float | None = None,
+        mandi: str | None = None,
+        state: str | None = None,
     ) -> tuple[dict[str, Any], bool]:
         """
         Resolve location record and return (location_dict, is_degraded).
         Handles on-demand Tier B grid enrollment and cap checking (Architecture §9.4).
+        Supports market-level weather lookup by mandi name (Architecture §9b.3).
         """
         is_degraded = False
+
+        # 0. By mandi name (Architecture §9b.3)
+        if mandi:
+            loc = self.locations_repo.get_by_name_and_state(mandi, state or "")
+            if loc:
+                return loc, False
 
         # 1. By location_id
         if location_id is not None:
@@ -176,12 +185,20 @@ class WeatherService:
         location_id: int | None = None,
         lat: float | None = None,
         lon: float | None = None,
+        mandi: str | None = None,
+        state: str | None = None,
     ) -> WeatherSummaryResponse:
         """
         Return current + 7 past + today + 7 future days + agro metrics.
-        Architecture §10.2 primary endpoint.
+        Architecture §10.2 primary endpoint. Supports market-level weather (§9b.3).
         """
-        loc, is_degraded = self.resolve_location(location_id, lat, lon)
+        loc, is_degraded = self.resolve_location(
+            location_id=location_id,
+            lat=lat,
+            lon=lon,
+            mandi=mandi,
+            state=state,
+        )
         grid_key = loc["grid_key"]
         loc_lat = float(loc.get("lat") or 20.0)
         loc_lon = float(loc.get("lon") or 73.8)

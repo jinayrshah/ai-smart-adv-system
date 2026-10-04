@@ -1098,11 +1098,13 @@ export async function createApp() {
     }
   });
 
-  // Proxy FastAPI data-layer endpoints (trend, latest prices, search, health, weather)
+  // Proxy FastAPI data-layer endpoints (trend, latest prices, search, health, weather, calculators)
   app.get([
     '/api/market/trend',
     '/api/market/prices/latest',
     '/api/market/search',
+    '/api/market/margin',
+    '/api/market/storage-estimate',
     '/api/health/data',
     '/api/weather/current',
     '/api/weather/forecast',
