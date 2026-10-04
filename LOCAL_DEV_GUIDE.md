@@ -77,7 +77,12 @@ curl -s "http://127.0.0.1:8000/api/market/storage-estimate?crop=Sugarcane&market
 curl -s "http://127.0.0.1:8000/api/weather/summary?mandi=Malegaon&state=Maharashtra"
 ```
 
-### 9. Run All Automated Tests
+### 9. Load / Seed Reference Datasets (DES & WDRA)
+```bash
+cd backend && .venv/bin/python -m jobs.load_reference_data
+```
+
+### 10. Run All Automated Tests
 ```bash
 cd backend && .venv/bin/pytest tests/ -v
 npx tsc --noEmit

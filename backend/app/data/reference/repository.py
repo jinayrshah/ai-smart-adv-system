@@ -31,6 +31,14 @@ class ReferenceRepository:
         self._storage_data = _load_yaml(STORAGE_FILE)
 
     @property
+    def cost_data(self) -> list[dict[str, Any]]:
+        return self._cost_data
+
+    @property
+    def storage_data(self) -> list[dict[str, Any]]:
+        return self._storage_data
+
+    @property
     def client(self) -> Client:
         if self._client is None:
             self._client = get_supabase_client()
