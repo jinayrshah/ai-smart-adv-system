@@ -10,6 +10,7 @@ Keep this file handy to quickly launch and test the application without searchin
 |---|---|---|
 | **Web UI (Frontend App)** | **[http://localhost:3000](http://localhost:3000)** | Full Web Application (Vite + React + Express proxy) |
 | **FastAPI Backend Root** | **[http://localhost:8000](http://localhost:8000)** | Backend API root / health check |
+| **Data Layer Health & Ops** | **[http://localhost:8000/api/health/data](http://localhost:8000/api/health/data)** | Live pipeline job statuses, age, and 400 MB storage telemetry |
 | **Interactive API Docs (Swagger)** | **[http://localhost:8000/docs](http://localhost:8000/docs)** | Test all endpoints directly in the browser |
 | **API Reference (ReDoc)** | **[http://localhost:8000/redoc](http://localhost:8000/redoc)** | Clean technical schema documentation |
 
@@ -82,7 +83,17 @@ curl -s "http://127.0.0.1:8000/api/weather/summary?mandi=Malegaon&state=Maharash
 cd backend && .venv/bin/python -m jobs.load_reference_data
 ```
 
-### 10. Run All Automated Tests
+### 10. Phase 5 Data Layer Health & Storage Telemetry
+```bash
+curl -s "http://127.0.0.1:8000/api/health/data"
+```
+
+### 11. Phase 5 Retention Prune & Storage Audit Job
+```bash
+cd backend && .venv/bin/python -m jobs.prune
+```
+
+### 12. Run All Automated Tests
 ```bash
 cd backend && .venv/bin/pytest tests/ -v
 npx tsc --noEmit
