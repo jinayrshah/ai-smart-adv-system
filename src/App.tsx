@@ -55,11 +55,13 @@ import {
   Bar,
   Cell
 } from 'recharts';
-import { agricultureService, CropInput, PredictionResult } from './services/aiService';
+import { agricultureService, CropInput, PredictionResult, WeatherContext } from './services/aiService';
 import { initKnowledgeBase } from './services/ragService';
 import { marketService, MarketPrice, MarketFilters } from './services/marketService';
 import { MarketDataView } from './components/market/MarketDataView';
 import { MandiExplore } from './components/market/MandiExplore';
+import { WeatherStrip } from './components/weather/WeatherStrip';
+import { fetchWeatherSummary } from './lib/api/weather';
 import { articles, Article } from './data/articles';
 import { useGreeting, useWeather, getFarmingInsights } from './hooks/useAgricultureDashboard';
 import { useLocation } from './hooks/useLocation';
@@ -386,12 +388,37 @@ export function AppContent() {
     updateModuleData('advisorLoading', true);
     updateModuleData('advisorError', null);
     try {
-      const res = await agricultureService.recommendCrop(input);
+      let weatherContext: WeatherContext | undefined;
+      try {
+        const summary = await fetchWeatherSummary({
+          lat: location?.lat,
+          lon: location?.lon,
+        });
+        if (summary) {
+          weatherContext = {
+            confidence: summary.metrics.confidence,
+            primary_source: summary.days[0]?.primary_source || 'open_meteo',
+            rain_7d_mm: summary.metrics.rain_7d_mm,
+            rain_30d_mm: summary.metrics.rain_30d_mm,
+            rain_30d_vs_normal_pct: summary.metrics.rain_30d_vs_normal_pct,
+            dry_spell_days: summary.metrics.dry_spell_days,
+          };
+        }
+      } catch (weatherErr) {
+        console.warn('Weather summary could not be attached to advisory input:', weatherErr);
+      }
+
+      const inputWithWeather: CropInput = {
+        ...input,
+        weather: weatherContext,
+      };
+
+      const res = await agricultureService.recommendCrop(inputWithWeather);
       updateModuleData('advisor', res);
       addEntry({
         id: Date.now(),
         module: 'soil',
-        input,
+        input: inputWithWeather,
         output: res,
         timestamp: new Date().toISOString(),
       });
@@ -931,6 +958,13 @@ export function AppContent() {
 
   const renderWeather = () => (
     <div className="space-y-6 pb-24">
+      {/* Phase 3: Multi-Source Weather Intelligence & Climatology */}
+      <WeatherStrip
+        lat={location?.lat}
+        lon={location?.lon}
+        locationName={location?.city || user?.location}
+      />
+
       {/* City Selection & Location */}
       <div className="space-y-3">
         <div className="bg-dark-card p-4 rounded-2xl border border-dark-border flex items-center space-x-4">
