@@ -1109,6 +1109,7 @@ export async function createApp() {
     '/api/weather/history',
     '/api/weather/summary',
     '/api/weather/search',
+    '/api/context/market-weather',
   ], async (req, res) => {
     try {
       const fastApiUrl = `http://127.0.0.1:8000${req.originalUrl}`;

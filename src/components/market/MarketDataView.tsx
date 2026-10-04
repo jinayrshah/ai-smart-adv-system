@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { PriceContextHeader } from "./PriceContextHeader";
 import { PriceTrendChart } from "./PriceTrendChart";
+import { MarketContextCard } from "./MarketContextCard";
 import { DataFooter } from "./DataFooter";
 import { fetchMarketTrend, MarketTrendResponse } from "../../services/marketApi";
 import { RefreshCw, Search } from "lucide-react";
@@ -150,6 +151,13 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
             rangeDays={rangeDays}
             onRangeChange={setRangeDays}
             isLoading={loading}
+          />
+
+          <MarketContextCard
+            commodity={commodity}
+            market={market}
+            state={state}
+            days={rangeDays}
           />
 
           <DataFooter
