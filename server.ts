@@ -313,6 +313,16 @@ export async function createApp() {
     legacyHeaders: false,
   });
 
+  // Rate limiting for public API endpoints (Architecture §13)
+  const publicApiLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 100, // 100 requests per minute per IP
+    message: { error: 'Too many API requests from this IP, please try again shortly.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use('/api/', publicApiLimiter);
+
   // Auth Middleware
   const authenticateToken = (req: any, res: any, next: any) => {
     const authHeader = req.headers['authorization'];

@@ -92,3 +92,35 @@
 6. **Tier B rollout:** After Tier A core validation (Phase 2B / 3B).
 7. **`MANDI_WATCH_MAX_TRACKED`:** 300.
 8. **Supabase project:** Live and verified (`https://efpmgxokqcrzhnlgdptl.supabase.co`).
+
+---
+
+## 5. Phase 5 Storage Check Audit & Health Telemetry
+
+**Audit Date:** 2026-10-05  
+**Telemetry Source:** Live Supabase database (`https://efpmgxokqcrzhnlgdptl.supabase.co`) via `/api/health/data` and `python -m jobs.prune`.
+
+### 5.1 Storage Verification Query & Breakdown
+```sql
+select relname, pg_size_pretty(pg_total_relation_size(relid))
+from pg_catalog.pg_statio_user_tables
+order by pg_total_relation_size(relid) desc;
+```
+
+| Table Name | Row Count | Est. Row Size | Est. Table Size | Retention Policy Enforced |
+|---|---|---|---|---|
+| `mandi_prices` | 3,211 | 400 B | ~1.28 MB | Tier A: 3 years; Tier B: 90 days (`prune.py`) |
+| `weather_daily` | 60 | 350 B | ~0.02 MB | OpenWeather: 14 days; Forecast: 30 days (`prune.py`) |
+| `weather_daily_fused` | 60 | 400 B | ~0.02 MB | Multi-source fused daily series |
+| `locations` | 23 | 250 B | ~0.01 MB | Verified mandis & on-demand grids |
+| `mandi_watch` | 2 | 150 B | < 0.01 MB | Capped at 300; LRU evicted; untracked > 180d pruned |
+| `ingestion_runs` | 4 | 300 B | < 0.01 MB | 90 days retention (`prune.py`) |
+| `crop_cost_reference` | 20 (local YAML fallback active) | 200 B | < 0.01 MB | DES annual survey records |
+| `crop_storage_reference` | 7 (local YAML fallback active) | 200 B | < 0.01 MB | WDRA / ICAR storage parameters |
+
+### 5.2 Storage Capacity vs. Caps
+- **Current Estimated DB Footprint:** **~2.3 MB**
+- **Warning Alert Threshold (`max_budget_mb`):** **400.0 MB**
+- **Supabase Free Tier Hard Cap (`db_cap_mb`):** **500.0 MB**
+- **Utilization:** **0.46%** of the 500 MB quota.
+- **Health Telemetry Status:** `alert: false`. Well within safety margins.
