@@ -69,13 +69,16 @@ def get_weather_summary(
     location_id: int | None = Query(None, description="Location database ID"),
     lat: float | None = Query(None, ge=-90.0, le=90.0, description="Latitude coordinate"),
     lon: float | None = Query(None, ge=-180.0, le=180.0, description="Longitude coordinate"),
+    mandi: str | None = Query(None, description="Mandi market name (Architecture §9b.3)"),
+    state: str | None = Query(None, description="State name for mandi lookup"),
     service: WeatherService = Depends(get_weather_service),
 ):
     """
     Primary unified weather endpoint: returns current conditions, 7 past days, today,
     7 future forecast days, and agro metrics (Architecture §10.2).
+    Supports market-level weather lookup by mandi name (Architecture §9b.3).
     """
-    return service.get_summary(location_id=location_id, lat=lat, lon=lon)
+    return service.get_summary(location_id=location_id, lat=lat, lon=lon, mandi=mandi, state=state)
 
 
 @router.get("/search")

@@ -2,9 +2,11 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 
 from app.core.timeutil import now_utc_iso
+from app.data.calculators.service import CalculatorService
 from app.data.mandi.repository import MandiRepository
 from app.data.mandi.series import build_market_trend, is_stale_data
 from app.data.mandi.service import get_market_search
+from app.schemas.calculators import MarginEstimateResponse, StorageEstimateResponse
 from app.schemas.market import (
     LatestPriceRecord,
     LatestPricesResponse,
@@ -18,6 +20,10 @@ router = APIRouter(prefix="/api/market", tags=["Market"])
 
 def get_repo() -> MandiRepository:
     return MandiRepository()
+
+
+def get_calculator_service() -> CalculatorService:
+    return CalculatorService()
 
 
 @router.get("/prices/latest", response_model=LatestPricesResponse)
@@ -127,4 +133,58 @@ def search_market(
         markets=[MarketSearchResult(**m) for m in result["markets"]],
         total_records=result["total_records"],
         as_of=now_utc_iso(),
+    )
+
+
+@router.get("/margin", response_model=MarginEstimateResponse | None)
+def get_crop_margin(
+    crop: str = Query(..., description="Crop commodity name (e.g. Wheat, Rice, Cotton)"),
+    state: str = Query(..., description="State name (e.g. Maharashtra, Punjab)"),
+    field_size_acres: float = Query(1.0, ge=0.01, le=10000.0, description="Field size in acres"),
+    market: str | None = Query(None, description="Optional mandi market name"),
+    price_per_qtl: float | None = Query(None, description="Optional current price (if omitted, latest market price is used)"),
+    service: CalculatorService = Depends(get_calculator_service),
+):
+    """
+    Calculate estimated crop margin using DES Cost of Cultivation reference data.
+    Architecture §9b.1.
+    Returns null if no reference cost data exists for this crop and state (never fabricates).
+    """
+    return service.calculate_margin(
+        crop=crop,
+        state=state,
+        field_size_acres=field_size_acres,
+        market=market,
+        price_per_qtl=price_per_qtl,
+    )
+
+
+@router.get("/storage-estimate", response_model=StorageEstimateResponse)
+def get_storage_estimate(
+    crop: str = Query(..., description="Crop commodity name (e.g. Wheat, Potato, Sugarcane)"),
+    market: str = Query(..., description="Mandi market name"),
+    state: str | None = Query(None, description="State name (optional, resolved from market if omitted)"),
+    storage_cost_per_qtl_per_month: float = Query(25.0, ge=0.0, description="Farmer's monthly storage cost ₹/qtl"),
+    months: int = Query(1, ge=1, le=12, description="Storage duration in months"),
+    current_price: float | None = Query(None, description="Optional baseline intake price ₹/qtl"),
+    service: CalculatorService = Depends(get_calculator_service),
+):
+    """
+    Estimate hold-vs-sell storage costs and breakeven price.
+    Architecture §9b.2.
+    Explicitly refuses non-storable crops (e.g. Sugarcane, Tomato).
+    """
+    resolved_state = state or ""
+    if not resolved_state:
+        latest = service.mandi_repo.get_latest_prices(market=market, commodity=crop, limit=1)
+        if latest and latest[0].get("state"):
+            resolved_state = latest[0]["state"]
+
+    return service.calculate_storage(
+        crop=crop,
+        market=market,
+        state=resolved_state,
+        storage_cost_per_qtl_month=storage_cost_per_qtl_per_month,
+        months=months,
+        current_price_per_qtl=current_price,
     )
