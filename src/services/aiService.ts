@@ -35,6 +35,15 @@ const isGeminiKeyError = (error: unknown) => {
   return message.includes('API_KEY_INVALID') || message.includes('API key') || message.includes('API_KEY');
 };
 
+export interface WeatherContext {
+  confidence: 'high' | 'medium' | 'low';
+  primary_source: string;
+  rain_7d_mm?: number;
+  rain_30d_mm?: number;
+  rain_30d_vs_normal_pct?: number | null;
+  dry_spell_days?: number;
+}
+
 export interface CropInput {
   nitrogen: number;
   phosphorus: number;
@@ -44,6 +53,7 @@ export interface CropInput {
   ph: number;
   rainfall: number;
   location?: string;
+  weather?: WeatherContext;
 }
 
 export interface PredictionResult {
@@ -96,6 +106,23 @@ const getFallbackCropRecommendation = (input: CropInput, reason: string): Predic
 
 export const agricultureService = {
   async recommendCrop(input: CropInput): Promise<PredictionResult> {
+    const weatherBlock = input.weather
+      ? `
+    Validated Weather Context:
+    - Primary Source: ${input.weather.primary_source}
+    - Weather Confidence: ${input.weather.confidence}
+    - Recent 7-Day Rainfall: ${input.weather.rain_7d_mm ?? 'N/A'}mm
+    - 30-Day Rainfall: ${input.weather.rain_30d_mm ?? 'N/A'}mm (${input.weather.rain_30d_vs_normal_pct != null ? `${input.weather.rain_30d_vs_normal_pct}% vs normal` : 'baseline normal unavailable'})
+    - Consecutive Dry Spell: ${input.weather.dry_spell_days ?? 0} days
+
+    ADVISORY CONTRACT RULE:
+    ${
+      input.weather.confidence === 'low'
+        ? 'CRITICAL: Weather confidence is LOW due to provider disagreement or missing validations. You MUST phrase any weather-linked advice as uncertain and conditional. DO NOT give hard "do it now" or imperative instructions for sowing/spraying.'
+        : 'Weather confidence is confirmed. Integrate the soil parameters with local rainfall/temperature patterns.'
+    }`
+      : '';
+
     const prompt = `As an expert agricultural scientist, recommend the best crop based on these soil and environmental parameters${input.location ? ` for the region of ${input.location}` : ''}:
     Nitrogen: ${input.nitrogen}
     Phosphorus: ${input.phosphorus}
@@ -103,7 +130,7 @@ export const agricultureService = {
     Temperature: ${input.temperature}°C
     Humidity: ${input.humidity}%
     pH: ${input.ph}
-    Rainfall: ${input.rainfall}mm
+    Rainfall: ${input.rainfall}mm${weatherBlock}
 
     Provide your response in JSON format with the following structure:
     {

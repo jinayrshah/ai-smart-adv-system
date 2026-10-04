@@ -1,0 +1,78 @@
+{
+  "cod": "200",
+  "message": 0,
+  "cnt": 16,
+  "list": [
+    {
+      "dt": 1791090000,
+      "main": {"temp": 28.5, "temp_min": 27.8, "temp_max": 29.1, "humidity": 70},
+      "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01d"}],
+      "wind": {"speed": 3.5},
+      "pop": 0.1,
+      "rain": {"3h": 0.0}
+    },
+    {
+      "dt": 1791100800,
+      "main": {"temp": 30.2, "temp_min": 29.5, "temp_max": 31.0, "humidity": 65},
+      "weather": [{"id": 801, "main": "Clouds", "description": "few clouds", "icon": "02d"}],
+      "wind": {"speed": 4.1},
+      "pop": 0.2,
+      "rain": {"3h": 0.5}
+    },
+    {
+      "dt": 1791111600,
+      "main": {"temp": 29.0, "temp_min": 28.0, "temp_max": 29.5, "humidity": 75},
+      "weather": [{"id": 500, "main": "Rain", "description": "light rain", "icon": "10d"}],
+      "wind": {"speed": 3.8},
+      "pop": 0.6,
+      "rain": {"3h": 1.5}
+    },
+    {
+      "dt": 1791122400,
+      "main": {"temp": 25.5, "temp_min": 25.0, "temp_max": 26.0, "humidity": 82},
+      "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01n"}],
+      "wind": {"speed": 2.5},
+      "pop": 0.0,
+      "rain": {"3h": 0.0}
+    },
+    {
+      "dt": 1791133200,
+      "main": {"temp": 23.0, "temp_min": 22.5, "temp_max": 23.5, "humidity": 88},
+      "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01n"}],
+      "wind": {"speed": 2.0},
+      "pop": 0.0,
+      "rain": {"3h": 0.0}
+    },
+    {
+      "dt": 1791144000,
+      "main": {"temp": 22.2, "temp_min": 21.8, "temp_max": 22.5, "humidity": 90},
+      "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01n"}],
+      "wind": {"speed": 1.8},
+      "pop": 0.0,
+      "rain": {"3h": 0.0}
+    },
+    {
+      "dt": 1791154800,
+      "main": {"temp": 24.5, "temp_min": 24.0, "temp_max": 25.0, "humidity": 80},
+      "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01d"}],
+      "wind": {"speed": 2.8},
+      "pop": 0.0,
+      "rain": {"3h": 0.0}
+    },
+    {
+      "dt": 1791165600,
+      "main": {"temp": 27.8, "temp_min": 27.0, "temp_max": 28.5, "humidity": 72},
+      "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01d"}],
+      "wind": {"speed": 3.2},
+      "pop": 0.1,
+      "rain": {"3h": 0.0}
+    }
+  ],
+  "city": {
+    "id": 1261481,
+    "name": "Nashik",
+    "coord": {"lat": 20.0, "lon": 73.78},
+    "country": "IN",
+    "timezone": 19800
+  }
+}

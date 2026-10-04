@@ -1098,8 +1098,18 @@ export async function createApp() {
     }
   });
 
-  // Proxy FastAPI data-layer endpoints (trend, latest prices, search, health)
-  app.get(['/api/market/trend', '/api/market/prices/latest', '/api/market/search', '/api/health/data'], async (req, res) => {
+  // Proxy FastAPI data-layer endpoints (trend, latest prices, search, health, weather)
+  app.get([
+    '/api/market/trend',
+    '/api/market/prices/latest',
+    '/api/market/search',
+    '/api/health/data',
+    '/api/weather/current',
+    '/api/weather/forecast',
+    '/api/weather/history',
+    '/api/weather/summary',
+    '/api/weather/search',
+  ], async (req, res) => {
     try {
       const fastApiUrl = `http://127.0.0.1:8000${req.originalUrl}`;
       const response = await fetch(fastApiUrl);

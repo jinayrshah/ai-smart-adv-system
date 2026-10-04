@@ -1,0 +1,24 @@
+{
+  "latitude": 20.0,
+  "longitude": 73.8,
+  "daily": {
+    "time": [
+      "2026-10-04",
+      "2026-10-05",
+      "2026-10-06",
+      "2026-10-07",
+      "2026-10-08",
+      "2026-10-09",
+      "2026-10-10"
+    ],
+    "temperature_2m_max_ecmwf_ifs025": [30.1, 31.0, 32.0, 31.5, 30.5, 31.2, 32.1],
+    "temperature_2m_max_gfs_seamless": [29.8, 31.4, 32.5, 31.2, 31.0, 31.8, 32.3],
+    "temperature_2m_max_icon_seamless": [30.2, 31.1, 31.9, 31.7, 30.8, 31.0, 31.9],
+    "temperature_2m_min_ecmwf_ifs025": [20.5, 21.0, 21.2, 21.5, 20.5, 20.8, 21.0],
+    "temperature_2m_min_gfs_seamless": [20.2, 21.2, 21.0, 21.8, 20.8, 21.0, 21.2],
+    "temperature_2m_min_icon_seamless": [20.4, 20.9, 21.3, 21.4, 20.6, 20.7, 20.9],
+    "precipitation_sum_ecmwf_ifs025": [0.0, 2.1, 0.0, 0.0, 8.5, 2.8, 0.0],
+    "precipitation_sum_gfs_seamless": [0.0, 2.8, 0.0, 0.0, 9.2, 3.5, 0.0],
+    "precipitation_sum_icon_seamless": [0.0, 2.5, 0.0, 0.0, 7.8, 3.1, 0.0]
+  }
+}
