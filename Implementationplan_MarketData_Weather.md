@@ -201,17 +201,17 @@ Phase 3's on-demand path (Architecture §9.4) already does most of this — this
 ## Phase 5 — Hardening
 
 **Tasks**
-- [ ] `/api/health/data` (Architecture §10.3) and staleness flags on all endpoints.
-- [ ] `prune.py` + weekly workflow (retention in Architecture §13); DB-size alert at 400 MB.
-- [ ] `ci.yml`: lint + unit tests on PRs, no live network.
-- [ ] Per-IP rate limit on public endpoints.
-- [ ] RLS verified: anon key cannot read or write any new table.
-- [ ] Docs: update `README` with the job list, secrets, and how to run each job locally.
+- [x] `/api/health/data` (Architecture §10.3) and staleness flags on all endpoints.
+- [x] `prune.py` + weekly workflow (retention in Architecture §13); DB-size alert at 400 MB.
+- [x] `ci.yml`: lint + unit tests on PRs, no live network.
+- [x] Per-IP rate limit on public endpoints.
+- [x] RLS verified: anon key cannot read or write any new table.
+- [x] Docs: update `README` with the job list, secrets, and how to run each job locally.
 
 **Acceptance**
-- [ ] Health endpoint flips to `degraded` when a job is artificially stale.
-- [ ] Storage check query run; size recorded in `recon.md`.
-- [ ] A fresh clone can run `python -m jobs.ingest_mandi_daily` locally with only `.env` filled from `.env.example`.
+- [x] Health endpoint flips to `degraded` when a job is artificially stale.
+- [x] Storage check query run; size recorded in `recon.md`.
+- [x] A fresh clone can run `python -m jobs.ingest_mandi_daily` locally with only `.env` filled from `.env.example`.
 
 ---
 
