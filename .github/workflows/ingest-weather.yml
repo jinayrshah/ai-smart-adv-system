@@ -1,0 +1,60 @@
+name: ingest-weather
+
+on:
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Weather job to run"
+        required: true
+        default: "ingest_weather"
+        type: choice
+        options:
+          - ingest_weather
+          - reconcile_recent
+          - power_validate
+          - refresh_normals
+  schedule:
+    # 4x daily forecast & current ingest (05:45, 11:45, 17:45, 23:45 IST)
+    - cron: "15 0,6,12,18 * * *"
+    # Daily archive reconcile at 08:00 IST (02:30 UTC)
+    - cron: "30 2 * * *"
+    # Daily NASA POWER validator at 08:30 IST (03:00 UTC)
+    - cron: "0 3 * * *"
+
+concurrency:
+  group: ingest-weather
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Execute Weather Job
+        working-directory: backend
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            python -m jobs.${{ github.event.inputs.job }}
+          elif [ "${{ github.event.schedule }}" = "30 2 * * *" ]; then
+            python -m jobs.reconcile_recent
+          elif [ "${{ github.event.schedule }}" = "0 3 * * *" ]; then
+            python -m jobs.power_validate
+          else
+            python -m jobs.ingest_weather
+          fi
