@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.market import router as market_router
 from app.api.routes.weather import router as weather_router
+from app.api.routes.context import router as context_router
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -24,6 +25,7 @@ app.add_middleware(
 
 app.include_router(market_router)
 app.include_router(weather_router)
+app.include_router(context_router)
 
 
 @app.get("/health")

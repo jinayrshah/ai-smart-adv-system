@@ -1,0 +1,53 @@
+# Rule-based Context Signals Configuration (Architecture §10.4)
+# Max 3 signals are returned per market-weather query.
+# All signal texts are strictly descriptive and evidence-grounded.
+# NO PREDICTIONS OR PRICE FORECASTS ALLOWED.
+
+rules:
+  - id: heavy_recent_rain
+    name: "Heavy Recent Rainfall"
+    strength: "advisory"
+    priority: 10
+    condition: "weather.rain_7d_mm >= 50.0"
+    template: "Heavy rainfall ({rain_7d_mm} mm in the last 7 days) recorded in this district. Field harvesting and mandi transit may experience temporary logistical disruption; no price effect is established."
+    evidence_fields: ["rain_7d_mm"]
+
+  - id: prolonged_dry_spell
+    name: "Prolonged Dry Spell"
+    strength: "advisory"
+    priority: 20
+    condition: "weather.dry_spell_days >= 14"
+    template: "Extended dry spell ({dry_spell_days} consecutive days with rainfall < 1 mm). Moisture stress may affect rainfed standing crops in the surrounding district; no market price impact is predicted."
+    evidence_fields: ["dry_spell_days"]
+
+  - id: extreme_heat_anomaly
+    name: "Elevated Temperature Anomaly"
+    strength: "advisory"
+    priority: 30
+    condition: "weather.tmax_7d_anomaly_c is not None and weather.tmax_7d_anomaly_c >= 3.0"
+    template: "High temperature anomaly (+{tmax_7d_anomaly_c}°C above 7-day normal). Heat stress may affect shelf life of perishable produce during transport."
+    evidence_fields: ["tmax_7d_anomaly_c"]
+
+  - id: rainfall_deficit_30d
+    name: "Monthly Rainfall Deficit"
+    strength: "info"
+    priority: 40
+    condition: "weather.rain_30d_vs_normal_pct is not None and weather.rain_30d_vs_normal_pct <= -30.0"
+    template: "Accumulated 30-day rainfall is {rain_30d_vs_normal_pct}% below 2010–2024 normal. Regional moisture deficit observed across the district."
+    evidence_fields: ["rain_30d_vs_normal_pct", "rain_30d_mm"]
+
+  - id: price_volatility_high
+    name: "High Arrival Price Volatility"
+    strength: "advisory"
+    priority: 50
+    condition: "price.volatility_pct is not None and price.volatility_pct >= 15.0"
+    template: "Reported modal prices in this market fluctuated by {volatility_pct}% relative volatility across recent arrivals."
+    evidence_fields: ["volatility_pct", "coverage_ratio"]
+
+  - id: regular_seasonal_rainfall
+    name: "Seasonal Rainfall on Track"
+    strength: "info"
+    priority: 60
+    condition: "weather.rain_30d_vs_normal_pct is not None and abs(weather.rain_30d_vs_normal_pct) <= 20.0 and weather.rain_7d_mm >= 10.0"
+    template: "Monthly rainfall is tracking near 15-year baseline normal ({rain_30d_vs_normal_pct}%) with {rain_7d_mm} mm over the past week."
+    evidence_fields: ["rain_30d_vs_normal_pct", "rain_7d_mm"]
