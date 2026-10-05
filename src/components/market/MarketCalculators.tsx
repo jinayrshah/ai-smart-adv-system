@@ -439,7 +439,7 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
               </p>
             </div>
           </div>
-          {marketWeather && (
+          {marketWeather?.location?.grid_key && (
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-500 border border-sky-500/20">
               <CheckCircle2 className="w-3.5 h-3.5" />
               Grid: {marketWeather.location.grid_key}
@@ -452,7 +452,7 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
             <RefreshCw className="w-4 h-4 animate-spin text-sky-500" />
             <span>Loading weather conditions for {market} mandi...</span>
           </div>
-        ) : marketWeather ? (
+        ) : marketWeather && marketWeather.location && Array.isArray(marketWeather.days) && marketWeather.metrics ? (
           <div className="space-y-4">
             {/* Snapshot */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -480,7 +480,7 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
               <div className="bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-xl border border-zinc-100 dark:border-zinc-800">
                 <span className="text-[10px] text-zinc-400 block">Upcoming Rain Forecast</span>
                 <span className="text-base font-bold text-sky-600 dark:text-sky-400">
-                  {marketWeather.days
+                  {(marketWeather.days || [])
                     .filter((d) => d.phase === "future")
                     .slice(0, 3)
                     .reduce((sum, d) => sum + (d.precip_mm || 0), 0)
@@ -497,7 +497,7 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
                 7-Day Arrival Weather Forecast (Rain & Transit Window)
               </span>
               <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center text-xs">
-                {marketWeather.days
+                {(marketWeather.days || [])
                   .filter((d) => d.phase === "today" || d.phase === "future")
                   .slice(0, 7)
                   .map((day, idx) => {

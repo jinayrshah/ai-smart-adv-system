@@ -75,6 +75,7 @@ import { LanguageSelector } from './components/LanguageSelector';
 import { FertilizerRecommendation } from './components/fertilizer/FertilizerRecommendation';
 import { HistoryModal } from './components/HistoryModal';
 import { Marketplace } from './components/marketplace/Marketplace';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { useHistoryStore } from './stores/historyStore';
 import { useUIStore, type UIActiveTab } from './stores/uiStore';
 import { useTranslation } from 'react-i18next';
@@ -1484,21 +1485,37 @@ export function AppContent() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <TabPanel active={activeTab === 'home'}>{renderHome()}</TabPanel>
-          <TabPanel active={activeTab === 'advisor'}>{renderAdvisor()}</TabPanel>
+          <TabPanel active={activeTab === 'home'}>
+            <ErrorBoundary fallbackTitle="Unable to load Home dashboard">{renderHome()}</ErrorBoundary>
+          </TabPanel>
+          <TabPanel active={activeTab === 'advisor'}>
+            <ErrorBoundary fallbackTitle="Unable to load Crop Advisor">{renderAdvisor()}</ErrorBoundary>
+          </TabPanel>
           <TabPanel active={activeTab === 'fertilizer'}>
-            <FertilizerRecommendation />
+            <ErrorBoundary fallbackTitle="Unable to load Fertilizer Calculator"><FertilizerRecommendation /></ErrorBoundary>
           </TabPanel>
-          <TabPanel active={activeTab === 'disease'}>{renderDisease()}</TabPanel>
+          <TabPanel active={activeTab === 'disease'}>
+            <ErrorBoundary fallbackTitle="Unable to load Disease Detection">{renderDisease()}</ErrorBoundary>
+          </TabPanel>
           <TabPanel active={activeTab === 'marketplace'}>
-            <Marketplace 
-              initialLocation={location ? `${location.city}, ${location.state}` : user?.location} 
-            />
+            <ErrorBoundary fallbackTitle="Unable to load Marketplace">
+              <Marketplace 
+                initialLocation={location ? `${location.city}, ${location.state}` : user?.location} 
+              />
+            </ErrorBoundary>
           </TabPanel>
-          <TabPanel active={activeTab === 'weather'}>{renderWeather()}</TabPanel>
-          <TabPanel active={activeTab === 'priceTrends'}>{renderPriceTrends()}</TabPanel>
-          <TabPanel active={activeTab === 'learn'}>{renderLearn()}</TabPanel>
-          <TabPanel active={activeTab === 'profile'}><ProfileSettings /></TabPanel>
+          <TabPanel active={activeTab === 'weather'}>
+            <ErrorBoundary fallbackTitle="Unable to load Weather Intelligence">{renderWeather()}</ErrorBoundary>
+          </TabPanel>
+          <TabPanel active={activeTab === 'priceTrends'}>
+            <ErrorBoundary fallbackTitle="Unable to load Market Price Trends">{renderPriceTrends()}</ErrorBoundary>
+          </TabPanel>
+          <TabPanel active={activeTab === 'learn'}>
+            <ErrorBoundary fallbackTitle="Unable to load Learning Center">{renderLearn()}</ErrorBoundary>
+          </TabPanel>
+          <TabPanel active={activeTab === 'profile'}>
+            <ErrorBoundary fallbackTitle="Unable to load Profile Settings"><ProfileSettings /></ErrorBoundary>
+          </TabPanel>
         </motion.div>
       </main>
 

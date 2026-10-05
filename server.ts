@@ -995,6 +995,36 @@ export async function createApp() {
   });
   // --- End Auth Routes ---
 
+  // Proxy FastAPI data-layer endpoints (trend, latest prices, search, health, weather, calculators)
+  // MUST be declared BEFORE /api/weather/:city so routes like /api/weather/summary are not hijacked
+  app.get([
+    '/api/market/trend',
+    '/api/market/prices/latest',
+    '/api/market/search',
+    '/api/market/margin',
+    '/api/market/storage-estimate',
+    '/api/health/data',
+    '/api/weather/current',
+    '/api/weather/forecast',
+    '/api/weather/history',
+    '/api/weather/summary',
+    '/api/weather/search',
+    '/api/context/market-weather',
+  ], async (req, res) => {
+    try {
+      const fastApiUrl = `http://127.0.0.1:8000${req.originalUrl}`;
+      const response = await fetch(fastApiUrl);
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (err: any) {
+      res.status(502).json({
+        error: 'FastAPI backend unavailable',
+        hint: 'Make sure the FastAPI backend is running on port 8000 (python -m uvicorn app.main:app --port 8000)',
+        details: err.message,
+      });
+    }
+  });
+
   // Weather API Route
   app.get('/api/weather/:city', async (req, res) => {
     const { city } = req.params;
@@ -1105,35 +1135,6 @@ export async function createApp() {
       clearTimeout(timeoutId);
       console.warn('[API] Weather API error:', error.message);
       res.json(fallbackData);
-    }
-  });
-
-  // Proxy FastAPI data-layer endpoints (trend, latest prices, search, health, weather, calculators)
-  app.get([
-    '/api/market/trend',
-    '/api/market/prices/latest',
-    '/api/market/search',
-    '/api/market/margin',
-    '/api/market/storage-estimate',
-    '/api/health/data',
-    '/api/weather/current',
-    '/api/weather/forecast',
-    '/api/weather/history',
-    '/api/weather/summary',
-    '/api/weather/search',
-    '/api/context/market-weather',
-  ], async (req, res) => {
-    try {
-      const fastApiUrl = `http://127.0.0.1:8000${req.originalUrl}`;
-      const response = await fetch(fastApiUrl);
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (err: any) {
-      res.status(502).json({
-        error: 'FastAPI backend unavailable',
-        hint: 'Make sure the FastAPI backend is running on port 8000 (python -m uvicorn app.main:app --port 8000)',
-        details: err.message,
-      });
     }
   });
 

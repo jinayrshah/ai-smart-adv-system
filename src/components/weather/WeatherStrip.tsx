@@ -171,7 +171,7 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
               </h2>
               <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-0.5">
                 <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                {data?.location.name || displayName} (Grid: {data?.location.grid_key || `${lat.toFixed(1)},${lon.toFixed(1)}`})
+                {data?.location?.name || displayName} (Grid: {data?.location?.grid_key || `${lat.toFixed(1)},${lon.toFixed(1)}`})
               </p>
             </div>
           </div>
