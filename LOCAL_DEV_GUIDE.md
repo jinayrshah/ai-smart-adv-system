@@ -30,6 +30,8 @@ npm run dev
 ```
 Open **[http://localhost:3000](http://localhost:3000)** in your browser!
 
+*(Note: If you ever make edits to `server.ts` or experience a proxy issue, press `Ctrl+C` in Terminal 2 and re-run `npm run dev` to reload the Express routes).*
+
 ---
 
 ## 🧪 Quick Test Commands (Terminal)

@@ -75,7 +75,11 @@ export async function fetchWeatherSummary(params: {
   if (!res.ok) {
     throw new Error(`Failed to fetch weather summary: ${res.statusText}`);
   }
-  return res.json();
+  const data = await res.json();
+  if (!data || !data.location || !Array.isArray(data.days) || !data.metrics) {
+    throw new Error("Invalid weather summary payload structure received");
+  }
+  return data;
 }
 
 export async function fetchWeatherCurrent(params: {

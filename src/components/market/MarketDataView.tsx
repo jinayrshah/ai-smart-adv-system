@@ -4,6 +4,7 @@ import { PriceTrendChart } from "./PriceTrendChart";
 import { MarketContextCard } from "./MarketContextCard";
 import { MarketCalculators } from "./MarketCalculators";
 import { DataFooter } from "./DataFooter";
+import { ErrorBoundary } from "../common/ErrorBoundary";
 import { fetchMarketTrend, MarketTrendResponse } from "../../services/marketApi";
 import { RefreshCw, Search } from "lucide-react";
 
@@ -154,19 +155,23 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
             isLoading={loading}
           />
 
-          <MarketContextCard
-            commodity={commodity}
-            market={market}
-            state={state}
-            days={rangeDays}
-          />
+          <ErrorBoundary fallbackTitle="Unable to load market-weather context">
+            <MarketContextCard
+              commodity={commodity}
+              market={market}
+              state={state}
+              days={rangeDays}
+            />
+          </ErrorBoundary>
 
-          <MarketCalculators
-            commodity={commodity}
-            market={market}
-            state={state}
-            currentPrice={latestPrice}
-          />
+          <ErrorBoundary fallbackTitle="Unable to load decision calculators">
+            <MarketCalculators
+              commodity={commodity}
+              market={market}
+              state={state}
+              currentPrice={latestPrice}
+            />
+          </ErrorBoundary>
 
           <DataFooter
             asOf={trendData.as_of}
