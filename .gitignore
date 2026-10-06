@@ -19,3 +19,4 @@ __pycache__/
 graphify-out/
 localhost.md
 scratch_gemini.ts
+supabase/.temp/

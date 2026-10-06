@@ -95,7 +95,34 @@ curl -s "http://127.0.0.1:8000/api/health/data"
 cd backend && .venv/bin/python -m jobs.prune
 ```
 
-### 12. Run All Automated Tests
+### 12. Phase 1 Farmer Onboarding & Precision Agronomy (Advisory Layer)
+```bash
+# Complete multi-step onboarding (Profile + Farm with GPS & Soil Health Card + Deep Advisory Crop):
+curl -s -X POST "http://127.0.0.1:8000/api/farmer/onboard" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "full_name": "Ramesh Patel",
+    "preferred_language": "hi",
+    "phone": "9876543210",
+    "farm_name": "Kisan Farm 1",
+    "lat": 20.02,
+    "lon": 73.81,
+    "soil_type": "Black Cotton (काली मिट्टी)",
+    "shc_n": 180.0,
+    "shc_p": 25.0,
+    "shc_k": 150.0,
+    "shc_ph": 7.2,
+    "crop_name": "Wheat",
+    "variety": "HD-2967",
+    "sowing_date": "2026-11-15",
+    "acres": 3.5
+  }'
+
+# Query farmer farms:
+curl -s "http://127.0.0.1:8000/api/farmer/farms"
+```
+
+### 13. Run All Automated Tests
 ```bash
 cd backend && .venv/bin/pytest tests/ -v
 npx tsc --noEmit
@@ -104,8 +131,11 @@ npx tsc --noEmit
 ---
 
 ## 📁 Key Source Directories
+- `src/components/farmer/` — `FarmerOnboardingModal` multi-step precision farm setup
 - `src/components/market/` — Market trend charts, MandiExplore, and MarketContextCard UI
 - `src/components/weather/` — WeatherStrip with multi-source fusion, confidence badges, and India-wide explore search
-- `backend/app/api/routes/` — FastAPI endpoints (`market.py`, `weather.py`, `context.py`)
-- `backend/app/data/` — Data layer (`mandi/`, `weather/`, `locations/`, `context/`)
+- `backend/app/api/routes/` — FastAPI endpoints (`market.py`, `weather.py`, `context.py`, `farmer.py`)
+- `backend/app/data/farmer/` — Farmer profile, farm grid-snapping, soil health card & crop repository
+- `backend/app/schemas/farmer.py` — Pydantic models for precision agronomy onboarding
 - `backend/jobs/` — Scheduled data pipelines & sync jobs
+- `supabase/migrations/` — `20261006000000_advisory_phase1.sql` DB schema for Advisory Layer
