@@ -174,3 +174,34 @@ class DiseaseCheckResponse(BaseModel):
     confidence_status: Literal["high", "moderate", "low"]
     advisory_note: str
     treatments: list[DiseaseTreatmentExtract] = Field(default_factory=list)
+
+
+class GovernmentScheme(BaseModel):
+    code: str
+    name: str
+    category: Literal[
+        "income_support",
+        "crop_insurance",
+        "credit_finance",
+        "soil_health",
+        "infrastructure",
+        "organic_farming",
+    ]
+    benefit_summary: str
+    eligibility: str
+    application_process: str
+    official_portal: str
+
+
+class SchemeAskRequest(BaseModel):
+    query: str
+    scheme_code: str | None = None
+    language: str = "en"
+
+
+class SchemeAskResponse(BaseModel):
+    query: str
+    answer: str
+    confidence: Literal["grounded", "partial", "insufficient"]
+    schemes: list[GovernmentScheme] = Field(default_factory=list)
+    sources: list[AdvisorySource] = Field(default_factory=list)

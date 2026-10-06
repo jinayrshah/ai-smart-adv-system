@@ -281,3 +281,59 @@ export async function checkCropDisease(
   }
   return res.json();
 }
+
+export interface GovernmentScheme {
+  code: string;
+  name: string;
+  category:
+    | 'income_support'
+    | 'crop_insurance'
+    | 'credit_finance'
+    | 'soil_health'
+    | 'infrastructure'
+    | 'organic_farming';
+  benefit_summary: string;
+  eligibility: string;
+  application_process: string;
+  official_portal: string;
+}
+
+export interface SchemeAskRequest {
+  query: string;
+  scheme_code?: string | null;
+  language?: string;
+}
+
+export interface SchemeAskResponse {
+  query: string;
+  answer: string;
+  confidence: 'grounded' | 'partial' | 'insufficient';
+  schemes: GovernmentScheme[];
+  sources: AdvisorySource[];
+}
+
+export async function fetchGovernmentSchemes(params?: {
+  query?: string;
+  category?: string;
+}): Promise<GovernmentScheme[]> {
+  const query = new URLSearchParams({
+    ...(params?.query ? { query: params.query } : {}),
+    ...(params?.category ? { category: params.category } : {}),
+  });
+  const res = await fetch(`/api/advisory/schemes/catalog?${query.toString()}`);
+  if (!res.ok) throw new Error('Failed to fetch government schemes catalog');
+  return res.json();
+}
+
+export async function askSchemeAdvisory(payload: SchemeAskRequest): Promise<SchemeAskResponse> {
+  const res = await fetch('/api/advisory/schemes/ask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to get government scheme advice');
+  }
+  return res.json();
+}
