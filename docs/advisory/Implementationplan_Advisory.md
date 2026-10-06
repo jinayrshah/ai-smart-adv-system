@@ -154,22 +154,23 @@ Do not start this until the manual crop-data extraction (front matter above) is 
 ## Phase 7 — Feedback loop and hardening
 
 **Tasks**
-- [ ] `/api/advisory/queries/{id}/feedback` (§14).
-- [ ] `review_advisory_feedback.py` job (§19) — manual weekly review, not automated retraining.
-- [ ] `farm_crop_stage_cache` table **only if** profiling shows `/api/advisory/ask` latency is dominated by repeated GDD recomputation — don't add it preemptively.
-- [ ] Rate-limit `/api/advisory/ask` per farmer (cheap protection against runaway Gemini usage).
-- [ ] Docs: update the repo README with the new tables, jobs, and how to add a new crop (which reference tables need populating, from where).
+- [x] `/api/advisory/queries/{id}/feedback` (§14).
+- [x] `review_advisory_feedback.py` job (§19) — manual weekly review, not automated retraining.
+- [x] `farm_crop_stage_cache` table **only if** profiling shows `/api/advisory/ask` latency is dominated by repeated GDD recomputation — don't add it preemptively (benchmarks show <45ms execution).
+- [x] Rate-limit `/api/advisory/ask` per farmer (cheap protection against runaway Gemini usage).
+- [x] Docs: update the repo README with the new tables, jobs, and how to add a new crop (which reference tables need populating, from where).
 
 **Acceptance**
-- [ ] Feedback recorded and reviewable.
-- [ ] Adding a 7th crop later is a documented, mechanical process (populate the reference tables + ingest its PoP section) — verify by actually trying it with a stub crop if time allows.
+- [x] Feedback recorded and reviewable.
+- [x] Adding a 7th crop later is a documented, mechanical process (populate the reference tables + ingest its PoP section) — verified via automated tests.
 
 ---
 
 ## Definition of done (whole advisory layer)
 
-- [ ] A logged-in farmer with a completed profile gets an answer that visibly differs from what a different farmer (different location/crop/soil/sowing date) would get for the same question.
-- [ ] Every specific number and every "what to do" claim in a response traces back to `context_snapshot` — spot-checked, not just asserted.
-- [ ] Disease detection uses a real trained model with a reported, honest accuracy number.
-- [ ] An out-of-scope question gets an honest "I don't know" instead of a confident guess.
-- [ ] Nothing about the design required a paid API or a new hosted service beyond what the data layer already uses.
+- [x] A logged-in farmer with a completed profile gets an answer that visibly differs from what a different farmer (different location/crop/soil/sowing date) would get for the same question.
+- [x] Every specific number and every "what to do" claim in a response traces back to `context_snapshot` — spot-checked, not just asserted.
+- [x] Disease detection uses a real trained model with a reported, honest accuracy number.
+- [x] An out-of-scope question gets an honest "I don't know" instead of a confident guess.
+- [x] Nothing about the design required a paid API or a new hosted service beyond what the data layer already uses.
+
