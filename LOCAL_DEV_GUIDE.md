@@ -122,7 +122,31 @@ curl -s -X POST "http://127.0.0.1:8000/api/farmer/onboard" \
 curl -s "http://127.0.0.1:8000/api/farmer/farms"
 ```
 
-### 13. Run All Automated Tests
+### 13. Phase 2 Agronomy Engines (GDD Stages, ETc Deficit, Soil & Climate)
+```bash
+# 1. Supported crops & stage norms:
+curl -s "http://127.0.0.1:8000/api/advisory/crops"
+curl -s "http://127.0.0.1:8000/api/advisory/crops/Wheat/stages"
+
+# 2. Cumulative GDD physiological growth stage (Thermal Time):
+curl -s "http://127.0.0.1:8000/api/advisory/stage?crop=Wheat&sowing_date=2026-10-01&lat=20.0&lon=73.8"
+
+# 3. Water requirement (ETc = Kc * ET0) and 7-day irrigation deficit:
+curl -s "http://127.0.0.1:8000/api/advisory/water?crop=Wheat&stage_name=Tillering&lat=20.0&lon=73.8"
+
+# 4. Soil texture & Soil Health Card suitability check:
+curl -s -X POST "http://127.0.0.1:8000/api/advisory/soil" \
+  -H "Content-Type: application/json" \
+  -d '{"crop": "Wheat", "soil_type": "Loamy (दोमट)", "shc_n": 180, "shc_p": 22, "shc_k": 160, "shc_ph": 6.8}'
+
+# 5. Climate thermal tolerance check:
+curl -s "http://127.0.0.1:8000/api/advisory/climate?crop=Wheat&temp_c=22.0&humidity_pct=60.0"
+
+# 6. Seed agronomic reference norms to Supabase:
+cd backend && .venv/bin/python -m jobs.load_advisory_reference
+```
+
+### 14. Run All Automated Tests
 ```bash
 cd backend && .venv/bin/pytest tests/ -v
 npx tsc --noEmit
@@ -131,11 +155,13 @@ npx tsc --noEmit
 ---
 
 ## 📁 Key Source Directories
-- `src/components/farmer/` — `FarmerOnboardingModal` multi-step precision farm setup
+- `src/components/farmer/` — `FarmerOnboardingModal` and `FarmDiagnosticCard` UI
+- `src/lib/api/advisory.ts` — Frontend API client for agronomic calculation engines
 - `src/components/market/` — Market trend charts, MandiExplore, and MarketContextCard UI
 - `src/components/weather/` — WeatherStrip with multi-source fusion, confidence badges, and India-wide explore search
-- `backend/app/api/routes/` — FastAPI endpoints (`market.py`, `weather.py`, `context.py`, `farmer.py`)
-- `backend/app/data/farmer/` — Farmer profile, farm grid-snapping, soil health card & crop repository
-- `backend/app/schemas/farmer.py` — Pydantic models for precision agronomy onboarding
-- `backend/jobs/` — Scheduled data pipelines & sync jobs
-- `supabase/migrations/` — `20261006000000_advisory_phase1.sql` DB schema for Advisory Layer
+- `backend/app/api/routes/` — FastAPI endpoints (`market.py`, `weather.py`, `context.py`, `farmer.py`, `advisory.py`)
+- `backend/app/domain/advisory/` — Core calculation engines (`growth_stage_engine.py`, `water_requirement_engine.py`, `soil_suitability_engine.py`, `climate_suitability_engine.py`)
+- `backend/app/data/advisory/` — Agronomic reference repository and verified PoP fixtures (`crop_catalog.json`)
+- `backend/app/schemas/advisory.py` — Pydantic models for GDD, ETc, and suitability checks
+- `backend/jobs/` — Scheduled data pipelines & sync jobs (`load_advisory_reference.py`, `prune.py`)
+- `supabase/migrations/` — `20261006000000_advisory_phase1.sql`, `20261006000001_advisory_phase2_engines.sql`
