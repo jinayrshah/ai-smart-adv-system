@@ -223,7 +223,25 @@ curl -s -X POST "http://127.0.0.1:8000/api/advisory/schemes/ask" \
   }'
 ```
 
-### 18. Run All Automated Tests
+### 18. Phase 7 Hardening, Scheduled Jobs & Feedback Audits
+```bash
+# 1. Daily Growth Stage & Agronomic Status Recomputation (CLI / GitHub Action):
+PYTHONPATH=backend cd backend && .venv/bin/python -m jobs.recompute_growth_stages --dry-run
+PYTHONPATH=backend cd backend && .venv/bin/python -m jobs.recompute_growth_stages --farm-id 1
+
+# 2. Weekly Advisory Feedback Agronomic Audit (Pulls downvoted queries where feedback = -1):
+PYTHONPATH=backend cd backend && .venv/bin/python -m jobs.review_advisory_feedback --limit 20
+PYTHONPATH=backend cd backend && .venv/bin/python -m jobs.review_advisory_feedback --format json --output audit_report.json
+
+# 3. Rate limiting test (returns HTTP 429 after 20 queries/min):
+for i in {1..22}; do
+  curl -s -o /dev/null -w "%{http_code}\n" -X POST "http://127.0.0.1:8000/api/advisory/ask" \
+    -H "Content-Type: application/json" \
+    -d '{"crop": "Wheat", "query": "Test rate limit", "farmer_id": "test_rate_farmer"}'
+done
+```
+
+### 19. Run All Automated Tests
 ```bash
 cd backend && .venv/bin/pytest tests/ -v
 npx tsc --noEmit
