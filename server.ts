@@ -1021,6 +1021,32 @@ export async function createApp() {
     }
   });
 
+  // Proxy FastAPI advisory & agronomy computation endpoints (all HTTP methods)
+  app.all('/api/advisory*', async (req, res) => {
+    try {
+      const fastApiUrl = `http://127.0.0.1:8000${req.originalUrl}`;
+      const options: RequestInit = {
+        method: req.method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(req.headers.authorization ? { 'Authorization': req.headers.authorization } : {}),
+        },
+      };
+      if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body && Object.keys(req.body).length > 0) {
+        options.body = JSON.stringify(req.body);
+      }
+      const response = await fetch(fastApiUrl, options);
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (err: any) {
+      res.status(502).json({
+        error: 'FastAPI backend unavailable',
+        hint: 'Make sure the FastAPI backend is running on port 8000 (npm run dev:backend)',
+        details: err.message,
+      });
+    }
+  });
+
   // Proxy FastAPI data-layer endpoints (trend, latest prices, search, health, weather, calculators)
   // MUST be declared BEFORE /api/weather/:city so routes like /api/weather/summary are not hijacked
   app.get([
