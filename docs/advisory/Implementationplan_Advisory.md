@@ -142,12 +142,12 @@ Do not start this until the manual crop-data extraction (front matter above) is 
 ## Phase 6 — Government scheme section
 
 **Tasks**
-- [ ] Ingest scheme documents with `doc_type='govt_scheme'` (Architecture §16) — reuse §10.2 as-is.
-- [ ] `/api/advisory/schemes` endpoint — same retrieval+generation flow, no farmer-specific computed context.
-- [ ] Frontend: simple scheme-search UI, separate from the crop-advisory chat.
+- [x] Ingest scheme documents with `doc_type='govt_scheme'` (Architecture §16) — reuse §10.2 as-is.
+- [x] `/api/advisory/schemes` endpoint — same retrieval+generation flow, no farmer-specific computed context.
+- [x] Frontend: simple scheme-search UI, separate from the crop-advisory chat.
 
 **Acceptance**
-- [ ] A handful of known scheme questions return correctly-sourced answers.
+- [x] A handful of known scheme questions return correctly-sourced answers.
 
 ---
 
