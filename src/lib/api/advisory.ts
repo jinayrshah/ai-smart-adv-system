@@ -243,3 +243,41 @@ export async function sendAdvisoryFeedback(
   }
   return res.json();
 }
+
+export interface DiseaseTreatmentExtract {
+  source_title: string;
+  page_number?: number | null;
+  treatment_text: string;
+  similarity: number;
+}
+
+export interface DiseaseCheckResponse {
+  crop: string;
+  label: string;
+  scientific_name?: string | null;
+  confidence: number;
+  confidence_status: 'high' | 'moderate' | 'low';
+  advisory_note: string;
+  treatments: DiseaseTreatmentExtract[];
+}
+
+export async function checkCropDisease(
+  file: File,
+  crop?: string,
+  farmId?: number
+): Promise<DiseaseCheckResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (crop) formData.append('crop', crop);
+  if (farmId !== undefined && farmId !== null) formData.append('farm_id', farmId.toString());
+
+  const res = await fetch('/api/advisory/disease-check', {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to analyze crop leaf photo');
+  }
+  return res.json();
+}

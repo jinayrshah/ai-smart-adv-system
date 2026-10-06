@@ -157,3 +157,20 @@ class AdvisoryFeedbackResponse(BaseModel):
     id: int
     feedback: int
     status: str = "recorded"
+
+
+class DiseaseTreatmentExtract(BaseModel):
+    source_title: str
+    page_number: int | None = None
+    treatment_text: str
+    similarity: float
+
+
+class DiseaseCheckResponse(BaseModel):
+    crop: str
+    label: str
+    scientific_name: str | None = None
+    confidence: float
+    confidence_status: Literal["high", "moderate", "low"]
+    advisory_note: str
+    treatments: list[DiseaseTreatmentExtract] = Field(default_factory=list)
