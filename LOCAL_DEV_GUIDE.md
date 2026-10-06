@@ -199,7 +199,31 @@ curl -s -X POST "http://127.0.0.1:8000/api/advisory/disease-check" \
 python training/train_disease_model.py --data-dir path/to/dataset --epochs 10
 ```
 
-### 17. Run All Automated Tests
+### 17. Phase 6 Government Schemes Catalog & Grounded Q&A
+```bash
+# 1. Retrieve static curated catalog of 6 national schemes (with optional search/category filter):
+curl -s "http://127.0.0.1:8000/api/advisory/schemes/catalog"
+curl -s "http://127.0.0.1:8000/api/advisory/schemes/catalog?category=credit_finance"
+curl -s "http://127.0.0.1:8000/api/advisory/schemes/catalog?query=fertilizer%20organic"
+
+# 2. Ask scheme-specific question grounded in verified government scheme guidelines:
+curl -s -X POST "http://127.0.0.1:8000/api/advisory/schemes/ask" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "How much financial assistance is provided under PM-KISAN per year and what is the installment structure?",
+    "scheme_code": "PM-KISAN"
+  }'
+
+# 3. KCC interest subvention grounded Q&A:
+curl -s -X POST "http://127.0.0.1:8000/api/advisory/schemes/ask" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "What is the net subsidized interest rate for prompt repayment on a Kisan Credit Card?",
+    "scheme_code": "KCC"
+  }'
+```
+
+### 18. Run All Automated Tests
 ```bash
 cd backend && .venv/bin/pytest tests/ -v
 npx tsc --noEmit
@@ -209,14 +233,15 @@ npm run build
 ---
 
 ## 📁 Key Source Directories
-- `src/components/farmer/` — `FarmerOnboardingModal` and `FarmDiagnosticCard` UI
-- `src/lib/api/advisory.ts` — Frontend API client for agronomic calculation engines, RAG search, `/ask` Q&A, and `disease-check`
+- `src/components/farmer/` — `FarmerOnboardingModal`, `FarmDiagnosticCard`, and `GovernmentSchemesCard` UI
+- `src/lib/api/advisory.ts` — Frontend API client for agronomic calculation engines, RAG search, `/ask` Q&A, `disease-check`, and `schemes`
 - `src/components/market/` — Market trend charts, MandiExplore, and MarketContextCard UI
 - `src/components/weather/` — WeatherStrip with multi-source fusion, confidence badges, and India-wide explore search
 - `backend/app/api/routes/` — FastAPI endpoints (`market.py`, `weather.py`, `context.py`, `farmer.py`, `advisory.py`)
-- `backend/app/domain/advisory/` — Computation engines & RAG (`growth_stage_engine.py`, `water_requirement_engine.py`, `soil_suitability_engine.py`, `climate_suitability_engine.py`, `retrieve.py`, `generator.py`, `disease_detector.py`, `context.py`, `audit.py`, `translation.py`)
+- `backend/app/domain/advisory/` — Computation engines, RAG & schemes (`growth_stage_engine.py`, `water_requirement_engine.py`, `soil_suitability_engine.py`, `climate_suitability_engine.py`, `retrieve.py`, `generator.py`, `disease_detector.py`, `schemes.py`, `context.py`, `audit.py`, `translation.py`)
 - `training/` — Offline model training pipelines (`train_disease_model.py` MobileNetV2 fine-tuning)
 - `backend/app/data/advisory/` — Agronomic reference repository, RAG repository (`rag_repo.py`), query repository (`query_repo.py`), and fixtures
 - `backend/app/schemas/` — Pydantic models for advisory (`advisory.py`, `rag.py`)
 - `backend/jobs/` — Scheduled pipelines & ingest jobs (`load_advisory_reference.py`, `ingest_document.py`, `prune.py`)
 - `supabase/migrations/` — `20261006000000_advisory_phase1.sql`, `20261006000001_advisory_phase2_engines.sql`, `20261006000002_advisory_phase3_rag.sql`, `20261006000003_advisory_phase4_ask.sql`
+

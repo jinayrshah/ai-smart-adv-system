@@ -111,16 +111,24 @@ class RagRepository:
         if not chunks:
             return 0
 
+        # Sanitize null characters for Postgres text compliance
+        sanitized_chunks = []
+        for ch in chunks:
+            item = dict(ch)
+            if "chunk_text" in item and isinstance(item["chunk_text"], str):
+                item["chunk_text"] = item["chunk_text"].replace("\x00", "")
+            sanitized_chunks.append(item)
+
         # Try Supabase insert
         try:
-            self.client.table("rag_chunks").insert(chunks).execute()
+            self.client.table("rag_chunks").insert(sanitized_chunks).execute()
         except Exception as exc:
             logger.debug(f"Supabase rag_chunks insert fallback: {exc}")
 
         # Always maintain in local memory store for instant offline availability
-        RagRepository._local_chunks.extend(chunks)
+        RagRepository._local_chunks.extend(sanitized_chunks)
         self.save_cache()
-        return len(chunks)
+        return len(sanitized_chunks)
 
     def match_chunks(
         self,
@@ -156,7 +164,9 @@ class RagRepository:
                         source_title=doc_info.get("title"),
                     ))
                 if matches:
-                    return matches
+                    max_sim = max((m.similarity for m in matches), default=0.0)
+                    if max_sim >= 0.55:
+                        return matches
         except Exception as exc:
             logger.debug(f"Supabase match_rag_chunks RPC fallback: {exc}")
 
