@@ -1,0 +1,435 @@
+{
+  "crops": {
+    "Wheat": {
+      "gdd_base_c": 5.0,
+      "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & ICAR-IIWBR Karnal",
+      "stages": [
+        {
+          "stage_order": 1,
+          "stage_name": "Germination & Emergence",
+          "gdd_cumulative_at_stage_end": 150.0,
+          "typical_days_fallback": 10,
+          "kc": 0.35,
+          "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & FAO-56"
+        },
+        {
+          "stage_order": 2,
+          "stage_name": "Crown Root Initiation (CRI)",
+          "gdd_cumulative_at_stage_end": 350.0,
+          "typical_days_fallback": 25,
+          "kc": 0.50,
+          "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & FAO-56"
+        },
+        {
+          "stage_order": 3,
+          "stage_name": "Tillering",
+          "gdd_cumulative_at_stage_end": 700.0,
+          "typical_days_fallback": 45,
+          "kc": 0.75,
+          "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & FAO-56"
+        },
+        {
+          "stage_order": 4,
+          "stage_name": "Jointing & Stem Elongation",
+          "gdd_cumulative_at_stage_end": 1100.0,
+          "typical_days_fallback": 65,
+          "kc": 0.95,
+          "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & FAO-56"
+        },
+        {
+          "stage_order": 5,
+          "stage_name": "Booting & Heading",
+          "gdd_cumulative_at_stage_end": 1450.0,
+          "typical_days_fallback": 85,
+          "kc": 1.15,
+          "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & FAO-56"
+        },
+        {
+          "stage_order": 6,
+          "stage_name": "Flowering & Anthesis",
+          "gdd_cumulative_at_stage_end": 1750.0,
+          "typical_days_fallback": 100,
+          "kc": 1.15,
+          "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & FAO-56"
+        },
+        {
+          "stage_order": 7,
+          "stage_name": "Milking & Dough (Grain Fill)",
+          "gdd_cumulative_at_stage_end": 2100.0,
+          "typical_days_fallback": 120,
+          "kc": 0.90,
+          "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & FAO-56"
+        },
+        {
+          "stage_order": 8,
+          "stage_name": "Physiological Maturity & Harvest",
+          "gdd_cumulative_at_stage_end": 2400.0,
+          "typical_days_fallback": 135,
+          "kc": 0.40,
+          "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & FAO-56"
+        }
+      ],
+      "soil": {
+        "ideal_soil_types": [
+          "Loamy (दोमट)",
+          "Sandy Loam (बलुई दोमट)",
+          "Clay Loam (चिकनी दोमट)",
+          "Alluvial (जलोढ़ मिट्टी)"
+        ],
+        "ideal_ph_min": 6.0,
+        "ideal_ph_max": 7.5,
+        "notes": "Well-drained fertile loam is ideal. Excessive soil salinity or waterlogging stunts root aeration.",
+        "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & ICAR-IIWBR Karnal"
+      },
+      "climate": {
+        "ideal_temp_min_c": 15.0,
+        "ideal_temp_max_c": 25.0,
+        "ideal_humidity_min_pct": 40.0,
+        "ideal_humidity_max_pct": 70.0,
+        "notes": "Wheat requires cool vegetative weather and warm, sunny conditions during grain ripening.",
+        "source": "ICAR-IIWBR Karnal Wheat Agronomy Norms"
+      }
+    },
+    "Tomato": {
+      "gdd_base_c": 10.0,
+      "source": "TNAU Agritech Portal Horticulture & ICAR-IIHR Bengaluru Tomato PoP",
+      "stages": [
+        {
+          "stage_order": 1,
+          "stage_name": "Nursery & Transplant Establishment",
+          "gdd_cumulative_at_stage_end": 160.0,
+          "typical_days_fallback": 20,
+          "kc": 0.60,
+          "source": "TNAU Agritech Portal & FAO-56"
+        },
+        {
+          "stage_order": 2,
+          "stage_name": "Vegetative Growth",
+          "gdd_cumulative_at_stage_end": 480.0,
+          "typical_days_fallback": 45,
+          "kc": 0.80,
+          "source": "TNAU Agritech Portal & FAO-56"
+        },
+        {
+          "stage_order": 3,
+          "stage_name": "Flowering & Fruit Set",
+          "gdd_cumulative_at_stage_end": 920.0,
+          "typical_days_fallback": 70,
+          "kc": 1.05,
+          "source": "TNAU Agritech Portal & FAO-56"
+        },
+        {
+          "stage_order": 4,
+          "stage_name": "Fruit Development",
+          "gdd_cumulative_at_stage_end": 1450.0,
+          "typical_days_fallback": 100,
+          "kc": 1.15,
+          "source": "TNAU Agritech Portal & FAO-56"
+        },
+        {
+          "stage_order": 5,
+          "stage_name": "Ripening & Harvest",
+          "gdd_cumulative_at_stage_end": 2050.0,
+          "typical_days_fallback": 130,
+          "kc": 0.80,
+          "source": "TNAU Agritech Portal & FAO-56"
+        }
+      ],
+      "soil": {
+        "ideal_soil_types": [
+          "Sandy Loam (बलुई दोमट)",
+          "Loamy (दोमट)",
+          "Red Soil (लाल मिट्टी)"
+        ],
+        "ideal_ph_min": 6.0,
+        "ideal_ph_max": 7.0,
+        "notes": "Prefers well-drained sandy loam rich in organic matter. Avoid poorly drained heavy clays.",
+        "source": "TNAU Agritech Portal Horticulture & ICAR-IIHR Bengaluru Tomato PoP"
+      },
+      "climate": {
+        "ideal_temp_min_c": 18.0,
+        "ideal_temp_max_c": 28.0,
+        "ideal_humidity_min_pct": 50.0,
+        "ideal_humidity_max_pct": 70.0,
+        "notes": "High temperatures above 35°C during flowering cause blossom drop and poor fruit setting.",
+        "source": "ICAR-IIHR Bengaluru Horticultural Climate Guide"
+      }
+    },
+    "Cotton": {
+      "gdd_base_c": 15.0,
+      "source": "MPKV Rahuri & ICAR-CICR Nagpur Cotton Package of Practices",
+      "stages": [
+        {
+          "stage_order": 1,
+          "stage_name": "Germination & Seedling Emergence",
+          "gdd_cumulative_at_stage_end": 160.0,
+          "typical_days_fallback": 12,
+          "kc": 0.35,
+          "source": "MPKV Rahuri & FAO-56"
+        },
+        {
+          "stage_order": 2,
+          "stage_name": "Vegetative Growth",
+          "gdd_cumulative_at_stage_end": 520.0,
+          "typical_days_fallback": 40,
+          "kc": 0.65,
+          "source": "MPKV Rahuri & FAO-56"
+        },
+        {
+          "stage_order": 3,
+          "stage_name": "Squaring (Square Formation)",
+          "gdd_cumulative_at_stage_end": 980.0,
+          "typical_days_fallback": 65,
+          "kc": 0.90,
+          "source": "MPKV Rahuri & FAO-56"
+        },
+        {
+          "stage_order": 4,
+          "stage_name": "Flowering & Boll Formation",
+          "gdd_cumulative_at_stage_end": 1650.0,
+          "typical_days_fallback": 105,
+          "kc": 1.20,
+          "source": "MPKV Rahuri & FAO-56"
+        },
+        {
+          "stage_order": 5,
+          "stage_name": "Boll Opening & Maturation",
+          "gdd_cumulative_at_stage_end": 2350.0,
+          "typical_days_fallback": 150,
+          "kc": 0.85,
+          "source": "MPKV Rahuri & FAO-56"
+        },
+        {
+          "stage_order": 6,
+          "stage_name": "Defoliation & Picking",
+          "gdd_cumulative_at_stage_end": 2750.0,
+          "typical_days_fallback": 175,
+          "kc": 0.50,
+          "source": "MPKV Rahuri & FAO-56"
+        }
+      ],
+      "soil": {
+        "ideal_soil_types": [
+          "Black Cotton (काली मिट्टी)",
+          "Loamy (दोमट)",
+          "Alluvial (जलोढ़ मिट्टी)"
+        ],
+        "ideal_ph_min": 6.0,
+        "ideal_ph_max": 8.2,
+        "notes": "Deep black soils (Vertisols) with high water retention capacity are optimal for rainfed/irrigated cotton.",
+        "source": "MPKV Rahuri & ICAR-CICR Nagpur Cotton Package of Practices"
+      },
+      "climate": {
+        "ideal_temp_min_c": 21.0,
+        "ideal_temp_max_c": 32.0,
+        "ideal_humidity_min_pct": 45.0,
+        "ideal_humidity_max_pct": 75.0,
+        "notes": "Sensitive to frost. Requires warm days and plentiful sunshine during boll opening.",
+        "source": "ICAR-CICR Nagpur Agronomy Advisory"
+      }
+    },
+    "Soybean": {
+      "gdd_base_c": 10.0,
+      "source": "ICAR-IISR Indore Soybean Package of Practices 2024",
+      "stages": [
+        {
+          "stage_order": 1,
+          "stage_name": "Emergence (VE-VC)",
+          "gdd_cumulative_at_stage_end": 130.0,
+          "typical_days_fallback": 8,
+          "kc": 0.40,
+          "source": "ICAR-IISR Indore & FAO-56"
+        },
+        {
+          "stage_order": 2,
+          "stage_name": "Vegetative Development (V1-V4)",
+          "gdd_cumulative_at_stage_end": 420.0,
+          "typical_days_fallback": 28,
+          "kc": 0.70,
+          "source": "ICAR-IISR Indore & FAO-56"
+        },
+        {
+          "stage_order": 3,
+          "stage_name": "Flowering & Pod Initiation (R1-R3)",
+          "gdd_cumulative_at_stage_end": 820.0,
+          "typical_days_fallback": 50,
+          "kc": 1.10,
+          "source": "ICAR-IISR Indore & FAO-56"
+        },
+        {
+          "stage_order": 4,
+          "stage_name": "Pod Development & Seed Fill (R4-R6)",
+          "gdd_cumulative_at_stage_end": 1350.0,
+          "typical_days_fallback": 80,
+          "kc": 1.15,
+          "source": "ICAR-IISR Indore & FAO-56"
+        },
+        {
+          "stage_order": 5,
+          "stage_name": "Physiological Maturity & Senescence (R7-R8)",
+          "gdd_cumulative_at_stage_end": 1800.0,
+          "typical_days_fallback": 105,
+          "kc": 0.50,
+          "source": "ICAR-IISR Indore & FAO-56"
+        }
+      ],
+      "soil": {
+        "ideal_soil_types": [
+          "Black Cotton (काली मिट्टी)",
+          "Clay Loam (चिकनी दोमट)",
+          "Loamy (दोमट)"
+        ],
+        "ideal_ph_min": 6.2,
+        "ideal_ph_max": 7.5,
+        "notes": "Requires well-drained fertile clay loams or vertisols. Waterlogging during early seedling causes root rot.",
+        "source": "ICAR-IISR Indore Soybean Package of Practices 2024"
+      },
+      "climate": {
+        "ideal_temp_min_c": 20.0,
+        "ideal_temp_max_c": 30.0,
+        "ideal_humidity_min_pct": 55.0,
+        "ideal_humidity_max_pct": 80.0,
+        "notes": "Thrives in warm, moist Kharif conditions. High temperatures >38°C during flowering trigger flower abortion.",
+        "source": "ICAR-IISR Indore Agro-Climatic Norms"
+      }
+    },
+    "Rice": {
+      "gdd_base_c": 10.0,
+      "source": "TNAU Agritech Portal & ICAR-NRRI Cuttack Rice PoP",
+      "stages": [
+        {
+          "stage_order": 1,
+          "stage_name": "Nursery & Seedling",
+          "gdd_cumulative_at_stage_end": 250.0,
+          "typical_days_fallback": 22,
+          "kc": 1.05,
+          "source": "TNAU Agritech Portal & FAO-56"
+        },
+        {
+          "stage_order": 2,
+          "stage_name": "Tillering & Stem Elongation",
+          "gdd_cumulative_at_stage_end": 700.0,
+          "typical_days_fallback": 50,
+          "kc": 1.10,
+          "source": "TNAU Agritech Portal & FAO-56"
+        },
+        {
+          "stage_order": 3,
+          "stage_name": "Panicle Initiation & Booting",
+          "gdd_cumulative_at_stage_end": 1150.0,
+          "typical_days_fallback": 75,
+          "kc": 1.20,
+          "source": "TNAU Agritech Portal & FAO-56"
+        },
+        {
+          "stage_order": 4,
+          "stage_name": "Flowering & Anthesis",
+          "gdd_cumulative_at_stage_end": 1550.0,
+          "typical_days_fallback": 95,
+          "kc": 1.25,
+          "source": "TNAU Agritech Portal & FAO-56"
+        },
+        {
+          "stage_order": 5,
+          "stage_name": "Milk & Dough (Grain Filling)",
+          "gdd_cumulative_at_stage_end": 1950.0,
+          "typical_days_fallback": 115,
+          "kc": 1.10,
+          "source": "TNAU Agritech Portal & FAO-56"
+        },
+        {
+          "stage_order": 6,
+          "stage_name": "Ripening & Harvest",
+          "gdd_cumulative_at_stage_end": 2350.0,
+          "typical_days_fallback": 135,
+          "kc": 0.90,
+          "source": "TNAU Agritech Portal & FAO-56"
+        }
+      ],
+      "soil": {
+        "ideal_soil_types": [
+          "Clay Loam (चिकनी दोमट)",
+          "Alluvial (जलोढ़ मिट्टी)",
+          "Loamy (दोमट)"
+        ],
+        "ideal_ph_min": 5.5,
+        "ideal_ph_max": 7.2,
+        "notes": "Heavy soils with high clay content and low permeability are best for maintaining standing water.",
+        "source": "TNAU Agritech Portal & ICAR-NRRI Cuttack Rice PoP"
+      },
+      "climate": {
+        "ideal_temp_min_c": 22.0,
+        "ideal_temp_max_c": 35.0,
+        "ideal_humidity_min_pct": 65.0,
+        "ideal_humidity_max_pct": 90.0,
+        "notes": "Requires warm humid weather and abundant sunshine during panicle and grain ripening.",
+        "source": "ICAR-NRRI Cuttack Rice Climate Advisory"
+      }
+    },
+    "Maize": {
+      "gdd_base_c": 10.0,
+      "source": "ICAR-IIMR Ludhiana Maize Agronomy Guide & FAO-56",
+      "stages": [
+        {
+          "stage_order": 1,
+          "stage_name": "Emergence & Early Vegetative (VE-V4)",
+          "gdd_cumulative_at_stage_end": 160.0,
+          "typical_days_fallback": 12,
+          "kc": 0.40,
+          "source": "ICAR-IIMR Ludhiana & FAO-56"
+        },
+        {
+          "stage_order": 2,
+          "stage_name": "Knee-High Vegetative (V5-V10)",
+          "gdd_cumulative_at_stage_end": 520.0,
+          "typical_days_fallback": 35,
+          "kc": 0.80,
+          "source": "ICAR-IIMR Ludhiana & FAO-56"
+        },
+        {
+          "stage_order": 3,
+          "stage_name": "Tasseling & Silking (VT-R1)",
+          "gdd_cumulative_at_stage_end": 920.0,
+          "typical_days_fallback": 58,
+          "kc": 1.20,
+          "source": "ICAR-IIMR Ludhiana & FAO-56"
+        },
+        {
+          "stage_order": 4,
+          "stage_name": "Grain Fill / Milk-Dough (R2-R4)",
+          "gdd_cumulative_at_stage_end": 1420.0,
+          "typical_days_fallback": 85,
+          "kc": 1.15,
+          "source": "ICAR-IIMR Ludhiana & FAO-56"
+        },
+        {
+          "stage_order": 5,
+          "stage_name": "Physiological Maturity & Harvest (R5-R6)",
+          "gdd_cumulative_at_stage_end": 1880.0,
+          "typical_days_fallback": 110,
+          "kc": 0.60,
+          "source": "ICAR-IIMR Ludhiana & FAO-56"
+        }
+      ],
+      "soil": {
+        "ideal_soil_types": [
+          "Loamy (दोमट)",
+          "Sandy Loam (बलुई दोमट)",
+          "Alluvial (जलोढ़ मिट्टी)"
+        ],
+        "ideal_ph_min": 5.8,
+        "ideal_ph_max": 7.5,
+        "notes": "Deep, well-drained loams rich in organic matter. Maize is highly sensitive to waterlogging.",
+        "source": "ICAR-IIMR Ludhiana Maize Agronomy Guide & FAO-56"
+      },
+      "climate": {
+        "ideal_temp_min_c": 18.0,
+        "ideal_temp_max_c": 32.0,
+        "ideal_humidity_min_pct": 50.0,
+        "ideal_humidity_max_pct": 75.0,
+        "notes": "Requires moderate temperatures and warm soils. Frost or temperatures >38°C at silking desiccatess pollen.",
+        "source": "ICAR-IIMR Ludhiana Agro-Climatic Advisory"
+      }
+    }
+  }
+}
