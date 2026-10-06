@@ -146,7 +146,21 @@ curl -s "http://127.0.0.1:8000/api/advisory/climate?crop=Wheat&temp_c=22.0&humid
 cd backend && .venv/bin/python -m jobs.load_advisory_reference
 ```
 
-### 14. Run All Automated Tests
+### 14. Phase 3 RAG Knowledge Pipeline (ICAR & Agronomy Semantic Search)
+```bash
+# 1. Semantic retrieval matching:
+curl -s -X POST "http://127.0.0.1:8000/api/advisory/retrieve" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Wheat crown root initiation irrigation schedule", "crop": "Wheat", "top_k": 3}'
+
+# 2. National Government Schemes query:
+curl -s "http://127.0.0.1:8000/api/advisory/schemes?query=KCC%20loan%20interest%20rate%20subvention"
+
+# 3. Ingest documents into RAG store (ICAR Kharif Guide, PoPs):
+PYTHONPATH=backend cd backend && .venv/bin/python -m jobs.ingest_document --max-pages 50
+```
+
+### 15. Run All Automated Tests
 ```bash
 cd backend && .venv/bin/pytest tests/ -v
 npx tsc --noEmit
@@ -156,12 +170,12 @@ npx tsc --noEmit
 
 ## 📁 Key Source Directories
 - `src/components/farmer/` — `FarmerOnboardingModal` and `FarmDiagnosticCard` UI
-- `src/lib/api/advisory.ts` — Frontend API client for agronomic calculation engines
+- `src/lib/api/advisory.ts` — Frontend API client for agronomic calculation engines and RAG search
 - `src/components/market/` — Market trend charts, MandiExplore, and MarketContextCard UI
 - `src/components/weather/` — WeatherStrip with multi-source fusion, confidence badges, and India-wide explore search
 - `backend/app/api/routes/` — FastAPI endpoints (`market.py`, `weather.py`, `context.py`, `farmer.py`, `advisory.py`)
-- `backend/app/domain/advisory/` — Core calculation engines (`growth_stage_engine.py`, `water_requirement_engine.py`, `soil_suitability_engine.py`, `climate_suitability_engine.py`)
-- `backend/app/data/advisory/` — Agronomic reference repository and verified PoP fixtures (`crop_catalog.json`)
-- `backend/app/schemas/advisory.py` — Pydantic models for GDD, ETc, and suitability checks
-- `backend/jobs/` — Scheduled data pipelines & sync jobs (`load_advisory_reference.py`, `prune.py`)
-- `supabase/migrations/` — `20261006000000_advisory_phase1.sql`, `20261006000001_advisory_phase2_engines.sql`
+- `backend/app/domain/advisory/` — Computation engines & RAG (`growth_stage_engine.py`, `water_requirement_engine.py`, `soil_suitability_engine.py`, `climate_suitability_engine.py`, `retrieve.py`, `embeddings.py`)
+- `backend/app/data/advisory/` — Agronomic reference repository, RAG repository (`rag_repo.py`), and verified fixtures
+- `backend/app/schemas/` — Pydantic models for advisory (`advisory.py`, `rag.py`)
+- `backend/jobs/` — Scheduled pipelines & ingest jobs (`load_advisory_reference.py`, `ingest_document.py`, `prune.py`)
+- `supabase/migrations/` — `20261006000000_advisory_phase1.sql`, `20261006000001_advisory_phase2_engines.sql`, `20261006000002_advisory_phase3_rag.sql`
