@@ -74,6 +74,7 @@ import { LocationBanner } from './components/LocationBanner';
 import { LanguageSelector } from './components/LanguageSelector';
 import { FertilizerRecommendation } from './components/fertilizer/FertilizerRecommendation';
 import { HistoryModal } from './components/HistoryModal';
+import { FarmerOnboardingModal } from './components/farmer/FarmerOnboardingModal';
 import { Marketplace } from './components/marketplace/Marketplace';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { useHistoryStore } from './stores/historyStore';
@@ -141,6 +142,16 @@ export function AppContent() {
   const setActiveTab = useUIStore((state) => state.setActiveTab);
   const showHistory = useUIStore((state) => state.showHistory);
   const setShowHistory = useUIStore((state) => state.setShowHistory);
+
+  const [showFarmerOnboarding, setShowFarmerOnboarding] = useState(false);
+  const [farmerProfile, setFarmerProfile] = useState<any>(() => {
+    try {
+      const saved = localStorage.getItem('farmer_onboarding_profile');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const [lastMarketUpdate, setLastMarketUpdate] = useState<Date>(new Date());
 
@@ -758,6 +769,83 @@ export function AppContent() {
 
   const renderAdvisor = () => (
     <div className="space-y-6 pb-24">
+      {/* Precision Agronomy Profile / Onboarding Banner */}
+      {farmerProfile ? (
+        <div className="bg-gradient-to-r from-emerald-950/40 via-dark-card to-zinc-900/60 rounded-3xl border border-emerald-500/30 p-6 shadow-xl relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  Precision Farm Profile Active
+                </span>
+                <span className="text-xs text-zinc-400">
+                  Grid: {farmerProfile.farm?.agromet_grid_id || 'Auto-snapped'}
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-stone-100 mt-2">
+                🌾 {farmerProfile.farm?.farm_name || 'My Farm'} • {farmerProfile.crop?.crop_name || 'Selected Crop'}
+              </h3>
+              <p className="text-xs text-stone-400 mt-1">
+                Soil: <span className="text-emerald-400 font-medium">{farmerProfile.farm?.soil_type || 'Unspecified'}</span> • 
+                Sown: <span className="text-stone-300 font-medium">{farmerProfile.crop?.sowing_date || 'Current Season'}</span>
+                {farmerProfile.farm?.shc_n !== undefined && (
+                  <span> • SHC (N: {farmerProfile.farm?.shc_n}, P: {farmerProfile.farm?.shc_p}, K: {farmerProfile.farm?.shc_k}, pH: {farmerProfile.farm?.shc_ph})</span>
+                )}
+              </p>
+            </div>
+            <div className="flex items-center space-x-2 shrink-0">
+              {farmerProfile.farm?.shc_n !== undefined && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateModuleData('cropForm', {
+                      ...appData.cropForm,
+                      nitrogen: farmerProfile.farm.shc_n?.toString() || '',
+                      phosphorus: farmerProfile.farm.shc_p?.toString() || '',
+                      potassium: farmerProfile.farm.shc_k?.toString() || '',
+                      ph: farmerProfile.farm.shc_ph?.toString() || ''
+                    });
+                  }}
+                  className="px-3 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-500/30 transition-colors"
+                >
+                  Apply My Soil Test
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowFarmerOnboarding(true)}
+                className="px-3 py-2 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-xl text-xs font-semibold border border-dark-border transition-colors"
+              >
+                Edit Farm
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gradient-to-r from-emerald-950/30 via-dark-card to-zinc-900/50 rounded-3xl border border-emerald-500/20 p-6 relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-green/20 text-brand-green border border-brand-green/30">
+                <Sprout size={12} />
+                <span>Phase 1 Precision Agronomy</span>
+              </div>
+              <h3 className="text-lg font-bold text-stone-100">Set Up Your Farm & Crop Cycle</h3>
+              <p className="text-xs text-stone-400 max-w-xl">
+                Link your farm GPS coordinates (snaps to 11km agromet weather grid), soil test card (NPK & pH), and sowing date to unlock stage-based agro-advisories.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowFarmerOnboarding(true)}
+              className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center space-x-2 shrink-0"
+            >
+              <span>Onboard Farm</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-dark-card rounded-3xl border border-dark-border overflow-hidden">
         <div className="p-6 border-b border-dark-border">
           <h2 className="text-xl font-bold flex items-center">
@@ -1520,6 +1608,19 @@ export function AppContent() {
       </main>
 
       <HistoryModal open={showHistory} onClose={() => setShowHistory(false)} />
+      <FarmerOnboardingModal
+        isOpen={showFarmerOnboarding}
+        onClose={() => setShowFarmerOnboarding(false)}
+        initialFarmerId={user?.id}
+        initialName={user?.name}
+        onComplete={(result) => {
+          setFarmerProfile(result);
+          try {
+            localStorage.setItem('farmer_onboarding_profile', JSON.stringify(result));
+          } catch {}
+          setShowFarmerOnboarding(false);
+        }}
+      />
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-dark-card/90 backdrop-blur-lg border-t border-dark-border z-50 px-2 py-2">
