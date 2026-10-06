@@ -17,6 +17,7 @@ from app.domain.advisory.climate_suitability_engine import check_climate_suitabi
 from app.domain.advisory.growth_stage_engine import current_growth_stage
 from app.domain.advisory.soil_suitability_engine import check_soil_suitability
 from app.domain.advisory.water_requirement_engine import calculate_irrigation_need
+from app.domain.advisory.retrieve import retrieve
 from app.schemas.advisory import (
     AgronomyDiagnosticResponse,
     ClimateVerdict,
@@ -26,6 +27,7 @@ from app.schemas.advisory import (
     SoilFlag,
     StageResult,
 )
+from app.schemas.rag import RetrievalRequest, RetrievedChunk
 
 logger = logging.getLogger(__name__)
 
@@ -254,3 +256,37 @@ def get_farm_diagnostic(
         soil_flags=soil_flags,
         climate=climate_res,
     )
+
+
+@router.post("/retrieve", response_model=list[RetrievedChunk])
+def retrieve_knowledge_chunks(payload: RetrievalRequest):
+    """
+    RAG semantic search: matches query embedding against ICAR & agronomy knowledge chunks.
+    Architecture §10.3.
+    """
+    return retrieve(
+        query=payload.query,
+        crop=payload.crop,
+        stage_name=payload.stage_name,
+        disease_label=payload.disease_label,
+        doc_types=payload.doc_types,
+        top_k=payload.top_k,
+    )
+
+
+@router.get("/schemes", response_model=list[RetrievedChunk])
+def search_government_schemes(
+    query: str = Query("agricultural loan insurance subsidy welfare", description="Scheme topic or question"),
+    top_k: int = Query(6, description="Max results to return"),
+):
+    """
+    Search national agricultural government schemes (PM-KISAN, PMFBY, KCC, SHC, AIF, PKVY).
+    Architecture §16.
+    """
+    return retrieve(
+        query=query,
+        crop=None,
+        doc_types=["govt_scheme"],
+        top_k=top_k,
+    )
+
