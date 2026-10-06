@@ -6,33 +6,88 @@ An intelligent agricultural platform providing multi-source weather fusion, real
 
 ## 🏗️ Architecture & Data Layer Overview
 
-The system combines a **React + Vite** frontend (proxied via Node/Express) and a high-performance **FastAPI** backend backed by **Supabase (PostgreSQL)**.
+The system combines a **React + Vite** frontend (proxied via Node/Express) and a high-performance **FastAPI** backend backed by **Supabase (PostgreSQL with pgvector)**.
 
-1. **Market Data Layer:**
-   - **Tier A (Advisory):** 6 key crops (Wheat, Rice, Maize, Sugarcane, Potato, Cotton) across 7 tracked states (Gujarat, Maharashtra, UP, Punjab, MP, Karnataka, Rajasthan) with continuous date-spine history.
+1. **Personalized Crop Advisory Layer (Deep-6 Crops: Wheat, Rice, Cotton, Maize, Sugarcane, Potato):**
+   - **Farmer Context Assembly:** Combines registered location, soil type, NPK soil tests, irrigation method, sowing date, and live weather.
+   - **Precision Agronomy Calculation Engines:**
+     - *Physiological Growth Stage Engine:* Tracks accumulated thermal time (Growing Degree Days, GDD) with base temperatures and calendar fallbacks.
+     - *Water Requirement & Deficit Engine:* Computes daily crop evapotranspiration ($ET_c = K_c \times ET_0$) and 7-day rainfall deficits.
+     - *Soil Suitability Engine:* Checks texture compatibility and Soil Health Card (SHC) N-P-K-pH thresholds.
+     - *Climate Thermal Tolerance Engine:* Validates ambient cardinal temperatures and humidity ranges.
+   - **RAG Knowledge Pipeline:** Strict retrieval-augmented generation grounded in ICAR Packages of Practices and State Agricultural University guides using 768-dimensional Gemini embeddings (`vector(768)`).
+   - **Disease Detection & Treatment Linking:** MobileNetV2 leaf image analysis with calibrated confidence tiers and direct RAG treatment linking.
+   - **National Agricultural Welfare Schemes:** Static curated catalog and grounded Q&A across PM-KISAN, PMFBY, KCC, SHC, AIF, and PKVY.
+   - **Feedback Loop & Safety Audit:** Farmer query audit snapshots (`advisory_queries`), thumbs up/down logging, and weekly agronomic review.
+
+2. **Market Data Layer:**
+   - **Tier A (Advisory):** 6 key crops across 7 tracked states (Gujarat, Maharashtra, UP, Punjab, MP, Karnataka, Rajasthan) with continuous date-spine history.
    - **Tier B (Explore):** Any commodity at any mandi in India with live lookups, automatic graduation into daily tracking, and LRU eviction at a 300-pair cap.
-2. **Weather Fusion Layer:**
+
+3. **Weather Fusion Layer:**
    - Multi-source fused forecast and archive (Open-Meteo as primary, cross-checked against NASA POWER and OpenWeather).
    - Real-time agreement metrics, sensor confidence ratings (`high`, `medium`, `low`), and 0.1° (~10 km) geographic grid snapping.
-3. **Context Layer:**
-   - Synthesizes market price volatility, coverage, and recent rainfall/heat anomalies to generate factual, non-predictive operational advisories.
-4. **Economic Calculators:**
+
+4. **Context & Economic Calculators:**
    - **Crop Margin Calculator:** Uses official DES Cost of Cultivation benchmarks (C2 and A2+FL).
    - **Storage Estimator:** Models monthly warehouse holding fees vs. moisture shrinkage weight loss, and explicitly refuses non-storable crops (Sugarcane, Tomato).
 
 ---
 
+## 🗄️ Database Tables (Supabase PostgreSQL)
+
+| Table | Purpose |
+|---|---|
+| `farmer_profile` | Farmer profiles, preferred language (`en`, `hi`, `mr`, `gu`), and phone contact. |
+| `farms` | Farm geo-coordinates, soil texture classification, N-P-K-pH values, and irrigation systems. |
+| `farm_crops` | Active registered crops, crop varieties, sowing dates, and harvest seasons. |
+| `crop_stage_norms` | Base temperatures ($T_{base}$), cumulative GDD thresholds, and fallback durations per stage. |
+| `crop_kc_reference` | FAO-56 crop coefficients ($K_c$) mapped per physiological growth stage. |
+| `crop_soil_suitability` | Soil texture preferences and optimal pH boundaries. |
+| `crop_climate_suitability` | Minimum and maximum cardinal thermal and humidity tolerances. |
+| `rag_documents` | Ingested ICAR, State Ag University, and Ministry of Agriculture documents. |
+| `rag_chunks` | Semantic text passages with 768-dimensional pgvector embeddings (`vector(768)`). |
+| `advisory_queries` | Auditable context snapshots, generated responses, citations, and farmer feedback (+1 / -1). |
+
+---
+
 ## 🛠️ Background Jobs & Pipelines
 
-| Job Script | Schedule (UTC) | IST Time | Purpose |
-|---|---|---|---|
-| `python -m jobs.ingest_mandi_daily` | `0 10 * * *`<br>`0 16 * * *` | 15:30<br>21:30 | Fetches data.gov.in mandi arrivals, canonicalizes, validates, and upserts. |
-| `python -m jobs.ingest_weather` | `15 0,6,12,18 * * *` | 05:45, 11:45,<br>17:45, 23:45 | Daily weather forecast + recent observations fusion across all tracked grids. |
-| `python -m jobs.reconcile_recent` | `30 2 * * *` | 08:00 | Reconciles recent 14-day weather with Open-Meteo ERA5 archive. |
-| `python -m jobs.power_validate` | `0 3 * * *` | 08:30 | Fetches NASA POWER solar radiation and rainfall to validate fusion data. |
-| `python -m jobs.prune` | `0 20 * * 6` | Sun 01:30 | Enforces retention (14d OpenWeather, 30d forecast, 90d explore, 3y Tier A, 90d runs) and audits 400 MB storage cap. |
-| `python -m jobs.load_reference_data` | Manual / One-time | — | Loads and seeds DES Cost of Cultivation and WDRA storage parameters into Supabase. |
-| `python -m jobs.refresh_normals` | Manual | — | Recomputes 30-year monthly normals for newly enrolled weather grids. |
+| Job Script | Schedule | Purpose |
+|---|---|---|
+| `python -m jobs.ingest_mandi_daily` | 15:30, 21:30 IST | Daily data.gov.in mandi arrival ingestion, validation, and upsert. |
+| `python -m jobs.ingest_weather` | 05:45, 11:45, 17:45, 23:45 IST | Multi-source weather forecast and observation fusion. |
+| `python -m jobs.recompute_growth_stages` | Daily (Post-Weather) | Recomputes GDD accumulation and water deficits for all registered active crops. |
+| `python -m jobs.review_advisory_feedback` | Weekly (Manual) | Agronomic audit tool reviewing flagged advisory responses (`feedback = -1`). |
+| `python -m jobs.ingest_document` | Manual / As needed | Ingests and vectorizes new agronomic guides or government scheme PDFs into `rag_chunks`. |
+| `python -m jobs.load_advisory_reference` | One-time / Setup | Seeds GDD stage norms, Kc tables, and soil/climate parameters into Supabase. |
+| `python -m jobs.reconcile_recent` | 08:00 IST | Reconciles recent 14-day weather with Open-Meteo ERA5 archive. |
+| `python -m jobs.power_validate` | 08:30 IST | Fetches NASA POWER radiation and precipitation to validate fused weather. |
+| `python -m jobs.prune` | Sun 01:30 IST | Enforces table retention limits and guards storage limits. |
+| `python -m jobs.load_reference_data` | Setup | Seeds DES Cost of Cultivation and WDRA storage benchmarks. |
+| `python -m jobs.refresh_normals` | Setup | Computes 30-year monthly historical climate normals for new weather grids. |
+
+---
+
+## 🌾 How to Add a New Crop (Mechanical Process)
+
+Adding support for an additional crop (e.g. *Mustard*, *Soybean*, or *Chickpea*) does **not** require changing any core calculation or advisory engine code. Follow these mechanical steps:
+
+1. **Populate Reference Tables** (or add entry to [`backend/app/data/advisory/fixtures/crop_catalog.json`](file:///Users/jinayshah/Downloads/smart%20adv%20system%20repo/AI-Smart-Agriculture-System/backend/app/data/advisory/fixtures/crop_catalog.json)):
+   - **`crop_stage_norms`**: Add 4–6 physiological growth stages with `gdd_base_c`, `gdd_cumulative_at_stage_end`, and `typical_days_fallback`.
+   - **`crop_kc_reference`**: Add crop water coefficient ($K_c$) for each growth stage based on FAO-56.
+   - **`crop_soil_suitability`**: Add compatible soil types (e.g. `Sandy Loam (बलुई दोमट)`), `ideal_ph_min`, and `ideal_ph_max`.
+   - **`crop_climate_suitability`**: Add optimal temperature boundaries (`ideal_temp_min_c`, `ideal_temp_max_c`).
+2. **Ingest State University / ICAR Package of Practices**:
+   - Run the document ingestion job to embed the new crop's agronomy guide:
+     ```bash
+     PYTHONPATH=backend python -m jobs.ingest_document --pdf-path path/to/Crop_Guide.pdf --crop "Mustard" --doc-type "agronomy_pop"
+     ```
+3. **Verify via Tests**:
+   - Run the automated test suite to ensure the new crop resolves in growth stage, water balance, and RAG retrieval pipelines:
+     ```bash
+     cd backend && .venv/bin/pytest tests/test_phase7_hardening.py -k test_mechanical_addition_of_new_crop
+     ```
 
 ---
 
@@ -87,10 +142,11 @@ For quick reference to all browser links, ports, and curl examples, see [**`LOCA
 ## 🧪 Testing
 
 ```bash
-# Backend test suite (74 tests covering API contracts, calculators, and ops):
+# Backend test suite (125 tests covering API contracts, agronomy engines, RAG, CV disease detection, calculators, and jobs):
 cd backend && .venv/bin/pytest tests/ -v
 
 # Frontend TypeScript check and production build:
 npx tsc --noEmit
 npm run build
 ```
+
