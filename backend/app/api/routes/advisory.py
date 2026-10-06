@@ -8,17 +8,24 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
+from app.data.advisory.query_repo import get_query_repo
 from app.data.advisory.reference_repo import get_agronomy_repo
 from app.data.farmer.repository import FarmerRepository
 from app.data.locations.grid import snap_to_grid
 from app.data.weather.repository import WeatherRepository
 from app.data.weather.service import WeatherService
 from app.domain.advisory.climate_suitability_engine import check_climate_suitability
+from app.domain.advisory.context import assemble_advisory_context
+from app.domain.advisory.generator import generate_advisory_response
 from app.domain.advisory.growth_stage_engine import current_growth_stage
 from app.domain.advisory.soil_suitability_engine import check_soil_suitability
 from app.domain.advisory.water_requirement_engine import calculate_irrigation_need
 from app.domain.advisory.retrieve import retrieve
 from app.schemas.advisory import (
+    AdvisoryAskRequest,
+    AdvisoryAskResponse,
+    AdvisoryFeedbackRequest,
+    AdvisoryFeedbackResponse,
     AgronomyDiagnosticResponse,
     ClimateVerdict,
     CropStageNorm,
@@ -37,6 +44,7 @@ weather_service = WeatherService()
 weather_repo = WeatherRepository()
 agronomy_repo = get_agronomy_repo()
 farmer_repo = FarmerRepository()
+query_repo = get_query_repo()
 
 
 @router.get("/crops", response_model=list[str])
@@ -289,4 +297,68 @@ def search_government_schemes(
         doc_types=["govt_scheme"],
         top_k=top_k,
     )
+
+
+@router.post("/ask", response_model=AdvisoryAskResponse)
+def ask_crop_advisory(payload: AdvisoryAskRequest):
+    """
+    Main Personalized Advisory pipeline:
+    Assembles AdvisoryContext (profile, weather history, GDD stage, ETc deficit, soil & climate),
+    executes RAG retrieval, invokes grounded generation, performs safety audit, and logs query.
+    Architecture §4, §12, §14.
+    """
+    ctx = assemble_advisory_context(
+        query=payload.query,
+        farm_id=payload.farm_id,
+        crop=payload.crop,
+        farmer_id=payload.farmer_id,
+        language=payload.language,
+        sowing_date_str=payload.sowing_date,
+        soil_type_str=payload.soil_type,
+        lat=payload.lat,
+        lon=payload.lon,
+        disease_label=payload.disease_label,
+        weather_service=weather_service,
+        weather_repo=weather_repo,
+        farmer_repo=farmer_repo,
+    )
+
+    # Generate response
+    response = generate_advisory_response(
+        ctx=ctx,
+        user_query=payload.query,
+        query_id=0,
+    )
+
+    # Persist auditable snapshot in advisory_queries (§13)
+    logged_id = query_repo.log_query(
+        user_query=payload.query,
+        context_snapshot=ctx.to_snapshot(),
+        response_text=response.response,
+        retrieved_chunk_ids=response.retrieved_chunk_ids,
+        confidence=response.confidence,
+        farmer_id=ctx.farmer_id,
+        farm_id=ctx.farm_id,
+    )
+    response.id = logged_id
+    return response
+
+
+@router.post("/queries/{query_id}/feedback", response_model=AdvisoryFeedbackResponse)
+def record_query_feedback(query_id: int, payload: AdvisoryFeedbackRequest):
+    """
+    Records farmer feedback (+1 thumbs-up, -1 thumbs-down) for an advisory response.
+    Architecture §2 idea 3, §14.
+    """
+    val = payload.feedback
+    if val is None and payload.up is not None:
+        val = 1 if payload.up else -1
+    if val not in (1, -1):
+        raise HTTPException(status_code=400, detail="Feedback must be 1 (thumbs-up) or -1 (thumbs-down).")
+
+    success = query_repo.record_feedback(query_id=query_id, feedback=val)
+    if not success:
+        logger.warning(f"Failed to record feedback for query_id {query_id}")
+
+    return AdvisoryFeedbackResponse(id=query_id, feedback=val, status="recorded")
 
