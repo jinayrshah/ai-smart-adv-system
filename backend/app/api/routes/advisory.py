@@ -19,6 +19,7 @@ from app.domain.advisory.context import assemble_advisory_context
 from app.domain.advisory.disease_detector import get_disease_detector
 from app.domain.advisory.generator import generate_advisory_response
 from app.domain.advisory.growth_stage_engine import current_growth_stage
+from app.domain.advisory.schemes import answer_scheme_query, get_all_schemes, get_scheme_by_code
 from app.domain.advisory.soil_suitability_engine import check_soil_suitability
 from app.domain.advisory.water_requirement_engine import calculate_irrigation_need
 from app.domain.advisory.retrieve import retrieve
@@ -31,7 +32,10 @@ from app.schemas.advisory import (
     ClimateVerdict,
     CropStageNorm,
     DiseaseCheckResponse,
+    GovernmentScheme,
     IrrigationAdvice,
+    SchemeAskRequest,
+    SchemeAskResponse,
     SoilCheckRequest,
     SoilFlag,
     StageResult,
@@ -299,6 +303,31 @@ def search_government_schemes(
         crop=None,
         doc_types=["govt_scheme"],
         top_k=top_k,
+    )
+
+
+@router.get("/schemes/catalog", response_model=list[GovernmentScheme])
+def list_government_schemes(
+    query: str | None = Query(None, description="Optional search term"),
+    category: str | None = Query(None, description="Optional category filter"),
+):
+    """
+    List structured national agricultural welfare schemes with eligibility, benefits, and portals.
+    Architecture §16.
+    """
+    return get_all_schemes(query=query, category=category)
+
+
+@router.post("/schemes/ask", response_model=SchemeAskResponse)
+def ask_government_scheme(payload: SchemeAskRequest):
+    """
+    RAG-grounded answering for farmer welfare and government subsidy queries.
+    Architecture §16.
+    """
+    return answer_scheme_query(
+        query=payload.query,
+        scheme_code=payload.scheme_code,
+        language=payload.language,
     )
 
 
