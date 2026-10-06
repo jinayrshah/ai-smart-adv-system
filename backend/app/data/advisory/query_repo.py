@@ -107,6 +107,68 @@ class AdvisoryQueryRepository:
 
         return AdvisoryQueryRepository._memory_store.get(query_id)
 
+    def get_flagged_queries(self, limit: int = 50) -> list[dict[str, Any]]:
+        """
+        Retrieves advisory queries where feedback = -1 for manual agronomic audit.
+        Architecture_Advisory.md §13, §19.
+        """
+        try:
+            res = (
+                self.client.table("advisory_queries")
+                .select("*")
+                .eq("feedback", -1)
+                .order("created_at", desc=True)
+                .limit(limit)
+                .execute()
+            )
+            if res.data:
+                return res.data
+        except Exception as exc:
+            logger.debug(f"Supabase get_flagged_queries fallback: {exc}")
+
+        # In-memory fallback
+        flagged = [
+            q for q in AdvisoryQueryRepository._memory_store.values()
+            if q.get("feedback") == -1
+        ]
+        flagged.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        return flagged[:limit]
+
+    def get_feedback_summary(self) -> dict[str, Any]:
+        """
+        Aggregates query volume and feedback statistics (upvotes, downvotes, satisfaction rate).
+        """
+        try:
+            total_res = self.client.table("advisory_queries").select("id, feedback", count="exact").execute()
+            if total_res.data is not None:
+                total_count = total_res.count or len(total_res.data)
+                upvotes = sum(1 for r in total_res.data if r.get("feedback") == 1)
+                downvotes = sum(1 for r in total_res.data if r.get("feedback") == -1)
+                unrated = total_count - upvotes - downvotes
+                satisfaction = round((upvotes / (upvotes + downvotes) * 100), 1) if (upvotes + downvotes) > 0 else 100.0
+                return {
+                    "total_queries": total_count,
+                    "upvotes": upvotes,
+                    "downvotes": downvotes,
+                    "unrated": unrated,
+                    "satisfaction_rate_pct": satisfaction,
+                }
+        except Exception as exc:
+            logger.debug(f"Supabase feedback summary fallback: {exc}")
+
+        total_count = len(AdvisoryQueryRepository._memory_store)
+        upvotes = sum(1 for q in AdvisoryQueryRepository._memory_store.values() if q.get("feedback") == 1)
+        downvotes = sum(1 for q in AdvisoryQueryRepository._memory_store.values() if q.get("feedback") == -1)
+        unrated = total_count - upvotes - downvotes
+        satisfaction = round((upvotes / (upvotes + downvotes) * 100), 1) if (upvotes + downvotes) > 0 else 100.0
+        return {
+            "total_queries": total_count,
+            "upvotes": upvotes,
+            "downvotes": downvotes,
+            "unrated": unrated,
+            "satisfaction_rate_pct": satisfaction,
+        }
+
 
 _query_repo_instance: AdvisoryQueryRepository | None = None
 

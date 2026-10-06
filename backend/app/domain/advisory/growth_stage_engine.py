@@ -29,8 +29,12 @@ def current_growth_stage(
     if not stages:
         raise ValueError(f"No growth stage norms defined for crop '{crop}'.")
 
+    if isinstance(sowing_date, str):
+        sowing_date = date.fromisoformat(sowing_date)
     if as_of is None:
         as_of = date.today()
+    elif isinstance(as_of, str):
+        as_of = date.fromisoformat(as_of)
 
     days_since_sowing = max(0, (as_of - sowing_date).days)
     base_temp = stages[0].gdd_base_c

@@ -19,6 +19,7 @@ from app.domain.advisory.context import assemble_advisory_context
 from app.domain.advisory.disease_detector import get_disease_detector
 from app.domain.advisory.generator import generate_advisory_response
 from app.domain.advisory.growth_stage_engine import current_growth_stage
+from app.domain.advisory.ratelimit import advisory_rate_limiter
 from app.domain.advisory.schemes import answer_scheme_query, get_all_schemes, get_scheme_by_code
 from app.domain.advisory.soil_suitability_engine import check_soil_suitability
 from app.domain.advisory.water_requirement_engine import calculate_irrigation_need
@@ -339,6 +340,15 @@ def ask_crop_advisory(payload: AdvisoryAskRequest):
     executes RAG retrieval, invokes grounded generation, performs safety audit, and logs query.
     Architecture §4, §12, §14.
     """
+    # Rate limit check per farmer / farm / anonymous caller (Architecture §18, Phase 7)
+    rate_key = payload.farmer_id or (f"farm_{payload.farm_id}" if payload.farm_id else "anonymous_default")
+    allowed, remaining, retry_after = advisory_rate_limiter.is_allowed(rate_key)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded. Too many advisory requests. Please retry in {retry_after} seconds.",
+        )
+
     ctx = assemble_advisory_context(
         query=payload.query,
         farm_id=payload.farm_id,
