@@ -188,7 +188,18 @@ curl -s -X POST "http://127.0.0.1:8000/api/advisory/queries/1001/feedback" \
   -d '{"feedback": 1}'
 ```
 
-### 16. Run All Automated Tests
+### 16. Phase 5 Crop Disease Detection & RAG Treatment Linking
+```bash
+# 1. Analyze crop leaf photo (multipart upload with verified ICAR treatment extracts):
+curl -s -X POST "http://127.0.0.1:8000/api/advisory/disease-check" \
+  -F "file=@path/to/leaf_photo.jpg" \
+  -F "crop=Tomato"
+
+# 2. Train / fine-tune MobileNetV2 on PlantVillage dataset (offline script):
+python training/train_disease_model.py --data-dir path/to/dataset --epochs 10
+```
+
+### 17. Run All Automated Tests
 ```bash
 cd backend && .venv/bin/pytest tests/ -v
 npx tsc --noEmit
@@ -199,11 +210,12 @@ npm run build
 
 ## 📁 Key Source Directories
 - `src/components/farmer/` — `FarmerOnboardingModal` and `FarmDiagnosticCard` UI
-- `src/lib/api/advisory.ts` — Frontend API client for agronomic calculation engines, RAG search, and `/ask` Q&A
+- `src/lib/api/advisory.ts` — Frontend API client for agronomic calculation engines, RAG search, `/ask` Q&A, and `disease-check`
 - `src/components/market/` — Market trend charts, MandiExplore, and MarketContextCard UI
 - `src/components/weather/` — WeatherStrip with multi-source fusion, confidence badges, and India-wide explore search
 - `backend/app/api/routes/` — FastAPI endpoints (`market.py`, `weather.py`, `context.py`, `farmer.py`, `advisory.py`)
-- `backend/app/domain/advisory/` — Computation engines & RAG (`growth_stage_engine.py`, `water_requirement_engine.py`, `soil_suitability_engine.py`, `climate_suitability_engine.py`, `retrieve.py`, `generator.py`, `context.py`, `audit.py`, `translation.py`)
+- `backend/app/domain/advisory/` — Computation engines & RAG (`growth_stage_engine.py`, `water_requirement_engine.py`, `soil_suitability_engine.py`, `climate_suitability_engine.py`, `retrieve.py`, `generator.py`, `disease_detector.py`, `context.py`, `audit.py`, `translation.py`)
+- `training/` — Offline model training pipelines (`train_disease_model.py` MobileNetV2 fine-tuning)
 - `backend/app/data/advisory/` — Agronomic reference repository, RAG repository (`rag_repo.py`), query repository (`query_repo.py`), and fixtures
 - `backend/app/schemas/` — Pydantic models for advisory (`advisory.py`, `rag.py`)
 - `backend/jobs/` — Scheduled pipelines & ingest jobs (`load_advisory_reference.py`, `ingest_document.py`, `prune.py`)

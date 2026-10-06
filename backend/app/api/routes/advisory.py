@@ -7,7 +7,7 @@ from datetime import date
 import logging
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 from app.data.advisory.query_repo import get_query_repo
 from app.data.advisory.reference_repo import get_agronomy_repo
 from app.data.farmer.repository import FarmerRepository
@@ -16,6 +16,7 @@ from app.data.weather.repository import WeatherRepository
 from app.data.weather.service import WeatherService
 from app.domain.advisory.climate_suitability_engine import check_climate_suitability
 from app.domain.advisory.context import assemble_advisory_context
+from app.domain.advisory.disease_detector import get_disease_detector
 from app.domain.advisory.generator import generate_advisory_response
 from app.domain.advisory.growth_stage_engine import current_growth_stage
 from app.domain.advisory.soil_suitability_engine import check_soil_suitability
@@ -29,6 +30,7 @@ from app.schemas.advisory import (
     AgronomyDiagnosticResponse,
     ClimateVerdict,
     CropStageNorm,
+    DiseaseCheckResponse,
     IrrigationAdvice,
     SoilCheckRequest,
     SoilFlag,
@@ -45,6 +47,7 @@ weather_repo = WeatherRepository()
 agronomy_repo = get_agronomy_repo()
 farmer_repo = FarmerRepository()
 query_repo = get_query_repo()
+disease_detector = get_disease_detector()
 
 
 @router.get("/crops", response_model=list[str])
@@ -361,4 +364,31 @@ def record_query_feedback(query_id: int, payload: AdvisoryFeedbackRequest):
         logger.warning(f"Failed to record feedback for query_id {query_id}")
 
     return AdvisoryFeedbackResponse(id=query_id, feedback=val, status="recorded")
+
+
+@router.post("/disease-check", response_model=DiseaseCheckResponse)
+async def check_crop_disease(
+    file: UploadFile = File(..., description="Uploaded leaf photograph (JPEG/PNG/WebP)"),
+    crop: str | None = Form(None, description="Optional crop hint (e.g. Tomato, Wheat, Maize)"),
+    farm_id: int | None = Form(None, description="Optional farm ID to retrieve registered crop"),
+):
+    """
+    Analyzes crop leaf photo for disease identification and automatically retrieves
+    verified scientific treatments from ICAR and State Agricultural University guides.
+    Architecture §11, §14.
+    """
+    if farm_id is not None and not crop:
+        farm_crops = farmer_repo.get_crops(farm_id)
+        if farm_crops:
+            crop = farm_crops[0].crop
+
+    content = await file.read()
+    if not content or len(content) < 100:
+        raise HTTPException(status_code=400, detail="Invalid or empty image file uploaded.")
+
+    try:
+        return disease_detector.diagnose(image_bytes=content, crop=crop)
+    except Exception as exc:
+        logger.error(f"Disease detection failed: {exc}")
+        raise HTTPException(status_code=400, detail=f"Failed to process image: {exc}")
 
