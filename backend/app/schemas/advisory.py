@@ -111,3 +111,49 @@ class AgronomyDiagnosticResponse(BaseModel):
     irrigation: IrrigationAdvice
     soil_flags: list[SoilFlag]
     climate: ClimateVerdict
+
+
+class AdvisorySource(BaseModel):
+    title: str
+    page: int | None = None
+    url: str | None = None
+
+
+class AdvisoryComputedContext(BaseModel):
+    growth_stage: StageResult | None = None
+    irrigation: IrrigationAdvice | None = None
+    soil_flags: list[SoilFlag] = Field(default_factory=list)
+    climate: ClimateVerdict | None = None
+
+
+class AdvisoryAskRequest(BaseModel):
+    farm_id: int | None = None
+    crop: str | None = None
+    query: str
+    farmer_id: str | None = None
+    language: str = "en"
+    sowing_date: str | None = None
+    soil_type: str | None = None
+    lat: float | None = None
+    lon: float | None = None
+    disease_label: str | None = None
+
+
+class AdvisoryAskResponse(BaseModel):
+    id: int
+    response: str
+    confidence: Literal["grounded", "partial", "insufficient"]
+    sources: list[AdvisorySource] = Field(default_factory=list)
+    computed: AdvisoryComputedContext
+    retrieved_chunk_ids: list[int] = Field(default_factory=list)
+
+
+class AdvisoryFeedbackRequest(BaseModel):
+    up: bool | None = None
+    feedback: int | None = None  # 1 for up, -1 for down
+
+
+class AdvisoryFeedbackResponse(BaseModel):
+    id: int
+    feedback: int
+    status: str = "recorded"

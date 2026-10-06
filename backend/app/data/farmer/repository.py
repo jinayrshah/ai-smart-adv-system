@@ -383,6 +383,8 @@ class FarmerRepository:
                 )
         return results
 
+    get_crops_by_farm = get_crops
+
     # --- Unified Multi-Step Onboarding ---
     def onboard(self, req: OnboardingRequest) -> OnboardingResponse:
         farmer_id = req.farmer_id or uuid4()
