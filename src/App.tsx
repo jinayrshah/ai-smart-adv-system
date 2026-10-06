@@ -75,6 +75,7 @@ import { LanguageSelector } from './components/LanguageSelector';
 import { FertilizerRecommendation } from './components/fertilizer/FertilizerRecommendation';
 import { HistoryModal } from './components/HistoryModal';
 import { FarmerOnboardingModal } from './components/farmer/FarmerOnboardingModal';
+import { FarmDiagnosticCard } from './components/farmer/FarmDiagnosticCard';
 import { Marketplace } from './components/marketplace/Marketplace';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { useHistoryStore } from './stores/historyStore';
@@ -771,6 +772,7 @@ export function AppContent() {
     <div className="space-y-6 pb-24">
       {/* Precision Agronomy Profile / Onboarding Banner */}
       {farmerProfile ? (
+        <>
         <div className="bg-gradient-to-r from-emerald-950/40 via-dark-card to-zinc-900/60 rounded-3xl border border-emerald-500/30 p-6 shadow-xl relative overflow-hidden">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -821,6 +823,14 @@ export function AppContent() {
             </div>
           </div>
         </div>
+
+        {farmerProfile.farm?.id && (
+          <FarmDiagnosticCard 
+            farmId={farmerProfile.farm.id} 
+            cropId={farmerProfile.crop?.id} 
+          />
+        )}
+        </>
       ) : (
         <div className="bg-gradient-to-r from-emerald-950/30 via-dark-card to-zinc-900/50 rounded-3xl border border-emerald-500/20 p-6 relative overflow-hidden">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
