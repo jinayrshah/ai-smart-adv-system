@@ -174,3 +174,72 @@ export async function fetchFarmDiagnostic(
   if (!res.ok) throw new Error('Failed to generate farm agronomic diagnostic');
   return res.json();
 }
+
+export interface AdvisorySource {
+  title: string;
+  page?: number | null;
+  url?: string | null;
+}
+
+export interface AdvisoryComputedContext {
+  growth_stage?: StageResult | null;
+  irrigation?: IrrigationAdvice | null;
+  soil_flags?: SoilFlag[];
+  climate?: ClimateVerdict | null;
+}
+
+export interface AdvisoryAskRequest {
+  farm_id?: number | null;
+  crop?: string | null;
+  query: string;
+  farmer_id?: string | null;
+  language?: string;
+  sowing_date?: string | null;
+  soil_type?: string | null;
+  lat?: number | null;
+  lon?: number | null;
+  disease_label?: string | null;
+}
+
+export interface AdvisoryAskResponse {
+  id: number;
+  response: string;
+  confidence: 'grounded' | 'partial' | 'insufficient';
+  sources: AdvisorySource[];
+  computed: AdvisoryComputedContext;
+  retrieved_chunk_ids: number[];
+}
+
+export interface AdvisoryFeedbackResponse {
+  id: number;
+  feedback: number;
+  status: string;
+}
+
+export async function askAdvisory(payload: AdvisoryAskRequest): Promise<AdvisoryAskResponse> {
+  const res = await fetch('/api/advisory/ask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to get advisory response');
+  }
+  return res.json();
+}
+
+export async function sendAdvisoryFeedback(
+  queryId: number,
+  feedback: 1 | -1
+): Promise<AdvisoryFeedbackResponse> {
+  const res = await fetch(`/api/advisory/queries/${queryId}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ feedback }),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to submit advisory feedback');
+  }
+  return res.json();
+}
