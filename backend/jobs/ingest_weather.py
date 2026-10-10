@@ -12,7 +12,7 @@ from app.data.types import WeatherDay
 from app.data.weather.fusion import fuse_range, load_fusion_config
 from app.data.weather.providers.open_meteo import OpenMeteoClient
 from app.data.weather.providers.openweather import OpenWeatherClient
-from app.data.weather.repository import WeatherRepository
+from app.data.weather.repository import WeatherRepository, weather_day_from_row
 
 logger = setup_logger("ingest_weather")
 
@@ -106,22 +106,11 @@ def run_ingest_weather() -> int:
 
             # Also query any existing archive rows for the past 7 days to fuse with high accuracy
             existing_archive_raw = weather_repo.get_raw_daily_range(grid_key, start_range, today - timedelta(days=1))
-            archive_days = []
-            for r in existing_archive_raw:
-                if r.get("source") in ("open_meteo", "nasa_power") and r.get("kind") == "archive":
-                    d_val = r["date"]
-                    d_obj = date.fromisoformat(d_val) if isinstance(d_val, str) else d_val
-                    archive_days.append(WeatherDay(
-                        grid_key=grid_key,
-                        date=d_obj,
-                        source=r["source"],
-                        kind="archive",
-                        tmax_c=r.get("tmax_c"),
-                        tmin_c=r.get("tmin_c"),
-                        precip_mm=r.get("precip_mm"),
-                        rh_mean_pct=r.get("rh_mean_pct"),
-                        radiation_mj_m2=r.get("radiation_mj_m2"),
-                    ))
+            archive_days = [
+                weather_day_from_row(r, grid_key)
+                for r in existing_archive_raw
+                if r.get("source") in ("open_meteo", "nasa_power") and r.get("kind") == "archive"
+            ]
 
             combined_for_fusion = all_raw + archive_days
 
@@ -180,6 +169,8 @@ def run_ingest_weather() -> int:
         f"Rows in: {total_rows_in}, Upserted: {total_rows_upserted}",
         extra={"job": "ingest_weather", "status": status, "duration": elapsed},
     )
+    if status == "failed":
+        return -1
     return total_rows_upserted
 
 

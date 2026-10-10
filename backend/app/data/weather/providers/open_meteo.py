@@ -1,5 +1,5 @@
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 import httpx
 
@@ -66,7 +66,11 @@ class OpenMeteoClient:
         obs_time_str = current_data.get("time")
         if obs_time_str:
             try:
-                obs_dt = datetime.fromisoformat(obs_time_str).replace(tzinfo=timezone.utc)
+                # Open-Meteo returns local wall-clock time for the requested timezone
+                # (Asia/Kolkata) plus utc_offset_seconds. Tagging it as UTC shifted every
+                # observation 5.5 h into the future and broke staleness checks.
+                offset = timezone(timedelta(seconds=int(data.get("utc_offset_seconds") or 0)))
+                obs_dt = datetime.fromisoformat(obs_time_str).replace(tzinfo=offset).astimezone(timezone.utc)
             except Exception:
                 obs_dt = datetime.now(timezone.utc)
         else:
@@ -175,7 +179,8 @@ class OpenMeteoClient:
 
             spread_tmax = max(tmax_vals) - min(tmax_vals) if len(tmax_vals) >= 2 else 0.0
             spread_precip = max(precip_vals) - min(precip_vals) if len(precip_vals) >= 2 else 0.0
-            rain_count = sum(1 for p in precip_vals if p >= 0.1)
+            # >= 1 mm/day: standard wet-day threshold; 0.1 mm counted model drizzle as rain
+            rain_count = sum(1 for p in precip_vals if p >= 1.0)
             rain_frac = (rain_count / len(precip_vals)) if precip_vals else 0.0
 
             result[d] = {

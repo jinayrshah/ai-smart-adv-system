@@ -49,6 +49,9 @@ class AgroMetricsDetail(BaseModel):
     tmax_7d_anomaly_c: float | None = None
     et0_7d_mm: float | None = None
     confidence: str = "medium"
+    # How many days of each window are actually on file (honesty about coverage)
+    days_in_7d_window: int | None = None
+    days_in_30d_window: int | None = None
 
 
 class WeatherCurrentResponse(BaseModel):
