@@ -60,6 +60,10 @@ async def fetch_with_retry(
             last_err = exc
             if isinstance(exc, ProviderQuotaError):
                 raise exc  # Do not retry quota errors
+            # Client errors (bad key, bad params, not found) will not fix themselves on
+            # retry; only 408 (timeout) and 5xx are worth another attempt.
+            if 400 <= exc.status_code < 500 and exc.status_code != 408:
+                raise exc
         except httpx.HTTPError as exc:
             last_err = ProviderError(f"HTTP client error: {exc}")
         except Exception as exc:

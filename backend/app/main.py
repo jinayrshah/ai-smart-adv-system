@@ -18,17 +18,28 @@ app = FastAPI(
     version="2.0.0",
 )
 
-# Enable CORS for Next.js and frontend dev servers
+# CORS: browsers normally reach FastAPI through the Express proxy (same origin), so only
+# explicitly configured origins are allowed. A wildcard origin combined with credentials
+# would let any website make authenticated calls, so credentials are only enabled when
+# the origin list is explicit.
+_cors_origins = settings.cors_origins
+_wildcard = "*" in _cors_origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["*"] if _wildcard else _cors_origins,
+    allow_credentials=not _wildcard,
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# Per-IP rate limiting (60 requests/min per IP, Architecture §13)
-app.add_middleware(RateLimitMiddleware, max_requests=60, window_seconds=60)
+# Per-IP rate limiting (60 requests/min per IP, Architecture §13). X-Forwarded-For is
+# trusted only from the local Express proxy so callers cannot pick their own bucket.
+app.add_middleware(
+    RateLimitMiddleware,
+    max_requests=settings.RATE_LIMIT_PER_MINUTE,
+    window_seconds=60,
+    trusted_proxies=settings.trusted_proxies,
+)
 
 app.include_router(market_router)
 app.include_router(weather_router)
