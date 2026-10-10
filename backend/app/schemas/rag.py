@@ -41,6 +41,10 @@ class RetrievedChunk(BaseModel):
     crop: str | None = None
     doc_type: str | None = None
     source_title: str | None = None
+    source_url: str | None = None
+    # Hybrid retrieval diagnostics: how this chunk was found and its BM25 coverage.
+    lexical_score: float | None = None
+    retrieval_method: Literal["vector", "lexical", "hybrid"] = "vector"
 
 
 class RetrievalRequest(BaseModel):

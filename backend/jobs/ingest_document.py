@@ -150,6 +150,12 @@ def ingest_document(
                 task_type="RETRIEVAL_DOCUMENT",
                 use_mock=use_mock_embedding,
             )
+            if emb is None:
+                # Never store a placeholder vector: it would poison every future search.
+                raise RuntimeError(
+                    "Embedding unavailable (GEMINI_API_KEY missing or API error). "
+                    "Re-run once the key works, or pass --mock-emb for an offline test build."
+                )
 
             all_chunks.append({
                 "document_id": doc_id,
@@ -230,6 +236,8 @@ def seed_core_schemes_and_advisories(use_mock_embedding: bool = False):
     scheme_chunks = []
     for idx, (txt, pg) in enumerate(scheme_texts):
         emb = get_gemini_embedding(txt, task_type="RETRIEVAL_DOCUMENT", use_mock=use_mock_embedding)
+        if emb is None:
+            raise RuntimeError("Embedding unavailable; set GEMINI_API_KEY or pass --mock-emb.")
         scheme_chunks.append({
             "document_id": schemes_doc_id,
             "crop": None,
