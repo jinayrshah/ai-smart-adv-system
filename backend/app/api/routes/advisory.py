@@ -203,19 +203,28 @@ def get_farm_diagnostic(
         raise HTTPException(status_code=400, detail="No active crops registered for this farm.")
 
     selected_crop = None
-    if crop_id:
-        selected_crop = next((c for c in crops if c.id == crop_id), None)
+    if crop_id is not None:
+        selected_crop = next((c for c in crops if str(c.id) == str(crop_id)), None)
     if not selected_crop:
         selected_crop = crops[0]
 
-    try:
-        s_date = date.fromisoformat(selected_crop.sowing_date)
-    except ValueError:
+    raw_s_date = getattr(selected_crop, "sowing_date", None)
+    if isinstance(raw_s_date, str):
+        try:
+            s_date = date.fromisoformat(raw_s_date)
+        except (ValueError, TypeError):
+            s_date = date.today()
+    elif isinstance(raw_s_date, date):
+        s_date = raw_s_date
+    else:
         s_date = date.today()
+
+    crop_name = getattr(selected_crop, "crop", None) or getattr(selected_crop, "crop_name", None) or "wheat"
+    farm_name = getattr(farm, "name", None) or getattr(farm, "farm_name", None) or "My farm"
 
     lat = farm.lat or 20.0
     lon = farm.lon or 73.8
-    grid_key = farm.agromet_grid_id or snap_to_grid(lat, lon)
+    grid_key = getattr(farm, "grid_key", None) or getattr(farm, "agromet_grid_id", None) or snap_to_grid(lat, lon)
 
     # 1. Fetch weather summary & history
     weather_service.ensure_grid_weather(grid_key, lat, lon)
@@ -224,7 +233,7 @@ def get_farm_diagnostic(
 
     # 2. Growth stage
     stage_res = current_growth_stage(
-        crop=selected_crop.crop_name,
+        crop=crop_name,
         sowing_date=s_date,
         weather_history=w_history,
         as_of=date.today(),
@@ -232,20 +241,29 @@ def get_farm_diagnostic(
 
     # 3. Water deficit
     irrigation_res = calculate_irrigation_need(
-        crop=selected_crop.crop_name,
+        crop=crop_name,
         stage_name=stage_res.stage_name,
         weather_summary=w_sum.model_dump(),
     )
 
     # 4. Soil flags
-    soil_npk = {
-        "n": farm.shc_n,
-        "p": farm.shc_p,
-        "k": farm.shc_k,
-        "ph": farm.shc_ph,
-    }
+    raw_npk = getattr(farm, "soil_npk", {}) or {}
+    if isinstance(raw_npk, dict):
+        soil_npk = {
+            "n": raw_npk.get("n", getattr(farm, "shc_n", None)),
+            "p": raw_npk.get("p", getattr(farm, "shc_p", None)),
+            "k": raw_npk.get("k", getattr(farm, "shc_k", None)),
+            "ph": raw_npk.get("ph", getattr(farm, "shc_ph", None)),
+        }
+    else:
+        soil_npk = {
+            "n": getattr(farm, "shc_n", None),
+            "p": getattr(farm, "shc_p", None),
+            "k": getattr(farm, "shc_k", None),
+            "ph": getattr(farm, "shc_ph", None),
+        }
     soil_flags = check_soil_suitability(
-        crop=selected_crop.crop_name,
+        crop=crop_name,
         soil_type=farm.soil_type,
         soil_npk=soil_npk,
     )
@@ -254,7 +272,7 @@ def get_farm_diagnostic(
     curr_temp = w_sum.current.temp_c if w_sum.current and w_sum.current.temp_c is not None else 25.0
     curr_hum = w_sum.current.rh_pct if w_sum.current else None
     climate_res = check_climate_suitability(
-        crop=selected_crop.crop_name,
+        crop=crop_name,
         stage_name=stage_res.stage_name,
         observed_temp_c=curr_temp,
         observed_humidity_pct=curr_hum,
@@ -262,10 +280,10 @@ def get_farm_diagnostic(
     )
 
     return AgronomyDiagnosticResponse(
-        crop=selected_crop.crop_name,
-        farm_id=farm.id,
-        farm_name=farm.farm_name,
-        sowing_date=selected_crop.sowing_date,
+        crop=crop_name,
+        farm_id=str(farm.id),
+        farm_name=farm_name,
+        sowing_date=s_date.isoformat(),
         as_of=date.today().isoformat(),
         stage=stage_res,
         irrigation=irrigation_res,

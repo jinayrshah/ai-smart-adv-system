@@ -59,6 +59,7 @@ def retrieve(
         match_crop=crop,
         match_doc_types=target_types,
         match_count=top_k,
+        query_text=query_text,
     )
 
     return chunks

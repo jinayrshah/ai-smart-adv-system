@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.core.timeutil import now_utc_iso
 from app.data.calculators.service import CalculatorService
+from app.data.mandi.insight import generate_market_insight
 from app.data.mandi.repository import MandiRepository
 from app.data.mandi.series import build_market_trend, is_stale_data
 from app.data.mandi.service import get_market_search
@@ -10,6 +11,7 @@ from app.schemas.calculators import MarginEstimateResponse, StorageEstimateRespo
 from app.schemas.market import (
     LatestPriceRecord,
     LatestPricesResponse,
+    MarketInsightResponse,
     MarketSearchResponse,
     MarketSearchResult,
     MarketTrendResponse,
@@ -33,6 +35,7 @@ def get_latest_prices(
     district: str | None = Query(None, description="District name"),
     market: str | None = Query(None, description="Market name (e.g. Lasalgaon, Rajkot)"),
     limit: int = Query(50, ge=1, le=500, description="Max rows to return"),
+    include_flagged: bool = Query(False, description="Whether to include statistical outlier records"),
     repo: MandiRepository = Depends(get_repo),
 ):
     """
@@ -45,6 +48,7 @@ def get_latest_prices(
         district=district,
         market=market,
         limit=limit,
+        include_flagged=include_flagged,
     )
     records = [
         LatestPriceRecord(
@@ -188,3 +192,95 @@ def get_storage_estimate(
         months=months,
         current_price_per_qtl=current_price,
     )
+
+
+@router.get("/insight", response_model=MarketInsightResponse)
+def get_market_insight_route(
+    commodity: str = Query(..., description="Commodity name (e.g. Wheat)"),
+    market: str = Query(..., description="Market name (e.g. Lasalgaon)"),
+    state: str = Query(..., description="State name (e.g. Maharashtra)"),
+    days: int = Query(30, description="Window size in days for trend context"),
+    repo: MandiRepository = Depends(get_repo),
+    calc_service: CalculatorService = Depends(get_calculator_service),
+):
+    """
+    Grounded 2-3 sentence AI synthesis of market conditions (Gemini 2.5 Flash).
+    Architecture §10.4 & Revisions Priority 2.3.
+    Strictly non-predictive; only interprets existing numbers.
+    """
+    trend = build_market_trend(
+        repo=repo,
+        commodity=commodity,
+        market=market,
+        state=state,
+        days=days,
+    )
+
+    expected = trend.coverage.expected_days or 1
+    actual = trend.coverage.days_with_data
+    cov = int(round((actual / expected) * 100))
+
+    valid_points = [p for p in trend.points if p.modal is not None]
+    change7d_pct = None
+    change30d_pct = None
+    latest_price = valid_points[-1].modal if valid_points else None
+
+    if len(valid_points) >= 2:
+        if len(valid_points) >= 7 and valid_points[-7].modal:
+            base7 = valid_points[-7].modal
+            if base7 > 0 and latest_price:
+                change7d_pct = round(((latest_price - base7) / base7) * 100, 1)
+        if len(valid_points) >= 1 and valid_points[0].modal:
+            base30 = valid_points[0].modal
+            if base30 > 0 and latest_price:
+                change30d_pct = round(((latest_price - base30) / base30) * 100, 1)
+
+    margin = calc_service.calculate_margin(
+        crop=commodity,
+        state=state,
+        market=market,
+        price_per_qtl=latest_price,
+    )
+    cost_c2 = margin.cost_c2_per_qtl if margin else None
+    net_margin = margin.margin_per_qtl if margin else None
+
+    storage = None
+    try:
+        storage = calc_service.calculate_storage(
+            crop=commodity,
+            market=market,
+            state=state,
+            current_price_per_qtl=latest_price,
+        )
+    except Exception:
+        pass
+    breakeven = storage.breakeven_price_per_qtl if (storage and storage.storable) else None
+
+    ctx = {
+        "commodity": commodity,
+        "market": market,
+        "state": state,
+        "latest_price": latest_price,
+        "unit": trend.unit,
+        "change7d_pct": change7d_pct,
+        "change30d_pct": change30d_pct,
+        "coverage_pct": cov,
+        "gaps_count": len(trend.coverage.gaps),
+        "cost_c2": cost_c2,
+        "net_margin": net_margin,
+        "breakeven_price": breakeven,
+        "weather_signals": [],
+    }
+
+    res = generate_market_insight(ctx)
+    return MarketInsightResponse(
+        status="ok",
+        commodity=commodity,
+        market=market,
+        state=state,
+        insight=res["insight"],
+        confidence=res["confidence"],
+        coverage_pct=res["coverage_pct"],
+        as_of=now_utc_iso(),
+    )
+

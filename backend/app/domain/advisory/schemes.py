@@ -123,12 +123,34 @@ def answer_scheme_query(
         crop=None,
         doc_types=["govt_scheme"],
         top_k=4,
+        use_mock_embedding=False,
     )
 
     max_sim = max((c.similarity for c in retrieved), default=0.0)
 
     # 2. Check confidence & safety threshold
     if not retrieved or max_sim < 0.55:
+        # Check if the query specifically references a known verified national scheme
+        matched_catalog = []
+        for s in NATIONAL_SCHEMES:
+            if (scheme_code and s["code"].lower() == scheme_code.lower()) or (s["code"].lower() in query.lower()):
+                matched_catalog.append(GovernmentScheme(**s))
+        if matched_catalog:
+            first = matched_catalog[0]
+            answer_text = (
+                f"Under {first.name} ({first.code}): {first.benefit_summary} "
+                f"Eligibility: {first.eligibility} "
+                f"How to Apply: {first.application_process} "
+                f"Official Portal: {first.official_portal}"
+            )
+            return SchemeAskResponse(
+                query=query,
+                answer=translate_from_english(answer_text, language),
+                confidence="grounded",
+                schemes=matched_catalog,
+                sources=[AdvisorySource(title=f"Government of India {first.name} Official Guidelines", page=1, url=first.official_portal)],
+            )
+
         refusal_en = (
             "I do not have verified official information on this specific scheme query. "
             "To review official guidelines and welfare benefits, please visit the Government of India Farmers' Portal "

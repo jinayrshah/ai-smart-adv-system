@@ -64,5 +64,16 @@
     "name": "jinay",
     "location": "mumbai",
     "farmType": "Vegetable"
+  },
+  "+919999999998": {
+    "id": "645e5203-617c-4904-b29e-3fcd146e86a1",
+    "identifier": "+919999999998",
+    "password": "$2b$10$0O8iDb.HoucRnRJPu8e.rOXHLPE1J59C94ZrOSeAA6qe8J6AAkp3K",
+    "type": "mobile",
+    "role": "farmer",
+    "createdAt": "2026-10-06T18:16:31.648Z",
+    "name": "xyd",
+    "location": "nashik",
+    "farmType": "Vegetable"
   }
 }

@@ -36,14 +36,24 @@ const CustomTooltip = ({ active, payload, label, unit }: any) => {
         <p className="font-semibold text-zinc-900 dark:text-zinc-100 border-b border-zinc-100 dark:border-zinc-700 pb-1">
           {label}
         </p>
-        <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+        <div className="flex justify-between items-baseline gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
           <span>Modal:</span>
-          <span>₹{data.modal.toLocaleString("en-IN")}</span>
+          <div className="text-right">
+            <span>₹{data.modal.toLocaleString("en-IN")}/qtl</span>
+            <span className="block text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+              ₹{(data.modal / 100).toFixed(1)}/kg
+            </span>
+          </div>
         </div>
         {data.min !== null && data.max !== null && (
-          <div className="flex justify-between items-center text-zinc-500 dark:text-zinc-400">
-            <span>Range:</span>
-            <span>₹{data.min} – ₹{data.max}</span>
+          <div className="flex justify-between items-baseline gap-2 text-zinc-500 dark:text-zinc-400">
+            <span>Band:</span>
+            <div className="text-right">
+              <span>₹{data.min} – ₹{data.max}/qtl</span>
+              <span className="block text-[10px] text-zinc-400">
+                ₹{(data.min / 100).toFixed(1)} – ₹{(data.max / 100).toFixed(1)}/kg
+              </span>
+            </div>
           </div>
         )}
         {data.n_varieties > 0 && (

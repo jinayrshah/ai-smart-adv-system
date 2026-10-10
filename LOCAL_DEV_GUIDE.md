@@ -41,6 +41,20 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser!
 curl -s "http://127.0.0.1:8000/api/market/trend?commodity=Wheat&market=Malegaon&state=Maharashtra&days=30"
 ```
 
+### 1b. Grounded AI Market Insight (Gemini 2.5 Flash Synthesis)
+```bash
+curl -s "http://127.0.0.1:8000/api/market/insight?commodity=Wheat&market=Malegaon&state=Maharashtra&days=30"
+```
+
+### 1c. Latest Mandi Prices (with Outlier Quality Flag Filtering)
+```bash
+# Standard clean prices:
+curl -s "http://127.0.0.1:8000/api/market/prices/latest?commodity=Wheat&state=Maharashtra&limit=5"
+
+# Include statistical IQR outliers for audit:
+curl -s "http://127.0.0.1:8000/api/market/prices/latest?commodity=Wheat&state=Maharashtra&limit=5&include_flagged=true"
+```
+
 ### 2. Mandi Explore Tier (Any Crop, Anywhere in India)
 ```bash
 curl -s "http://127.0.0.1:8000/api/market/search?commodity=Soyabean&state=Madhya%20Pradesh&market=Indore"
@@ -142,7 +156,10 @@ curl -s -X POST "http://127.0.0.1:8000/api/advisory/soil" \
 # 5. Climate thermal tolerance check:
 curl -s "http://127.0.0.1:8000/api/advisory/climate?crop=Wheat&temp_c=22.0&humidity_pct=60.0"
 
-# 6. Seed agronomic reference norms to Supabase:
+# 6. Farm Agronomic Diagnostic (Comprehensive GDD stage + ETc deficit + Soil & Climate flags):
+curl -s "http://127.0.0.1:8000/api/advisory/diagnostic?farm_id=41"
+
+# 7. Seed agronomic reference norms to Supabase:
 cd backend && .venv/bin/python -m jobs.load_advisory_reference
 ```
 
@@ -253,8 +270,8 @@ npm run build
 ## 📁 Key Source Directories
 - `src/components/farmer/` — `FarmerOnboardingModal`, `FarmDiagnosticCard`, and `GovernmentSchemesCard` UI
 - `src/lib/api/advisory.ts` — Frontend API client for agronomic calculation engines, RAG search, `/ask` Q&A, `disease-check`, and `schemes`
-- `src/components/market/` — Market trend charts, MandiExplore, and MarketContextCard UI
-- `src/components/weather/` — WeatherStrip with multi-source fusion, confidence badges, and India-wide explore search
+- `src/components/market/` — Market trend charts, MandiExplore, MarketContextCard, MarketInsightCard (Gemini 2.5 Flash grounded synthesis), MandiRecentReportsTable (IQR outlier quality audits), MandiAutocomplete, and MarketCalculators (₹/qtl and ₹/kg unit conversions, explicit cost exclusions)
+- `src/components/weather/` — WeatherStrip with multi-source fusion, confidence badges, responsive layout collision fixes, plain-language provider inspection, and India-wide explore search
 - `backend/app/api/routes/` — FastAPI endpoints (`market.py`, `weather.py`, `context.py`, `farmer.py`, `advisory.py`)
 - `backend/app/domain/advisory/` — Computation engines, RAG & schemes (`growth_stage_engine.py`, `water_requirement_engine.py`, `soil_suitability_engine.py`, `climate_suitability_engine.py`, `retrieve.py`, `generator.py`, `disease_detector.py`, `schemes.py`, `context.py`, `audit.py`, `translation.py`)
 - `training/` — Offline model training pipelines (`train_disease_model.py` MobileNetV2 fine-tuning)

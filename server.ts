@@ -1036,8 +1036,14 @@ export async function createApp() {
         options.body = JSON.stringify(req.body);
       }
       const response = await fetch(fastApiUrl, options);
-      const data = await response.json();
-      res.status(response.status).json(data);
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        res.status(response.status).json(data);
+      } else {
+        const text = await response.text();
+        res.status(response.status).send(text);
+      }
     } catch (err: any) {
       res.status(502).json({
         error: 'FastAPI backend unavailable',

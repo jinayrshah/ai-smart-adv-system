@@ -6,6 +6,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { generateChatResponse } from '../services/ragService';
 import { agricultureService } from '../services/aiService';
+import { askAdvisory } from '../lib/api/advisory';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -121,12 +122,24 @@ ${result.recommendations.map(r => `- ${r}`).join('\n')}`;
 ${result.recommendations.join('\n')}`;
         }
       } else {
-        const history = messages.slice(-10).map(m => ({ 
-          role: m.role === 'bot' ? 'model' : 'user', 
-          content: m.content 
-        }));
-        const fullQuery = location ? `${text} (User location: ${location})` : text;
-        botResponse = await generateChatResponse(fullQuery, history);
+        try {
+          const askResp = await askAdvisory({
+            query: text,
+            language: 'en',
+          });
+          botResponse = askResp.response;
+          if (askResp.sources && askResp.sources.length > 0) {
+            botResponse += `\n\n**Sources:**\n` + askResp.sources.map(s => `- ${s.title}${s.page ? ` (p. ${s.page})` : ''}`).join('\n');
+          }
+        } catch (apiErr) {
+          console.warn('FastAPI advisory chat failed, using fallback:', apiErr);
+          const history = messages.slice(-10).map(m => ({ 
+            role: m.role === 'bot' ? 'model' : 'user', 
+            content: m.content 
+          }));
+          const fullQuery = location ? `${text} (User location: ${location})` : text;
+          botResponse = await generateChatResponse(fullQuery, history);
+        }
       }
 
       const botMessage: Message = {
