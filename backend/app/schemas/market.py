@@ -32,6 +32,20 @@ class MarketTrendResponse(BaseModel):
     as_of: str
     stale: bool
     points: list[TrendPoint]
+    first_reported_date: str | None = None
+    max_gap_days: int = 0
+    varieties_included: list[str] = Field(default_factory=list)
+
+
+class MarketInsightResponse(BaseModel):
+    status: str = "ok"
+    commodity: str
+    market: str
+    state: str
+    insight: str
+    confidence: str = "medium"  # "high" | "medium" | "low"
+    coverage_pct: int
+    as_of: str
 
 
 class LatestPriceRecord(BaseModel):

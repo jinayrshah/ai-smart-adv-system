@@ -136,10 +136,12 @@ class RagRepository:
         match_crop: str | None = None,
         match_doc_types: list[str] | None = None,
         match_count: int = 6,
+        query_text: str | None = None,
     ) -> list[RetrievedChunk]:
         """
         Matches query embedding against stored chunks.
         Uses Supabase match_rag_chunks RPC if available; otherwise uses in-memory cosine math.
+        Falls back to keyword matching if vector similarity is low (e.g. rate limits or mock embeddings).
         """
         # 1. Try Supabase RPC
         try:

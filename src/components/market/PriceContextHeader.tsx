@@ -13,6 +13,9 @@ interface PriceContextHeaderProps {
     expected_days: number;
     days_with_data: number;
   };
+  firstReportedDate?: string | null;
+  maxGapDays?: number;
+  varietiesIncluded?: string[];
 }
 
 export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
@@ -24,6 +27,9 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
   change7dPct,
   change30dPct,
   coverage,
+  firstReportedDate,
+  maxGapDays,
+  varietiesIncluded,
 }) => {
   const coveragePct = Math.round((coverage.days_with_data / (coverage.expected_days || 1)) * 100);
   const isHealthyCoverage = coveragePct >= 60;
@@ -37,12 +43,17 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
             <span>•</span>
             <span>{market}</span>
           </div>
-          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-3">
-            {commodity}
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex flex-wrap items-center gap-3">
+            <span>{commodity}</span>
             {latestPrice !== null && (
-              <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                ₹{latestPrice.toLocaleString("en-IN")}
-                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400 ml-1">/{unit}</span>
+              <span className="flex flex-wrap items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                  ₹{latestPrice.toLocaleString("en-IN")}
+                  <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400 ml-1">/{unit}</span>
+                </span>
+                <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded-md border border-zinc-200 dark:border-zinc-700">
+                  ₹{(latestPrice / 100).toFixed(1)} / kg
+                </span>
               </span>
             )}
           </h2>
@@ -93,6 +104,31 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
           </div>
         </div>
       </div>
+
+      {(firstReportedDate || maxGapDays !== undefined || (varietiesIncluded && varietiesIncluded.length > 0)) && (
+        <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-zinc-500 dark:text-zinc-400">
+          {firstReportedDate && (
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-zinc-700 dark:text-zinc-300">First recorded:</span>
+              <span>{firstReportedDate}</span>
+            </div>
+          )}
+          {maxGapDays !== undefined && (
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Max reporting gap:</span>
+              <span>{maxGapDays === 0 ? "Continuous" : `${maxGapDays} consecutive days`}</span>
+            </div>
+          )}
+          {varietiesIncluded && varietiesIncluded.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Varieties:</span>
+              <span className="bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-700 dark:text-zinc-300">
+                {varietiesIncluded.join(", ")}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

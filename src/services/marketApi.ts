@@ -33,7 +33,22 @@ export interface MarketTrendResponse {
   as_of: string;
   stale: boolean;
   points: TrendPoint[];
+  first_reported_date?: string | null;
+  max_gap_days?: number;
+  varieties_included?: string[];
 }
+
+export interface MarketInsightResponse {
+  status: string;
+  commodity: string;
+  market: string;
+  state: string;
+  insight: string;
+  confidence: "high" | "medium" | "low";
+  coverage_pct: number;
+  as_of: string;
+}
+
 
 export interface LatestPriceRecord {
   id?: number;
@@ -81,14 +96,37 @@ export async function fetchMarketTrend(
   return res.json();
 }
 
+export async function fetchMarketInsight(
+  commodity: string,
+  market: string,
+  state: string,
+  days: number = 30
+): Promise<MarketInsightResponse> {
+  const params = new URLSearchParams({
+    commodity,
+    market,
+    state,
+    days: days.toString(),
+  });
+  const res = await fetch(`${API_BASE}/api/market/insight?${params.toString()}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch market insight: HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function fetchLatestPrices(
   commodity?: string,
   state?: string,
   district?: string,
   market?: string,
-  limit: number = 50
+  limit: number = 50,
+  includeFlagged: boolean = false
 ): Promise<LatestPricesResponse> {
-  const params = new URLSearchParams({ limit: limit.toString() });
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    include_flagged: includeFlagged ? "true" : "false",
+  });
   if (commodity) params.set("commodity", commodity);
   if (state) params.set("state", state);
   if (district) params.set("district", district);

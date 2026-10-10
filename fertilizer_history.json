@@ -208,5 +208,35 @@
     "instructions": "Apply as a basal dose during sowing or transplanting.",
     "reason": "Your soil nutrients are balanced. A general NPK fertilizer is recommended for healthy growth.",
     "timestamp": "2026-09-23T03:19:41.085Z"
+  },
+  {
+    "id": "697159af-eca6-4748-8e52-9a49c1d11c7c",
+    "userId": "97275132-99bc-41e2-a065-2f990fb2e795",
+    "cropType": "wheat",
+    "soilType": "Black",
+    "n": 60,
+    "p": 83,
+    "k": 70,
+    "location": "Nashik",
+    "fertilizerName": "NPK 19-19-19 (Balanced)",
+    "quantity": "50kg per acre",
+    "instructions": "Apply as a basal dose during sowing or transplanting.",
+    "reason": "Your soil nutrients are balanced. A general NPK fertilizer is recommended for healthy growth.",
+    "timestamp": "2026-10-06T16:23:09.993Z"
+  },
+  {
+    "id": "cfecb6eb-f3b9-4823-ae4f-01ffb1c3c603",
+    "userId": "645e5203-617c-4904-b29e-3fcd146e86a1",
+    "cropType": "wheat",
+    "soilType": "Black",
+    "n": 60,
+    "p": 15,
+    "k": 30,
+    "location": "Nashik",
+    "fertilizerName": "DAP (Diammonium Phosphate)",
+    "quantity": "50kg per acre",
+    "instructions": "Apply as a basal dose during sowing or transplanting.",
+    "reason": "Low Phosphorus detected. DAP is recommended for strong root development and early plant growth.",
+    "timestamp": "2026-10-06T19:07:07.796Z"
   }
 ]

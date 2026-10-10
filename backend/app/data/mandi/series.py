@@ -62,10 +62,10 @@ def build_market_trend(
         d_str = str(r["arrival_date"])
         rows_by_date[d_str] = r
 
-    # 2. Fetch raw sources mix for this scope to populate source breakdown
+    # 2. Fetch raw sources mix and varieties for this scope
     raw_query = (
         repo.client.table("mandi_prices")
-        .select("source")
+        .select("source, variety")
         .eq("commodity", commodity)
         .eq("market", market)
         .eq("state", state)
@@ -73,7 +73,10 @@ def build_market_trend(
         .lte("arrival_date", today.isoformat())
         .execute()
     )
-    source_counts = Counter(r["source"] for r in (raw_query.data or []))
+    raw_rows = raw_query.data or []
+    source_counts = Counter(r["source"] for r in raw_rows if r.get("source"))
+    varieties_set = set(r["variety"] for r in raw_rows if r.get("variety"))
+    varieties_included = sorted([v for v in varieties_set if v])
 
     # 3. Generate unbroken date spine
     spine = generate_date_spine(start_date, today)
@@ -113,6 +116,35 @@ def build_market_trend(
         gaps=gaps,
     )
 
+    # 4. Compute completeness stats: first reported date & max gap
+    max_gap_days = 0
+    curr_gap = 0
+    for p in points:
+        if p.modal is None:
+            curr_gap += 1
+            if curr_gap > max_gap_days:
+                max_gap_days = curr_gap
+        else:
+            curr_gap = 0
+
+    first_reported_date: str | None = None
+    try:
+        first_q = (
+            repo.client.table("mandi_prices")
+            .select("arrival_date")
+            .eq("commodity", commodity)
+            .eq("market", market)
+            .eq("state", state)
+            .order("arrival_date", desc=False)
+            .limit(1)
+            .execute()
+        )
+        if first_q.data and len(first_q.data) > 0:
+            first_reported_date = str(first_q.data[0]["arrival_date"])
+    except Exception:
+        if db_rows:
+            first_reported_date = str(db_rows[0].get("arrival_date"))
+
     return MarketTrendResponse(
         commodity=commodity,
         market=market,
@@ -124,4 +156,7 @@ def build_market_trend(
         as_of=now_utc_iso(),
         stale=is_stale_data(newest_available_date),
         points=points,
+        first_reported_date=first_reported_date,
+        max_gap_days=max_gap_days,
+        varieties_included=varieties_included,
     )

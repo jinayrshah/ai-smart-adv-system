@@ -238,3 +238,39 @@ def test_api_advisory_endpoints():
     clim_data = res_clim.json()
     assert clim_data["crop"] == "Rice"
     assert clim_data["verdict"] == "suitable"
+
+
+def test_farm_diagnostic_endpoint():
+    """Verify GET /api/advisory/diagnostic computes full agronomic suite for a farm."""
+    from uuid import uuid4
+    test_id = str(uuid4())
+    onboard_payload = {
+        "farmer_id": test_id,
+        "full_name": "Dev Test Farmer",
+        "farm_name": "Diagnostic Field",
+        "lat": 20.14,
+        "lon": 74.24,
+        "state": "Maharashtra",
+        "district": "Nashik",
+        "soil_type": "Loamy (दोमट)",
+        "crops": [
+            {
+                "crop": "Wheat",
+                "sowing_date": "2026-10-01",
+                "season": "rabi"
+            }
+        ]
+    }
+    res_onboard = client.post("/api/farmer/onboard", json=onboard_payload)
+    assert res_onboard.status_code == 201
+    farm_id = res_onboard.json()["farm"]["id"]
+
+    res_diag = client.get(f"/api/advisory/diagnostic?farm_id={farm_id}")
+    assert res_diag.status_code == 200
+    diag_data = res_diag.json()
+    assert diag_data["crop"] == "Wheat"
+    assert "stage" in diag_data
+    assert "irrigation" in diag_data
+    assert "soil_flags" in diag_data
+    assert "climate" in diag_data
+    assert diag_data["stage"]["stage_name"] != ""

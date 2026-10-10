@@ -217,11 +217,14 @@ const MarketCard: React.FC<{ market: MarketSearchResult; tier: string }> = ({ ma
 
       {m.latest_modal !== null && m.latest_modal !== undefined ? (
         <div className="space-y-2">
-          <div className="flex items-baseline gap-1">
+          <div className="flex flex-wrap items-baseline gap-1.5">
             <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
               ₹{Number(m.latest_modal).toLocaleString("en-IN")}
             </span>
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">/Quintal</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">/qtl</span>
+            <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+              ₹{(Number(m.latest_modal) / 100).toFixed(1)} / kg
+            </span>
           </div>
 
           {m.latest_min !== null && m.latest_max !== null && (

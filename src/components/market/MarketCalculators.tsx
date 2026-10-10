@@ -214,7 +214,10 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
                   <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
                     ₹{marginData.cost_c2_per_qtl} / qtl
                   </span>
-                  <span className="text-[9px] text-zinc-400 block">Includes land rent & interest</span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium block">
+                    ₹{(marginData.cost_c2_per_qtl / 100).toFixed(1)} / kg
+                  </span>
+                  <span className="text-[9px] text-zinc-400 block mt-0.5">Includes land rent & interest</span>
                 </div>
                 <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800">
                   <span className="text-[10px] text-zinc-400 block">Net Margin / Quintal</span>
@@ -225,9 +228,12 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
                         : "text-rose-600 dark:text-rose-400"
                     }`}
                   >
-                    {marginData.margin_per_qtl >= 0 ? "+" : ""}₹{marginData.margin_per_qtl}
+                    {marginData.margin_per_qtl >= 0 ? "+" : ""}₹{marginData.margin_per_qtl} / qtl
                   </span>
-                  <span className="text-[9px] text-zinc-400 block">Price − C2 Cost</span>
+                  <span className="text-[10px] font-medium block">
+                    {marginData.margin_per_qtl >= 0 ? "+" : ""}₹{(marginData.margin_per_qtl / 100).toFixed(1)} / kg
+                  </span>
+                  <span className="text-[9px] text-zinc-400 block mt-0.5">Price − C2 Cost</span>
                 </div>
               </div>
 
@@ -258,6 +264,9 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
 
               <p className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-relaxed italic">
                 {marginData.notice}
+              </p>
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-relaxed pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                <strong>Assumptions notice:</strong> Transport, commission, handling, quality, grade, taxes, and spoilage are not included unless entered above.
               </p>
             </div>
           ) : marginSearched ? (
@@ -367,15 +376,18 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800">
                       <span className="text-[10px] text-zinc-400 block">Holding Fee ({storageMonths} mo)</span>
-                      <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                      <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200 block">
                         ₹{(storageCostMonthly * storageMonths).toFixed(2)} / qtl
+                      </span>
+                      <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium block">
+                        ₹{((storageCostMonthly * storageMonths) / 100).toFixed(2)} / kg
                       </span>
                     </div>
                     <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800">
                       <span className="text-[10px] text-zinc-400 block">
                         Shrinkage Loss ({storageData.typical_loss_pct_per_month}%/mo)
                       </span>
-                      <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                      <span className="text-sm font-bold text-amber-600 dark:text-amber-400 block">
                         {((storageData.typical_loss_pct_per_month || 0) * storageMonths).toFixed(1)}% wt loss
                       </span>
                     </div>
@@ -383,20 +395,27 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
 
                   <div className="bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 p-3 rounded-xl space-y-1">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-600 dark:text-zinc-300">Total Storage Cost Burden:</span>
+                      <span className="text-zinc-600 dark:text-zinc-300">Total Storage Burden:</span>
                       <span className="font-bold text-zinc-800 dark:text-zinc-100">
-                        +₹{storageData.net_cost_per_qtl} / qtl
+                        +₹{storageData.net_cost_per_qtl} / qtl (+₹{(storageData.net_cost_per_qtl / 100).toFixed(2)} / kg)
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm pt-1 border-t border-blue-200/60 dark:border-blue-800/60">
                       <span className="font-semibold text-blue-900 dark:text-blue-200">
                         Required Breakeven Price:
                       </span>
-                      <span className="text-base font-extrabold text-blue-700 dark:text-blue-300">
-                        {storageData.breakeven_price_per_qtl
-                          ? `₹${storageData.breakeven_price_per_qtl.toLocaleString("en-IN")} / qtl`
-                          : "—"}
-                      </span>
+                      <div className="text-right">
+                        <span className="text-base font-extrabold text-blue-700 dark:text-blue-300 block">
+                          {storageData.breakeven_price_per_qtl
+                            ? `₹${storageData.breakeven_price_per_qtl.toLocaleString("en-IN")} / qtl`
+                            : "—"}
+                        </span>
+                        {storageData.breakeven_price_per_qtl && (
+                          <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 block">
+                            ₹{(storageData.breakeven_price_per_qtl / 100).toFixed(1)} / kg
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -415,6 +434,9 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
 
                   <p className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-relaxed italic">
                     {storageData.notice}
+                  </p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-relaxed pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                    <strong>Assumptions notice:</strong> Transport, commission, handling, quality, grade, taxes, and spoilage are not included unless entered above.
                   </p>
                 </div>
               )}

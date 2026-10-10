@@ -32,3 +32,30 @@ def test_market_trend_endpoint_structure():
     assert "gaps" in data["coverage"]
     assert "sources" in data
     assert "as_of" in data
+    assert "first_reported_date" in data
+    assert "max_gap_days" in data
+    assert "varieties_included" in data
+
+
+def test_market_insight_endpoint():
+    resp = client.get("/api/market/insight?commodity=Wheat&market=Pune&state=Maharashtra&days=30")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert data["commodity"] == "Wheat"
+    assert data["market"] == "Pune"
+    assert data["state"] == "Maharashtra"
+    assert "insight" in data
+    assert isinstance(data["insight"], str)
+    assert len(data["insight"]) > 0
+    assert data["confidence"] in ["high", "medium", "low"]
+    assert "coverage_pct" in data
+
+
+def test_latest_prices_include_flagged():
+    resp = client.get("/api/market/prices/latest?limit=5&include_flagged=true")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert "records" in data
+

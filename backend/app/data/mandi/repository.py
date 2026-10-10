@@ -120,9 +120,12 @@ class MandiRepository:
         district: str | None = None,
         market: str | None = None,
         limit: int = 50,
+        include_flagged: bool = False,
     ) -> list[dict[str, Any]]:
         """Query latest mandi price rows from mandi_prices."""
-        query = self.client.table("mandi_prices").select("*").eq("quality_flag", "ok")
+        query = self.client.table("mandi_prices").select("*")
+        if not include_flagged:
+            query = query.eq("quality_flag", "ok")
         if commodity:
             query = query.eq("commodity", commodity)
         if state:

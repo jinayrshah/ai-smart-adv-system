@@ -76,6 +76,8 @@ import { FertilizerRecommendation } from './components/fertilizer/FertilizerReco
 import { HistoryModal } from './components/HistoryModal';
 import { FarmerOnboardingModal } from './components/farmer/FarmerOnboardingModal';
 import { FarmDiagnosticCard } from './components/farmer/FarmDiagnosticCard';
+import { AdvisoryChatCard } from './components/farmer/AdvisoryChatCard';
+import { GovernmentSchemesCard } from './components/farmer/GovernmentSchemesCard';
 import { Marketplace } from './components/marketplace/Marketplace';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { useHistoryStore } from './stores/historyStore';
@@ -341,27 +343,10 @@ export function AppContent() {
     return () => clearInterval(interval);
   }, []);
 
-  const [cropSubmitted, setCropSubmitted] = useState(false);
   const [diseaseSubmitted, setDiseaseSubmitted] = useState(false);
-  const emptyCropForm = {
-    nitrogen: '',
-    phosphorus: '',
-    potassium: '',
-    temperature: '',
-    humidity: '',
-    ph: '',
-    rainfall: ''
-  };
 
   const switchTab = (tab: Tab) => {
     setActiveTab(tab);
-  };
-
-  const resetAdvisorResult = () => {
-    updateModuleData('cropForm', emptyCropForm);
-    updateModuleData('advisor', null);
-    updateModuleData('advisorError', null);
-    setCropSubmitted(false);
   };
 
   const resetDiseaseResult = () => {
@@ -369,79 +354,6 @@ export function AppContent() {
     updateModuleData('diseaseError', null);
     updateModuleData('selectedImage', null);
     setDiseaseSubmitted(false);
-  };
-
-  const isCropFormEmpty = Object.values(appData.cropForm).every((value) => value === '');
-
-  const handleCropRecommendation = async (e?: React.FormEvent | React.MouseEvent) => {
-    console.log("Crop Analysis triggered");
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
-    // Manual validation check
-    const values = Object.values(appData.cropForm);
-    if (values.some(v => v === '')) {
-      updateModuleData('advisorError', "Please fill in all soil parameters before analyzing.");
-      return;
-    }
-
-    const input: CropInput = {
-      nitrogen: Number(appData.cropForm.nitrogen),
-      phosphorus: Number(appData.cropForm.phosphorus),
-      potassium: Number(appData.cropForm.potassium),
-      temperature: Number(appData.cropForm.temperature),
-      humidity: Number(appData.cropForm.humidity),
-      ph: Number(appData.cropForm.ph),
-      rainfall: Number(appData.cropForm.rainfall),
-      location: location?.city || user?.location
-    };
-
-    updateModuleData('advisorLoading', true);
-    updateModuleData('advisorError', null);
-    try {
-      let weatherContext: WeatherContext | undefined;
-      try {
-        const summary = await fetchWeatherSummary({
-          lat: location?.lat,
-          lon: location?.lon,
-        });
-        if (summary) {
-          weatherContext = {
-            confidence: summary.metrics.confidence,
-            primary_source: summary.days[0]?.primary_source || 'open_meteo',
-            rain_7d_mm: summary.metrics.rain_7d_mm,
-            rain_30d_mm: summary.metrics.rain_30d_mm,
-            rain_30d_vs_normal_pct: summary.metrics.rain_30d_vs_normal_pct,
-            dry_spell_days: summary.metrics.dry_spell_days,
-          };
-        }
-      } catch (weatherErr) {
-        console.warn('Weather summary could not be attached to advisory input:', weatherErr);
-      }
-
-      const inputWithWeather: CropInput = {
-        ...input,
-        weather: weatherContext,
-      };
-
-      const res = await agricultureService.recommendCrop(inputWithWeather);
-      updateModuleData('advisor', res);
-      addEntry({
-        id: Date.now(),
-        module: 'soil',
-        input: inputWithWeather,
-        output: res,
-        timestamp: new Date().toISOString(),
-      });
-      setCropSubmitted(true);
-      switchTab('advisor');
-    } catch (err: any) {
-      updateModuleData('advisorError', err.message);
-    } finally {
-      updateModuleData('advisorLoading', false);
-    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -796,23 +708,6 @@ export function AppContent() {
               </p>
             </div>
             <div className="flex items-center space-x-2 shrink-0">
-              {farmerProfile.farm?.shc_n !== undefined && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateModuleData('cropForm', {
-                      ...appData.cropForm,
-                      nitrogen: farmerProfile.farm.shc_n?.toString() || '',
-                      phosphorus: farmerProfile.farm.shc_p?.toString() || '',
-                      potassium: farmerProfile.farm.shc_k?.toString() || '',
-                      ph: farmerProfile.farm.shc_ph?.toString() || ''
-                    });
-                  }}
-                  className="px-3 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-500/30 transition-colors"
-                >
-                  Apply My Soil Test
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => setShowFarmerOnboarding(true)}
@@ -856,137 +751,17 @@ export function AppContent() {
         </div>
       )}
 
-      <div className="bg-dark-card rounded-3xl border border-dark-border overflow-hidden">
-        <div className="p-6 border-b border-dark-border">
-          <h2 className="text-xl font-bold flex items-center">
-            <FlaskConical className="mr-2 text-brand-green" />
-            {t('advisor.soilAnalysis')}
-          </h2>
-          <p className="text-stone-500 text-sm mt-1">{t('advisor.soilAnalysisDesc')}</p>
-        </div>
-        <form
-          onSubmit={handleCropRecommendation}
-          noValidate
-          className="p-6 space-y-4"
-        >
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-stone-400 uppercase">{t('advisor.nitrogen')}</label>
-              <input 
-                type="number" 
-                placeholder="0-200"
-                min="0"
-                max="200"
-                value={appData.cropForm.nitrogen}
-                onChange={e => updateModuleData('cropForm', {...appData.cropForm, nitrogen: e.target.value})}
-                className="w-full p-3 rounded-xl text-sm"
-                required
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-stone-400 uppercase">{t('advisor.phosphorus')}</label>
-              <input 
-                type="number" 
-                placeholder="0-200"
-                min="0"
-                max="200"
-                value={appData.cropForm.phosphorus}
-                onChange={e => updateModuleData('cropForm', {...appData.cropForm, phosphorus: e.target.value})}
-                className="w-full p-3 rounded-xl text-sm"
-                required
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-stone-400 uppercase">{t('advisor.potassium')}</label>
-              <input 
-                type="number" 
-                placeholder="0-200"
-                min="0"
-                max="200"
-                value={appData.cropForm.potassium}
-                onChange={e => updateModuleData('cropForm', {...appData.cropForm, potassium: e.target.value})}
-                className="w-full p-3 rounded-xl text-sm"
-                required
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-stone-400 uppercase">{t('advisor.phLevel')}</label>
-              <input 
-                type="number" 
-                step="0.1"
-                placeholder="0-14"
-                min="0"
-                max="14"
-                value={appData.cropForm.ph}
-                onChange={e => updateModuleData('cropForm', {...appData.cropForm, ph: e.target.value})}
-                className="w-full p-3 rounded-xl text-sm"
-                required
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-stone-400 uppercase">{t('advisor.temperature')}</label>
-              <input 
-                type="number" 
-                step="0.1"
-                placeholder="-10 to 60"
-                min="-10"
-                max="60"
-                value={appData.cropForm.temperature}
-                onChange={e => updateModuleData('cropForm', {...appData.cropForm, temperature: e.target.value})}
-                className="w-full p-3 rounded-xl text-sm"
-                required
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-stone-400 uppercase">{t('advisor.humidity')}</label>
-              <input 
-                type="number" 
-                step="0.1"
-                placeholder="0-100"
-                min="0"
-                max="100"
-                value={appData.cropForm.humidity}
-                onChange={e => updateModuleData('cropForm', {...appData.cropForm, humidity: e.target.value})}
-                className="w-full p-3 rounded-xl text-sm"
-                required
-              />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-stone-400 uppercase">{t('advisor.rainfall')}</label>
-            <input 
-              type="number" 
-              step="0.1"
-              placeholder="0-1000"
-              min="0"
-              max="1000"
-              value={appData.cropForm.rainfall}
-              onChange={e => updateModuleData('cropForm', {...appData.cropForm, rainfall: e.target.value})}
-              className="w-full p-3 rounded-xl text-sm"
-              required
-            />
-          </div>
-          <button 
-            type="submit"
-            disabled={appData.advisorLoading}
-            className="w-full bg-brand-green hover:bg-brand-green-dark text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center disabled:opacity-50"
-          >
-            {appData.advisorLoading ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : t('advisor.analyze')}
-          </button>
-          <button
-            type="button"
-            onClick={resetAdvisorResult}
-            disabled={appData.advisorLoading || (isCropFormEmpty && !appData.advisor && !appData.advisorError)}
-            className="w-full bg-stone-700 hover:bg-stone-600 text-white font-bold py-4 rounded-2xl transition-all disabled:opacity-50 disabled:hover:bg-stone-700"
-          >
-            Enter New Values
-          </button>
-        </form>
-      </div>
-      {renderResult(appData.advisor, appData.advisorError, {
-        onReset: resetAdvisorResult,
-        resetLabel: 'Enter New Values'
-      })}
+      {/* Grounded Precision Agronomy Q&A Consultation */}
+      <AdvisoryChatCard 
+        farmId={farmerProfile.farm?.id ? String(farmerProfile.farm.id) : undefined}
+        crop={farmerProfile.crop?.crop_name}
+        farmerId={farmerProfile.profile?.id}
+        sowingDate={farmerProfile.crop?.sowing_date}
+        soilType={farmerProfile.farm?.soil_type}
+      />
+
+      {/* Verified Government Schemes & Subsidies */}
+      <GovernmentSchemesCard />
     </div>
   );
 
@@ -1064,147 +839,6 @@ export function AppContent() {
         locationName={location?.city || user?.location}
       />
 
-      {/* City Selection & Location */}
-      <div className="space-y-3">
-        <div className="bg-dark-card p-4 rounded-2xl border border-dark-border flex items-center space-x-4">
-          <MapPin className="text-brand-green" size={20} />
-          <select 
-            value={appData.weatherCity}
-            onChange={(e) => {
-              const city = e.target.value;
-              fetchWeather(city, undefined, undefined);
-            }}
-            className="bg-transparent border-none text-white font-bold focus:ring-0 cursor-pointer flex-1 outline-none"
-          >
-            <option value="Bangalore" className="bg-dark-card">Bangalore</option>
-            <option value="Mumbai" className="bg-dark-card">Mumbai</option>
-            <option value="Delhi" className="bg-dark-card">Delhi</option>
-            <option value="Hyderabad" className="bg-dark-card">Hyderabad</option>
-            <option value="Chennai" className="bg-dark-card">Chennai</option>
-            <option value="Kolkata" className="bg-dark-card">Kolkata</option>
-            <option value="Pune" className="bg-dark-card">Pune</option>
-          </select>
-          {appData.weatherLoading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-green"></div>}
-        </div>
-
-        <button 
-          onClick={() => refreshLocation()}
-          disabled={locationLoading}
-          className="w-full bg-stone-800/50 hover:bg-stone-800 p-3 rounded-xl border border-dark-border flex items-center justify-center space-x-2 transition-all disabled:opacity-50"
-        >
-          <MapPin size={14} className={cn(locationLoading ? "animate-pulse" : "text-brand-green")} />
-          <span className="text-xs font-bold text-stone-300">
-            {locationLoading ? "Detecting Location..." : location ? `Using: ${location.city || location.state}` : "Use My Current Location"}
-          </span>
-        </button>
-      </div>
-
-      {appData.weatherLoading ? (
-        <div className="py-20 text-center">
-          <div className="animate-pulse flex flex-col items-center">
-            <RefreshCw size={48} className="text-stone-700 mb-4 animate-spin" />
-            <p className="text-stone-500">Fetching weather data...</p>
-          </div>
-        </div>
-      ) : appData.weatherError ? (
-        <div className="bg-dark-card p-12 rounded-3xl border border-dark-border flex flex-col items-center justify-center text-center">
-          <AlertCircle size={48} className="text-red-500/20 mb-4" />
-          <h3 className="text-lg font-bold text-white mb-2">Weather Error</h3>
-          <p className="text-stone-500 text-sm max-w-md mx-auto mb-6">{appData.weatherError}</p>
-          <button 
-            onClick={() => fetchWeather(appData.weatherCity)}
-            className="px-6 py-2 bg-brand-green text-white rounded-xl font-bold text-sm"
-          >
-            Retry
-          </button>
-        </div>
-      ) : appData.weather ? (
-        <>
-          <div className="bg-dark-card p-6 rounded-3xl border border-dark-border relative overflow-hidden">
-            {/* Background Decoration */}
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-green/10 rounded-full blur-3xl"></div>
-            
-            <div className="flex items-center justify-between mb-6 relative z-10">
-              <div>
-                <h2 className="text-2xl font-bold">{appData.weather.city}</h2>
-                <p className="text-stone-500 text-sm capitalize">{appData.weather.description}</p>
-              </div>
-              <div className="text-right">
-                <div className="text-4xl font-bold">{appData.weather.temp}°C</div>
-                <p className="text-brand-green text-sm font-medium">{appData.weather.condition}</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4 relative z-10">
-              <div className="bg-dark-bg/50 p-3 rounded-2xl border border-dark-border text-center">
-                <Wind size={20} className="mx-auto text-stone-400 mb-1" />
-                <div className="text-[10px] text-stone-500 uppercase font-bold">Wind</div>
-                <div className="text-sm font-bold">{appData.weather.windSpeed} km/h</div>
-              </div>
-              <div className="bg-dark-bg/50 p-3 rounded-2xl border border-dark-border text-center">
-                <Droplets size={20} className="mx-auto text-stone-400 mb-1" />
-                <div className="text-[10px] text-stone-500 uppercase font-bold">Humidity</div>
-                <div className="text-sm font-bold">{appData.weather.humidity}%</div>
-              </div>
-              <div className="bg-dark-bg/50 p-3 rounded-2xl border border-dark-border text-center">
-                <Sun size={20} className="mx-auto text-stone-400 mb-1" />
-                <div className="text-[10px] text-stone-500 uppercase font-bold">UV Index</div>
-                <div className="text-sm font-bold">{appData.weather.uvIndex}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* AI Advisory Layer */}
-          <div className="bg-brand-green/10 border border-brand-green/20 p-6 rounded-3xl">
-            <div className="flex items-center mb-3">
-              <div className="w-8 h-8 bg-brand-green rounded-lg flex items-center justify-center mr-3">
-                <Sprout size={16} className="text-white" />
-              </div>
-              <h3 className="font-bold text-brand-green">AI Agricultural Insight</h3>
-            </div>
-            <div className="space-y-2">
-              {appData.weather.insights.map((insight: string, i: number) => (
-                <div key={i} className="flex items-start">
-                  <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-green mr-2 shrink-0"></div>
-                  <p className="text-stone-400 text-sm leading-relaxed">{insight}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="font-bold mb-4">5-Day Forecast</h3>
-            <div className="space-y-3">
-              {appData.weather.forecast.map((day: any) => (
-                <div key={day.date} className="bg-dark-card p-4 rounded-2xl border border-dark-border flex items-center justify-between">
-                  <span className="font-medium text-stone-400 w-24">
-                    {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <img 
-                      src={`https://openweathermap.org/img/wn/${day.icon}.png`} 
-                      alt={day.condition}
-                      className="w-8 h-8"
-                      referrerPolicy="no-referrer"
-                    />
-                    <span className="text-sm">{day.condition}</span>
-                  </div>
-                  <div className="text-sm font-bold">
-                    <span>{day.temp}°C</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="py-20 text-center">
-          <div className="animate-pulse flex flex-col items-center">
-            <CloudRain size={48} className="text-stone-700 mb-4" />
-            <p className="text-stone-500">Loading weather data...</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 

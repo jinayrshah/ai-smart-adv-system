@@ -21,6 +21,7 @@ import {
   Thermometer,
   Compass,
   Calendar,
+  Info,
 } from "lucide-react";
 
 interface WeatherStripProps {
@@ -61,6 +62,7 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
   const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
   const [isExplore, setIsExplore] = useState<boolean>(false);
   const [selectedDay, setSelectedDay] = useState<FusedDayDetail | null>(null);
+  const [showAreaNotice, setShowAreaNotice] = useState<boolean>(false);
 
   const loadWeather = async (targetLat: number, targetLon: number) => {
     setLoading(true);
@@ -342,46 +344,52 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
 
             {/* Agro Climatology Metrics Card */}
             <div className="lg:col-span-2 bg-zinc-800/40 border border-zinc-700/60 rounded-xl p-4 flex flex-col justify-between space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="min-w-0">
                   <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Agro-Climatology Metrics</span>
-                  <p className="text-xs text-zinc-400">Calculated over historical fusion actuals & 15-year ERA5-Land normals</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">Calculated over historical actuals & 15-year ERA5-Land normals</p>
                 </div>
-                {renderConfidenceBadge(data.metrics.confidence, false)}
+                <div className="shrink-0 self-start sm:self-auto">
+                  {renderConfidenceBadge(data.metrics.confidence, false)}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl">
+                <div className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl flex flex-col justify-between">
                   <span className="text-xs text-zinc-400 block">7-Day Rainfall</span>
                   <span className="text-xl font-bold text-white mt-1 block">{data.metrics.rain_7d_mm} mm</span>
                   <span className="text-[11px] text-zinc-500">Recent accumulation</span>
                 </div>
 
-                <div className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl">
+                <div className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl flex flex-col justify-between">
                   <span className="text-xs text-zinc-400 block">30-Day Total</span>
                   <span className="text-xl font-bold text-white mt-1 block">{data.metrics.rain_30d_mm} mm</span>
                   <span className="text-[11px] text-zinc-500">Monthly total</span>
                 </div>
 
-                <div className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl">
+                <div className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl flex flex-col justify-between">
                   <span className="text-xs text-zinc-400 block">Vs. Normal (30d)</span>
-                  <span
-                    className={`text-xl font-bold mt-1 block ${
-                      data.metrics.rain_30d_vs_normal_pct == null
-                        ? "text-zinc-400"
-                        : data.metrics.rain_30d_vs_normal_pct >= 0
-                        ? "text-emerald-400"
-                        : "text-amber-400"
-                    }`}
-                  >
-                    {data.metrics.rain_30d_vs_normal_pct != null
-                      ? `${data.metrics.rain_30d_vs_normal_pct > 0 ? "+" : ""}${data.metrics.rain_30d_vs_normal_pct}%`
-                      : "Baseline N/A"}
-                  </span>
+                  <div className="my-1">
+                    {data.metrics.rain_30d_vs_normal_pct != null ? (
+                      <span
+                        className={`text-xl font-bold block ${
+                          data.metrics.rain_30d_vs_normal_pct >= 0
+                            ? "text-emerald-400"
+                            : "text-amber-400"
+                        }`}
+                      >
+                        {data.metrics.rain_30d_vs_normal_pct > 0 ? "+" : ""}{data.metrics.rain_30d_vs_normal_pct}%
+                      </span>
+                    ) : (
+                      <span className="text-sm font-semibold text-zinc-400 block leading-tight">
+                        Baseline N/A
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[11px] text-zinc-500">Prorated 2010-24 normal</span>
                 </div>
 
-                <div className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl">
+                <div className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl flex flex-col justify-between">
                   <span className="text-xs text-zinc-400 block">Consecutive Dry Days</span>
                   <span className="text-xl font-bold text-white mt-1 block">{data.metrics.dry_spell_days} days</span>
                   <span className="text-[11px] text-zinc-500">&lt;1mm daily threshold</span>
@@ -484,16 +492,15 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
           {/* Selected Day Deep Dive Panel */}
           {selectedDay && (
             <div className="bg-zinc-800/60 border border-zinc-700/80 rounded-xl p-4 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-700/60 pb-3">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-emerald-400" />
-                  <span className="font-bold text-white">Detailed Inspection: {selectedDay.date}</span>
-                  <span className="text-xs bg-zinc-700 px-2 py-0.5 rounded capitalize text-zinc-300">
-                    Phase: {selectedDay.phase}
-                  </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-zinc-700/60 pb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Calendar className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="font-bold text-white text-sm">Inspection: {selectedDay.date}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-400">Primary Source: <b className="text-zinc-200">{selectedDay.primary_source}</b></span>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <span className="text-xs text-zinc-400">
+                    Main data source: <b className="text-zinc-200">{selectedDay.primary_source === "open_meteo" ? "Open-Meteo" : selectedDay.primary_source}</b>
+                  </span>
                   {renderConfidenceBadge(selectedDay.confidence, !!selectedDay.disagreement)}
                 </div>
               </div>
@@ -528,7 +535,7 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
               {selectedDay.disagreement && (
                 <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4 text-rose-400" />
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                     Provider Disagreement Detected (Confidence Lowered to Low):
                   </div>
                   {Object.entries(selectedDay.disagreement).map(([field, provMap]: any) => (
@@ -544,12 +551,12 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
               )}
 
               {/* Validators info */}
-              <div className="text-[11px] text-zinc-400 flex items-center justify-between">
+              <div className="text-[11px] text-zinc-400 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-zinc-700/30">
                 <span>
-                  Validators Cross-checked:{" "}
+                  Validation:{" "}
                   {selectedDay.validators && selectedDay.validators.length > 0
-                    ? selectedDay.validators.join(", ")
-                    : "None (Single-source or pending validation window)"}
+                    ? `Double-checked against ${selectedDay.validators.join(", ")}`
+                    : "Not yet double-checked against secondary satellites"}
                 </span>
                 {selectedDay.degraded && (
                   <span className="text-amber-400">Degraded mode active (Fallback source used)</span>
@@ -558,13 +565,24 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
             </div>
           )}
 
-          {/* Area Estimate & Provenance Disclaimer (Architecture §19 & §15) */}
+          {/* Collapsible Area Estimate & Provenance Disclaimer (Architecture §19 & §15) */}
           <div className="pt-2 border-t border-zinc-800 text-[11px] text-zinc-500 leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <span className="text-zinc-400 font-medium">Area Estimate Notice:</span>{" "}
-              Weather is derived from the 0.1° (~9–11 km) ERA5-Land grid cell. Gridded rainfall reflects an area average; local farm-level rainfall may vary due to monsoon convection.
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setShowAreaNotice(!showAreaNotice)}
+                className="inline-flex items-center gap-1 text-zinc-400 hover:text-emerald-400 transition-colors font-medium cursor-pointer"
+              >
+                <Info className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Area Estimate Notice {showAreaNotice ? "▲" : "▼"}</span>
+              </button>
+              {showAreaNotice && (
+                <span className="text-zinc-400 text-[10px] sm:ml-1">
+                  Weather is derived from the 0.1° (~9–11 km) ERA5-Land grid cell. Gridded rainfall reflects an area average; local farm-level rainfall may vary due to monsoon convection.
+                </span>
+              )}
             </div>
-            <div className="text-zinc-500 whitespace-nowrap">
+            <div className="text-zinc-500 whitespace-nowrap text-[10px]">
               Sources: Open-Meteo (primary), NASA POWER & OpenWeather (validation).
             </div>
           </div>
