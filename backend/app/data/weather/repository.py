@@ -9,6 +9,34 @@ from app.data.types import WeatherCurrent, WeatherDay
 logger = logging.getLogger(__name__)
 
 
+WEATHER_DAY_FIELDS = (
+    "tmax_c", "tmin_c", "tmean_c", "precip_mm", "precip_prob_pct", "rh_mean_pct",
+    "wind_max_kmh", "radiation_mj_m2", "et0_mm", "soil_moisture_top",
+    "spread_tmax_c", "spread_precip_mm", "models_rain_frac",
+)
+
+
+def weather_day_from_row(row: dict[str, Any], grid_key: str | None = None) -> WeatherDay:
+    """
+    Rebuild a WeatherDay from a weather_daily row, keeping EVERY measured field.
+
+    The jobs used to copy only a hand-picked subset (no et0_mm, tmean, precip
+    probability...). Because archive rows outrank recent/forecast rows during fusion,
+    re-fused past days lost their ET0 and the irrigation engine under-counted crop
+    water demand for those days.
+    """
+    d_val = row["date"]
+    d_obj = date.fromisoformat(d_val) if isinstance(d_val, str) else d_val
+    kwargs = {f: row.get(f) for f in WEATHER_DAY_FIELDS}
+    return WeatherDay(
+        grid_key=grid_key or row["grid_key"],
+        date=d_obj,
+        source=row["source"],
+        kind=row["kind"],
+        **kwargs,
+    )
+
+
 def chunk_list(items: list[Any], chunk_size: int = 500):
     for i in range(0, len(items), chunk_size):
         yield items[i : i + chunk_size]

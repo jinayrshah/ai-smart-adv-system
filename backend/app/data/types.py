@@ -143,9 +143,13 @@ class AgroMetrics:
     tmax_7d_anomaly_c: float | None = None
     et0_7d_mm: float | None = None
     confidence: str = "medium"
+    days_in_7d_window: int | None = None
+    days_in_30d_window: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "days_in_7d_window": self.days_in_7d_window,
+            "days_in_30d_window": self.days_in_30d_window,
             "rain_7d_mm": round(self.rain_7d_mm, 1),
             "rain_30d_mm": round(self.rain_30d_mm, 1),
             "rain_30d_vs_normal_pct": round(self.rain_30d_vs_normal_pct, 1) if self.rain_30d_vs_normal_pct is not None else None,

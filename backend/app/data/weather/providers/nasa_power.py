@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 import httpx
 
@@ -93,7 +93,8 @@ class NasaPowerClient:
             except ValueError:
                 continue
 
-            kind = "recent" if d >= (ref_today.replace(day=max(1, ref_today.day - 6))) else "archive"
+            # phase routing (fusion.phase_key) treats anything older than 6 days as archive
+            kind = "recent" if d >= ref_today - timedelta(days=6) else "archive"
 
             wd = WeatherDay(
                 grid_key=grid_key,
