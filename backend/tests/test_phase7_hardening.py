@@ -172,10 +172,9 @@ def test_mechanical_addition_of_new_crop():
         crop="Mustard",
         stage_name=stage_res.stage_name,
         weather_summary={
-            "temp_c": 24.0,
-            "humidity_pct": 50.0,
-            "condition": "Sunny",
-            "forecast_7d": [{"precip_mm": 0.0, "tmax_c": 28.0, "tmin_c": 14.0}],
+            "days": [{"phase": "past", "et0_mm": 4.0, "precip_mm": 0.0} for _ in range(6)]
+            + [{"phase": "today", "et0_mm": 4.0, "precip_mm": 0.0}],
+            "metrics": {"confidence": "medium"},
         },
     )
     assert water_res.crop == "Mustard"

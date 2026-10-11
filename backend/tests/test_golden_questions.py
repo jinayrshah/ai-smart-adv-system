@@ -105,7 +105,9 @@ def test_personalization_divergence_between_two_farmers():
     # Responses must visibly differ
     assert resp_a.response != resp_b.response
     assert resp_a.computed.growth_stage.stage_name != resp_b.computed.growth_stage.stage_name
-    assert resp_a.computed.irrigation.deficit_mm != resp_b.computed.irrigation.deficit_mm
+    # Different stages -> different crop coefficients (offline there is no ET0, so the
+    # deficit itself is honestly "unknown" for both rather than a fabricated number)
+    assert resp_a.computed.irrigation.kc != resp_b.computed.irrigation.kc
 
 
 

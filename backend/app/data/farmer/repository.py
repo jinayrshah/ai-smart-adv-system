@@ -16,6 +16,8 @@ from app.schemas.farmer import (
     FarmCropCreate,
     FarmCropUpdate,
     FarmCropResponse,
+    IrrigationEventCreate,
+    IrrigationEventResponse,
     OnboardingRequest,
     OnboardingResponse,
 )
@@ -30,6 +32,8 @@ class FarmerRepository:
     _shared_crops: dict[int, dict[str, Any]] = {}
     _shared_farm_id_counter: int = 100
     _shared_crop_id_counter: int = 1000
+    _shared_irrigation: dict[int, dict[str, Any]] = {}
+    _shared_irrigation_id_counter: int = 0
 
     def __init__(self, client: Client | None = None):
         try:
@@ -384,6 +388,56 @@ class FarmerRepository:
         return results
 
     get_crops_by_farm = get_crops
+
+    # --- Irrigation log ---
+    def log_irrigation(self, farm_id: int, data: IrrigationEventCreate) -> IrrigationEventResponse:
+        payload = {
+            "farm_id": farm_id,
+            "farm_crop_id": data.farm_crop_id,
+            "irrigated_on": data.irrigated_on.isoformat(),
+            "amount_mm": data.amount_mm,
+            "method": data.method,
+            "note": data.note,
+        }
+        try:
+            res = self.client.table("irrigation_events").insert(payload).execute()
+            if res.data:
+                return self._irrigation_row(res.data[0])
+        except Exception as exc:
+            logger.warning(f"Supabase irrigation insert fallback to memory: {exc}")
+        FarmerRepository._shared_irrigation_id_counter += 1
+        payload["id"] = FarmerRepository._shared_irrigation_id_counter
+        FarmerRepository._shared_irrigation[payload["id"]] = payload
+        return self._irrigation_row(payload)
+
+    def get_irrigation_events(self, farm_id: int, since: Any = None) -> list[IrrigationEventResponse]:
+        since_iso = since.isoformat() if hasattr(since, "isoformat") else since
+        try:
+            q = self.client.table("irrigation_events").select("*").eq("farm_id", farm_id)
+            if since_iso:
+                q = q.gte("irrigated_on", since_iso)
+            res = q.order("irrigated_on", desc=True).execute()
+            return [self._irrigation_row(r) for r in (res.data or [])]
+        except Exception as exc:
+            logger.debug(f"Supabase irrigation query fallback: {exc}")
+        rows = [
+            r for r in FarmerRepository._shared_irrigation.values()
+            if r["farm_id"] == farm_id and (not since_iso or r["irrigated_on"] >= since_iso)
+        ]
+        rows.sort(key=lambda r: r["irrigated_on"], reverse=True)
+        return [self._irrigation_row(r) for r in rows]
+
+    @staticmethod
+    def _irrigation_row(row: dict[str, Any]) -> IrrigationEventResponse:
+        return IrrigationEventResponse(
+            id=row["id"],
+            farm_id=row["farm_id"],
+            farm_crop_id=row.get("farm_crop_id"),
+            irrigated_on=str(row["irrigated_on"])[:10],
+            amount_mm=float(row["amount_mm"]),
+            method=row.get("method"),
+            note=row.get("note"),
+        )
 
     # --- Unified Multi-Step Onboarding ---
     def onboard(self, req: OnboardingRequest) -> OnboardingResponse:

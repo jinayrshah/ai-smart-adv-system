@@ -12,6 +12,8 @@ from app.schemas.farmer import (
     FarmResponse,
     FarmCropCreate,
     FarmCropResponse,
+    IrrigationEventCreate,
+    IrrigationEventResponse,
     OnboardingRequest,
     OnboardingResponse,
 )
@@ -133,6 +135,35 @@ def list_farm_crops(
     List active or all crops on a farm.
     """
     return repo.get_crops(farm_id, status=status)
+
+
+# --- Irrigation log (feeds the FAO-56 water balance, Architecture §8) ---
+@router.post(
+    "/farms/{farm_id}/irrigation",
+    response_model=IrrigationEventResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def log_irrigation(
+    farm_id: int,
+    event: IrrigationEventCreate,
+    repo: FarmerRepository = Depends(get_farmer_repo),
+):
+    """Record water applied to a farm so the irrigation advice accounts for it."""
+    if repo.get_farm(farm_id) is None:
+        raise HTTPException(status_code=404, detail="Farm not found")
+    from app.core.timeutil import today_ist
+
+    if event.irrigated_on > today_ist():
+        raise HTTPException(status_code=422, detail="Irrigation date cannot be in the future")
+    return repo.log_irrigation(farm_id, event)
+
+
+@router.get("/farms/{farm_id}/irrigation", response_model=list[IrrigationEventResponse])
+def list_irrigation(
+    farm_id: int,
+    repo: FarmerRepository = Depends(get_farmer_repo),
+):
+    return repo.get_irrigation_events(farm_id)
 
 
 # --- Multi-Step Onboarding Endpoint ---

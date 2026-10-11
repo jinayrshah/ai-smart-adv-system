@@ -1,128 +1,175 @@
 """
 Advisory Generation Engine.
-Architecture_Advisory.md §12, §17.
+Architecture_Advisory.md §12, §15, §17.
 
-Brings together agronomy engines, RAG semantic retrieval, prompt construction,
-Gemini 2.5 Flash inference, safety refusal templates, and number-grounding audit.
+Brings together agronomy engines, RAG retrieval, prompt construction, Gemini
+inference (via the shared app.core.gemini client), safety refusal templates and the
+post-generation number-grounding audit.
+
+Language rule (README §8 / Architecture §15): the model always reasons and answers in
+English; Bhashini translates the final text. Asking Gemini to answer "in hi" and then
+also running English->Hindi translation on that answer (what the first version did)
+double-translates and garbles the reply.
 """
 
-import logging
-import re
-from typing import Any
-import httpx
+from __future__ import annotations
 
-from app.core.config import get_settings
-from app.domain.advisory.audit import (
-    audit_number_grounding,
-    compute_advisory_confidence,
-)
+import logging
+from typing import Any
+
+from app.core.gemini import generate_text
+from app.data.weather.codes import describe_weather_code
+from app.domain.advisory.audit import audit_number_grounding, compute_advisory_confidence
 from app.domain.advisory.context import AdvisoryContext
 from app.domain.advisory.translation import translate_from_english
 from app.schemas.advisory import AdvisoryAskResponse, AdvisoryComputedContext, AdvisorySource
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-2.5-flash"
+SYSTEM_INSTRUCTION = """You are an agricultural advisory assistant for Indian farmers.
+Answer ONLY from the CONTEXT you are given. Never state a number (dose, quantity, timing,
+price, threshold, date) that does not appear in the CONTEXT. If the CONTEXT does not cover
+what the farmer asked, say so plainly and suggest the nearest Krishi Vigyan Kendra (KVK).
+Ground every weather or water statement in the WEATHER and IRRIGATION lines.
+After any specific recommendation, cite its passage as "Source: [Title, p.X]".
+If the CONTEXT lists ASSUMPTIONS, mention briefly that the advice is approximate because of them.
+Write in plain English (it is translated afterwards), 3-6 short sentences, practical and specific."""
+
+
+def _current_weather(ctx: AdvisoryContext) -> dict[str, Any]:
+    return ctx.weather_summary.get("current") or {}
+
+
+def _weather_line(ctx: AdvisoryContext) -> str:
+    cur = _current_weather(ctx)
+    bits = []
+    if cur.get("temp_c") is not None:
+        bits.append(f"now {cur['temp_c']}°C")
+    if cur.get("rh_pct") is not None:
+        bits.append(f"humidity {cur['rh_pct']}%")
+    cond = describe_weather_code(cur.get("weather_code"))
+    if cond:
+        bits.append(cond.lower())
+    metrics = ctx.weather_summary.get("metrics") or {}
+    if metrics.get("rain_7d_mm") is not None:
+        bits.append(f"rain in the last 7 days {metrics['rain_7d_mm']} mm")
+    fc = ctx.irrigation.forecast_rain_3d_mm
+    if fc is not None:
+        bits.append(f"rain forecast next 3 days {fc} mm")
+    return ", ".join(bits) if bits else "no current weather data on file"
+
+
+def _irrigation_line(ctx: AdvisoryContext) -> str:
+    irr = ctx.irrigation
+    if irr.method == "fao56_water_balance":
+        line = (
+            f"root-zone water used {irr.root_zone_depletion_mm} mm of {irr.taw_mm} mm available; "
+            f"stress begins at {irr.raw_mm} mm; action: {irr.action.replace('_', ' ')}"
+        )
+        if irr.net_irrigation_mm is not None:
+            line += f"; net irrigation {irr.net_irrigation_mm} mm"
+        if irr.gross_irrigation_mm is not None:
+            line += f" (gross {irr.gross_irrigation_mm} mm)"
+        if irr.days_to_stress is not None:
+            line += f"; days until stress without rain: {irr.days_to_stress}"
+    elif irr.method == "insufficient_data":
+        line = "not enough weather data to estimate crop water use"
+    else:
+        line = (
+            f"crop water use last 7 days {irr.etc_7d_mm} mm, effective rain {irr.effective_rain_7d_mm} mm, "
+            f"deficit {irr.deficit_mm} mm; action: {irr.action.replace('_', ' ')}"
+        )
+    return f"{line}. Engine summary: {irr.recommendation} (confidence: {irr.confidence})"
 
 
 def build_system_prompt(ctx: AdvisoryContext, user_query: str) -> str:
-    """
-    Constructs the strictly-grounded advisory system prompt per Architecture §12.2.
-    """
-    soil_flags_str = "none"
-    if ctx.soil_flags:
-        soil_flags_str = "; ".join(f"{f.flag_type}: {f.notes}" for f in ctx.soil_flags)
-
-    w_curr = ctx.weather_summary.get("current", {})
-    w_temp = w_curr.get("temp_c", 25.0)
-    w_cond = w_curr.get("condition", "Partly cloudy")
-    w_rain_7d = ctx.irrigation.rain_7d_mm
-    w_etc_7d = ctx.irrigation.etc_7d_mm
-    w_deficit = ctx.irrigation.deficit_mm
-
-    passages_lines = []
+    """Grounded prompt per Architecture §12.2 (CONTEXT block + question)."""
+    soil_flags_str = "; ".join(f"{f.flag_type}: {f.notes}" for f in ctx.soil_flags) or "none"
+    passages = []
     for c in ctx.retrieved_chunks:
-        title = c.source_title or "ICAR & State Agricultural University PoP"
-        page_str = f"p.{c.page_number}" if c.page_number else "Advisory Guide"
-        passages_lines.append(f"[{title}, {page_str}]: {c.chunk_text}")
+        title = c.source_title or "Untitled source"
+        page = f"p.{c.page_number}" if c.page_number else "n.p."
+        passages.append(f"[{title}, {page}]: {c.chunk_text}")
+    passages_text = "\n\n".join(passages) if passages else "(No matching documents found)"
 
-    passages_text = "\n\n".join(passages_lines) if passages_lines else "(No matching research documents found)"
+    stage = ctx.stage
+    stage_line = f"{stage.stage_name} (estimated by {stage.method.replace('_', ' ')}"
+    if stage.cumulative_gdd is not None:
+        stage_line += f", {stage.cumulative_gdd} growing degree-days since sowing"
+    stage_line += f", day {stage.days_since_sowing})"
+    if stage.next_stage_name:
+        stage_line += f"; next stage: {stage.next_stage_name}"
 
-    disease_line = ""
-    if ctx.disease_label:
-        disease_line = f"\nDISEASE DETECTION: Photo analysis indicates suspected {ctx.disease_label}."
+    climate_line = "not assessed (no temperature reading)"
+    if ctx.climate:
+        climate_line = f"{ctx.climate.verdict} — {ctx.climate.notes or ''}".strip(" —")
 
-    lang_note = f"in {ctx.preferred_language}" if ctx.preferred_language != "en" else "in English"
+    disease_line = f"\nDISEASE: photo analysis suggests {ctx.disease_label}." if ctx.disease_label else ""
+    assumptions = "\n".join(f"- {a}" for a in (ctx.assumptions + ctx.irrigation.assumptions)) or "- none"
 
-    prompt = f"""SYSTEM:
-You are an agricultural advisory assistant for Indian farmers. You answer ONLY using the
-CONTEXT block below. Do not use outside knowledge for anything a farmer could act on —
-dosages, quantities, timings, ₹ figures, thresholds. If the CONTEXT does not contain
-something the farmer asked about, say so plainly and suggest they contact their nearest
-Krishi Vigyan Kendra — do not guess.
-Always ground weather- or water-related statements in the WEATHER and IRRIGATION numbers
-given. Always cite which source (title + page, from RETRIEVED_PASSAGES) supports any
-specific recommendation, dosage, or threshold you state, in a short "Source: [Title, p.X]" line.
-Respond {lang_note}. Keep it practical, encouraging, and specific to THIS farmer.
-
-CONTEXT:
-Farmer: {ctx.farmer_name}, farm in {ctx.district}, {ctx.state}. Soil: {ctx.soil_type} (flags: {soil_flags_str}).
-Crop: {ctx.crop}, sown {ctx.sowing_date.isoformat()} ({ctx.season}). Current stage: {ctx.stage.stage_name} (estimated via {ctx.stage.method}).
-WEATHER: Current {w_temp}°C, {w_cond}. 7-day past rainfall: {w_rain_7d}mm.
-IRRIGATION: needed ~{w_etc_7d}mm over the last 7 days, {w_rain_7d}mm rain fell, estimated deficit {w_deficit}mm. (confidence: {ctx.irrigation.confidence}){disease_line}
+    return f"""CONTEXT:
+Farm: {ctx.district}, {ctx.state}. Soil: {ctx.soil_type} (soil flags: {soil_flags_str}).
+Crop: {ctx.crop}{f' ({ctx.variety})' if ctx.variety else ''}, sown {ctx.sowing_date.isoformat()} ({ctx.season}).
+STAGE: {stage_line}.
+WEATHER: {_weather_line(ctx)}.
+CLIMATE FIT: {climate_line}.
+IRRIGATION: {_irrigation_line(ctx)}{disease_line}
+ASSUMPTIONS:
+{assumptions}
 
 RETRIEVED_PASSAGES:
 {passages_text}
 
 FARMER'S QUESTION: {user_query}
 """
-    return prompt
+
+
+def _citation(ctx: AdvisoryContext) -> str:
+    top = ctx.retrieved_chunks[0] if ctx.retrieved_chunks else None
+    if not top:
+        return ""
+    page = f", p.{top.page_number}" if top.page_number else ""
+    return f"Source: [{top.source_title or 'Untitled source'}{page}]"
 
 
 def _generate_offline_synthesis(ctx: AdvisoryContext, user_query: str) -> str:
     """
-    Deterministic synthesis for offline test execution or fallback when Gemini quota is exceeded.
-    Guarantees 100% grounded response citing exact calculated numbers and retrieved passages.
+    Deterministic answer used when Gemini is unavailable or its answer failed the
+    number audit. Uses only computed values and retrieved text.
     """
-    stage_name = ctx.stage.stage_name
-    deficit = ctx.irrigation.deficit_mm
-    etc_7d = ctx.irrigation.etc_7d_mm
-    rain_7d = ctx.irrigation.rain_7d_mm
-    top_chunk = ctx.retrieved_chunks[0] if ctx.retrieved_chunks else None
-    source_citation = (
-        f"Source: [{top_chunk.source_title or 'ICAR Kharif Guide'}, p.{top_chunk.page_number or 1}]"
-        if top_chunk
-        else "Source: [ICAR & SAU Package of Practices]"
-    )
+    cite = _citation(ctx)
+    q = user_query.lower()
+    stage = ctx.stage.stage_name
+    soil_note = f" Soil note: {ctx.soil_flags[0].notes}" if ctx.soil_flags and ctx.soil_flags[0].notes else ""
+    top = ctx.retrieved_chunks[0] if ctx.retrieved_chunks else None
 
-    soil_note = "Your soil conditions are suitable."
-    if ctx.soil_flags:
-        soil_note = f"Soil note: {ctx.soil_flags[0].notes or 'Check fertilizer balance.'}"
-
-    q_lower = user_query.lower()
-
-    if any(w in q_lower for w in ["water", "irrigate", "irrigation", "rain"]):
-        advice = (
-            f"Your {ctx.crop} crop is currently in the {stage_name} stage ({source_citation}). "
-            f"Over the last 7 days, your crop required ~{etc_7d}mm of water and received {rain_7d}mm of rainfall, "
-            f"resulting in a net water deficit of {deficit}mm (confidence: {ctx.irrigation.confidence}). "
-            f"{ctx.irrigation.recommendation} {soil_note}"
-        )
-    elif any(w in q_lower for w in ["pest", "disease", "spray", "treatment", "fungicide", "rot", "blight", "rust", "worm"]):
-        chunk_excerpt = top_chunk.chunk_text[:250] if top_chunk else "Follow recommended plant protection."
-        advice = (
-            f"For {ctx.crop} during the {stage_name} stage, field protection measures are critical ({source_citation}). "
-            f"Guidance excerpt: {chunk_excerpt}. "
-            f"Ensure timely field scouting. {soil_note}"
-        )
+    if any(w in q for w in ["water", "irrigat", "rain", "moisture"]):
+        text = f"Your {ctx.crop} crop is in the {stage} stage. {ctx.irrigation.recommendation}"
+        if cite:
+            text += f" {cite}"
+    elif any(w in q for w in ["pest", "disease", "spray", "treatment", "fungicide", "rot", "blight", "rust", "worm", "insect"]):
+        excerpt = top.chunk_text[:280].rstrip() + "…" if top else ""
+        text = f"For {ctx.crop} at the {stage} stage, the relevant guidance says: {excerpt} {cite}".strip()
+        text += " Scout the field regularly and confirm product and dose with your KVK before spraying."
     else:
-        chunk_excerpt = top_chunk.chunk_text[:200] if top_chunk else "Maintain optimal field management."
-        advice = (
-            f"For your {ctx.crop} in {ctx.district} ({stage_name} stage): {chunk_excerpt} ({source_citation}). "
-            f"Current weather shows {ctx.weather_summary.get('current', {}).get('temp_c', 25.0)}°C. {soil_note}"
-        )
+        excerpt = top.chunk_text[:240].rstrip() + "…" if top else ""
+        text = f"For your {ctx.crop} in {ctx.district} ({stage} stage): {excerpt} {cite}".strip()
+        weather = _weather_line(ctx)
+        if not weather.startswith("no current"):
+            text += f" Weather: {weather}."
+    if ctx.assumptions:
+        text += " Note: this advice is approximate because " + "; ".join(a.rstrip(".").lower() for a in ctx.assumptions) + "."
+    return text + soil_note
 
-    return advice
+
+def _computed(ctx: AdvisoryContext) -> AdvisoryComputedContext:
+    return AdvisoryComputedContext(
+        growth_stage=ctx.stage,
+        irrigation=ctx.irrigation,
+        soil_flags=ctx.soil_flags,
+        climate=ctx.climate,
+        assumptions=list(ctx.assumptions),
+    )
 
 
 def generate_advisory_response(
@@ -131,128 +178,84 @@ def generate_advisory_response(
     query_id: int,
     use_mock: bool = False,
 ) -> AdvisoryAskResponse:
-    """
-    Executes the complete generation flow with grounding checks and safety controls.
-    """
-    # 1. Determine confidence
-    w_conf = ctx.irrigation.confidence
+    """Full generation flow with grounding checks and safety controls."""
+    weather_degraded = bool(ctx.weather_summary.get("degraded")) or ctx.irrigation.method == "insufficient_data"
     confidence = compute_advisory_confidence(
         retrieved_chunks=ctx.retrieved_chunks,
-        weather_confidence=w_conf,
-        stage_computed=True,
+        weather_confidence="low" if weather_degraded else ctx.irrigation.confidence,
+        stage_computed=ctx.stage.method == "gdd",
     )
 
-    # 2. Safety Refusal Template for Insufficient Confidence (§17.3)
     if confidence == "insufficient":
         refusal_en = (
-            f"I do not have verified research documentation in my knowledge base regarding this specific topic for {ctx.crop}. "
-            f"To protect your crop health, please do not guess dosages or field applications. "
-            f"We strongly recommend contacting your nearest Krishi Vigyan Kendra (KVK) or local block agricultural officer for district-specific advice."
-        )
-        final_text = translate_from_english(refusal_en, ctx.preferred_language)
-        computed_ctx = AdvisoryComputedContext(
-            growth_stage=ctx.stage,
-            irrigation=ctx.irrigation,
-            soil_flags=ctx.soil_flags,
-            climate=ctx.climate,
+            f"I don't have verified guidance on this topic for {ctx.crop}. "
+            "Please don't guess doses or field applications — contact your nearest Krishi Vigyan "
+            "Kendra (KVK) or block agriculture officer for district-specific advice."
         )
         return AdvisoryAskResponse(
             id=query_id,
-            response=final_text,
+            response=translate_from_english(refusal_en, ctx.preferred_language),
             confidence="insufficient",
             sources=[],
-            computed=computed_ctx,
+            computed=_computed(ctx),
             retrieved_chunk_ids=[],
         )
 
-    # 3. Build Prompt
-    system_prompt = build_system_prompt(ctx, user_query)
-
-    # 4. LLM Generation
-    settings = get_settings()
-    api_key = settings.GEMINI_API_KEY
-    response_text = ""
-
-    if not use_mock and api_key:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={api_key}"
-        payload = {
-            "contents": [{"parts": [{"text": system_prompt}]}],
-            "generationConfig": {
-                "temperature": 0.2,
-                "maxOutputTokens": 600,
-            },
-        }
-        try:
-            with httpx.Client(timeout=14.0) as client:
-                resp = client.post(url, json=payload)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        if parts:
-                            response_text = parts[0].get("text", "").strip()
-                else:
-                    logger.warning(f"Gemini generation returned status {resp.status_code}: {resp.text[:120]}")
-        except Exception as exc:
-            logger.warning(f"Gemini API generation failed: {exc}")
-
-    # Fallback to deterministic synthesis if LLM didn't return or mock requested
-    if not response_text:
-        response_text = _generate_offline_synthesis(ctx, user_query)
-
-    # 5. Chemical/Dosage Safety Filter (§17.4)
-    # If chemical dosage is asked and max chunk similarity is < 0.70, ensure disclaimer is attached
-    max_sim = max((c.similarity for c in ctx.retrieved_chunks), default=0.0)
-    has_chemical_keywords = any(k in user_query.lower() for k in ["spray", "chemical", "pesticide", "fungicide", "dose", "dosage"])
-    if has_chemical_keywords and max_sim < 0.70:
-        warning_notice = (
-            "\n\n(Safety Notice: Please verify exact brand formulations and dilution rates with your local KVK or extension officer before spraying.)"
-        )
-        if warning_notice not in response_text:
-            response_text += warning_notice
-
-    # 6. Post-generation Number Grounding Audit (§17.2)
     snapshot = ctx.to_snapshot()
-    audit_res = audit_number_grounding(response_text, snapshot)
-    if not audit_res["passed"]:
-        logger.info(f"Advisory generation audit notice: ungrounded tokens {audit_res['ungrounded_numbers']}")
-
-    # 7. Translation if necessary
-    final_response = response_text
-    if ctx.preferred_language != "en":
-        final_response = translate_from_english(response_text, ctx.preferred_language)
-
-    # 8. Assemble Sources list
-    sources = []
-    seen_sources = set()
-    for c in ctx.retrieved_chunks:
-        if c.similarity >= 0.55:
-            key = (c.source_title, c.page_number)
-            if key not in seen_sources:
-                seen_sources.add(key)
-                sources.append(
-                    AdvisorySource(
-                        title=c.source_title or "ICAR Agro-Advisories",
-                        page=c.page_number,
-                        url=None,
-                    )
-                )
-
-    computed_ctx = AdvisoryComputedContext(
-        growth_stage=ctx.stage,
-        irrigation=ctx.irrigation,
-        soil_flags=ctx.soil_flags,
-        climate=ctx.climate,
+    prompt = build_system_prompt(ctx, user_query)
+    response_text, model_used = ("", None) if use_mock else generate_text(
+        prompt, system_instruction=SYSTEM_INSTRUCTION, temperature=0.2, max_output_tokens=700
     )
 
-    chunk_ids = [c.document_id for c in ctx.retrieved_chunks if c.document_id is not None]
+    ungrounded: list[str] = []
+    if response_text:
+        # §17.2: numbers must be traceable to the context (prompt text included, since
+        # retrieved passages are part of what the model was allowed to use).
+        audit = audit_number_grounding(response_text, {"snapshot": snapshot, "prompt": prompt})
+        ungrounded = audit["ungrounded_numbers"]
+        if ungrounded:
+            # Spec §17.2: log and surface for review rather than auto-block, but never
+            # let such an answer claim full grounding.
+            logger.warning(f"LLM answer had untraceable numbers {ungrounded} (query logged for review)")
+            if confidence == "grounded":
+                confidence = "partial"
+
+    if not response_text:
+        response_text = _generate_offline_synthesis(ctx, user_query)
+        model_used = None
+
+    # §17.4: chemical/dose questions need a strong retrieval match
+    max_sim = max((c.similarity for c in ctx.retrieved_chunks), default=0.0)
+    if any(k in user_query.lower() for k in ["spray", "chemical", "pesticide", "fungicide", "insecticide", "dose", "dosage"]) and max_sim < 0.70:
+        response_text += (
+            "\n\n(Safety notice: confirm the exact product and dilution with your local KVK or "
+            "extension officer before spraying.)"
+        )
+
+    sources: list[AdvisorySource] = []
+    seen: set[tuple[Any, Any]] = set()
+    for c in ctx.retrieved_chunks:
+        if c.similarity < 0.55:
+            continue
+        key = (c.source_title, c.page_number)
+        if key in seen:
+            continue
+        seen.add(key)
+        sources.append(
+            AdvisorySource(
+                title=c.source_title or "Untitled source",
+                page=c.page_number,
+                url=getattr(c, "source_url", None),
+            )
+        )
 
     return AdvisoryAskResponse(
         id=query_id,
-        response=final_response,
+        response=translate_from_english(response_text, ctx.preferred_language),
         confidence=confidence,
         sources=sources,
-        computed=computed_ctx,
-        retrieved_chunk_ids=chunk_ids,
+        computed=_computed(ctx),
+        retrieved_chunk_ids=[c.document_id for c in ctx.retrieved_chunks if c.document_id is not None],
+        ungrounded_numbers=ungrounded,
+        generated_by=model_used or "deterministic",
     )

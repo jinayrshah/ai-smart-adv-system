@@ -7,7 +7,9 @@ from datetime import date
 import logging
 from typing import Any
 
-from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
+from app.core.rate_limit import client_ip_from_request as client_ip
+from app.core.timeutil import today_ist
 from app.data.advisory.query_repo import get_query_repo
 from app.data.advisory.reference_repo import get_agronomy_repo
 from app.data.farmer.repository import FarmerRepository
@@ -15,7 +17,7 @@ from app.data.locations.grid import snap_to_grid
 from app.data.weather.repository import WeatherRepository
 from app.data.weather.service import WeatherService
 from app.domain.advisory.climate_suitability_engine import check_climate_suitability
-from app.domain.advisory.context import assemble_advisory_context
+from app.domain.advisory.context import UnsupportedCropError, assemble_advisory_context
 from app.domain.advisory.disease_detector import get_disease_detector
 from app.domain.advisory.generator import generate_advisory_response
 from app.domain.advisory.growth_stage_engine import current_growth_stage
@@ -87,13 +89,22 @@ def compute_growth_stage(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid sowing_date format. Use YYYY-MM-DD.")
 
-    calc_as_of = date.fromisoformat(as_of) if as_of else date.today()
+    try:
+        calc_as_of = date.fromisoformat(as_of) if as_of else today_ist()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid as_of format. Use YYYY-MM-DD.")
+    if s_date > calc_as_of:
+        raise HTTPException(status_code=400, detail="sowing_date is after the calculation date.")
 
     weather_history: list[dict[str, Any]] = []
     if lat is not None and lon is not None:
-        grid_key = snap_to_grid(lat, lon)
+        grid_key = snap_to_grid(lat, lon).grid_key
         weather_service.ensure_grid_weather(grid_key, lat, lon)
-        weather_history = weather_repo.get_fused_range(grid_key, s_date, calc_as_of)
+        try:
+            weather_history = weather_service.get_history_rows(grid_key, lat, lon, s_date, calc_as_of)
+        except Exception as exc:
+            logger.info(f"History backfill unavailable: {exc}")
+            weather_history = weather_repo.get_fused_range(grid_key, s_date, calc_as_of)
 
     try:
         return current_growth_stage(
@@ -171,7 +182,10 @@ def check_climate(
             obs_temp = w_sum.current.temp_c
             obs_hum = w_sum.current.rh_pct
         else:
-            obs_temp = 25.0
+            raise HTTPException(
+                status_code=503,
+                detail="No current temperature is available for this location; pass temp_c to check manually.",
+            )
 
     try:
         return check_climate_suitability(
@@ -187,108 +201,88 @@ def check_climate(
 
 @router.get("/diagnostic", response_model=AgronomyDiagnosticResponse)
 def get_farm_diagnostic(
-    farm_id: str = Query(..., description="UUID or ID of the farm"),
-    crop_id: str | None = Query(None, description="Optional specific farm crop ID"),
+    farm_id: int = Query(..., description="Farm ID"),
+    crop_id: int | None = Query(None, description="Optional specific farm crop ID"),
 ):
     """
-    Executes a complete 4-engine agronomic diagnostic for an onboarded farm and its active crop.
-    Runs Growth Stage (GDD), Water Deficit (ETc), Soil Health Check, and Climate Check.
+    Complete 4-engine agronomic diagnostic for an onboarded farm and its active crop:
+    growth stage (GDD), FAO-56 water balance, soil health and climate fit.
     """
     farm = farmer_repo.get_farm(farm_id)
     if not farm:
         raise HTTPException(status_code=404, detail="Farm not found.")
 
-    crops = farmer_repo.get_crops_by_farm(farm_id)
+    crops = farmer_repo.get_crops(farm_id, status="active") or farmer_repo.get_crops(farm_id)
     if not crops:
         raise HTTPException(status_code=400, detail="No active crops registered for this farm.")
+    selected = next((c for c in crops if crop_id is not None and c.id == crop_id), None) or crops[0]
 
-    selected_crop = None
-    if crop_id is not None:
-        selected_crop = next((c for c in crops if str(c.id) == str(crop_id)), None)
-    if not selected_crop:
-        selected_crop = crops[0]
+    today = today_ist()
+    s_date = selected.sowing_date
+    if s_date > today:
+        raise HTTPException(status_code=400, detail="Sowing date is in the future.")
+    crop_name = selected.crop
+    if not agronomy_repo.has_crop(crop_name):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Detailed diagnostics cover {', '.join(agronomy_repo.get_supported_crops())}.",
+        )
 
-    raw_s_date = getattr(selected_crop, "sowing_date", None)
-    if isinstance(raw_s_date, str):
-        try:
-            s_date = date.fromisoformat(raw_s_date)
-        except (ValueError, TypeError):
-            s_date = date.today()
-    elif isinstance(raw_s_date, date):
-        s_date = raw_s_date
-    else:
-        s_date = date.today()
+    lat, lon = float(farm.lat), float(farm.lon)
+    grid_key = farm.grid_key or snap_to_grid(lat, lon).grid_key
 
-    crop_name = getattr(selected_crop, "crop", None) or getattr(selected_crop, "crop_name", None) or "wheat"
-    farm_name = getattr(farm, "name", None) or getattr(farm, "farm_name", None) or "My farm"
-
-    lat = farm.lat or 20.0
-    lon = farm.lon or 73.8
-    grid_key = getattr(farm, "grid_key", None) or getattr(farm, "agromet_grid_id", None) or snap_to_grid(lat, lon)
-
-    # 1. Fetch weather summary & history
     weather_service.ensure_grid_weather(grid_key, lat, lon)
     w_sum = weather_service.get_summary(lat=lat, lon=lon)
-    w_history = weather_repo.get_fused_range(grid_key, s_date, date.today())
+    try:
+        w_history = weather_service.get_history_rows(grid_key, lat, lon, s_date, today)
+    except Exception as exc:
+        logger.info(f"History backfill unavailable: {exc}")
+        w_history = weather_repo.get_fused_range(grid_key, s_date, today)
+    events = [e.model_dump() for e in farmer_repo.get_irrigation_events(farm_id, since=s_date)]
 
-    # 2. Growth stage
-    stage_res = current_growth_stage(
-        crop=crop_name,
-        sowing_date=s_date,
-        weather_history=w_history,
-        as_of=date.today(),
-    )
-
-    # 3. Water deficit
+    stage_res = current_growth_stage(crop=crop_name, sowing_date=s_date, weather_history=w_history, as_of=today)
     irrigation_res = calculate_irrigation_need(
         crop=crop_name,
         stage_name=stage_res.stage_name,
         weather_summary=w_sum.model_dump(),
-    )
-
-    # 4. Soil flags
-    raw_npk = getattr(farm, "soil_npk", {}) or {}
-    if isinstance(raw_npk, dict):
-        soil_npk = {
-            "n": raw_npk.get("n", getattr(farm, "shc_n", None)),
-            "p": raw_npk.get("p", getattr(farm, "shc_p", None)),
-            "k": raw_npk.get("k", getattr(farm, "shc_k", None)),
-            "ph": raw_npk.get("ph", getattr(farm, "shc_ph", None)),
-        }
-    else:
-        soil_npk = {
-            "n": getattr(farm, "shc_n", None),
-            "p": getattr(farm, "shc_p", None),
-            "k": getattr(farm, "shc_k", None),
-            "ph": getattr(farm, "shc_ph", None),
-        }
-    soil_flags = check_soil_suitability(
-        crop=crop_name,
+        history_rows=w_history,
+        sowing_date=s_date,
+        as_of=today,
         soil_type=farm.soil_type,
-        soil_npk=soil_npk,
+        irrigation_type=farm.irrigation_type,
+        irrigation_events=events,
     )
+    soil_flags = check_soil_suitability(crop=crop_name, soil_type=farm.soil_type, soil_npk=farm.soil_npk or {})
 
-    # 5. Climate check
-    curr_temp = w_sum.current.temp_c if w_sum.current and w_sum.current.temp_c is not None else 25.0
-    curr_hum = w_sum.current.rh_pct if w_sum.current else None
-    climate_res = check_climate_suitability(
-        crop=crop_name,
-        stage_name=stage_res.stage_name,
-        observed_temp_c=curr_temp,
-        observed_humidity_pct=curr_hum,
-        reading_source="weather_forecast",
-    )
+    # Climate: current observation, else today's fused mean; never an assumed value.
+    temp = w_sum.current.temp_c if w_sum.current else None
+    hum = w_sum.current.rh_pct if w_sum.current else None
+    if temp is None:
+        today_row = next((d for d in w_sum.days if d.phase == "today"), None)
+        if today_row and today_row.tmax_c is not None and today_row.tmin_c is not None:
+            temp = (today_row.tmax_c + today_row.tmin_c) / 2.0
+            hum = hum if hum is not None else today_row.rh_mean_pct
+    climate_res = None
+    if temp is not None:
+        climate_res = check_climate_suitability(
+            crop=crop_name,
+            stage_name=stage_res.stage_name,
+            observed_temp_c=temp,
+            observed_humidity_pct=hum,
+            reading_source="weather_forecast",
+        )
 
     return AgronomyDiagnosticResponse(
         crop=crop_name,
         farm_id=str(farm.id),
-        farm_name=farm_name,
+        farm_name=farm.name,
         sowing_date=s_date.isoformat(),
-        as_of=date.today().isoformat(),
+        as_of=today.isoformat(),
         stage=stage_res,
         irrigation=irrigation_res,
         soil_flags=soil_flags,
         climate=climate_res,
+        irrigation_events_logged=len(events),
     )
 
 
@@ -351,7 +345,7 @@ def ask_government_scheme(payload: SchemeAskRequest):
 
 
 @router.post("/ask", response_model=AdvisoryAskResponse)
-def ask_crop_advisory(payload: AdvisoryAskRequest):
+def ask_crop_advisory(payload: AdvisoryAskRequest, request: Request):
     """
     Main Personalized Advisory pipeline:
     Assembles AdvisoryContext (profile, weather history, GDD stage, ETc deficit, soil & climate),
@@ -359,7 +353,11 @@ def ask_crop_advisory(payload: AdvisoryAskRequest):
     Architecture §4, §12, §14.
     """
     # Rate limit check per farmer / farm / anonymous caller (Architecture §18, Phase 7)
-    rate_key = payload.farmer_id or (f"farm_{payload.farm_id}" if payload.farm_id else "anonymous_default")
+    # Anonymous callers are keyed by client IP — a single shared "anonymous" bucket let
+    # one visitor exhaust the quota for every other logged-out user.
+    rate_key = payload.farmer_id or (
+        f"farm_{payload.farm_id}" if payload.farm_id else f"ip_{client_ip(request)}"
+    )
     allowed, remaining, retry_after = advisory_rate_limiter.is_allowed(rate_key)
     if not allowed:
         raise HTTPException(
@@ -367,21 +365,24 @@ def ask_crop_advisory(payload: AdvisoryAskRequest):
             detail=f"Rate limit exceeded. Too many advisory requests. Please retry in {retry_after} seconds.",
         )
 
-    ctx = assemble_advisory_context(
-        query=payload.query,
-        farm_id=payload.farm_id,
-        crop=payload.crop,
-        farmer_id=payload.farmer_id,
-        language=payload.language,
-        sowing_date_str=payload.sowing_date,
-        soil_type_str=payload.soil_type,
-        lat=payload.lat,
-        lon=payload.lon,
-        disease_label=payload.disease_label,
-        weather_service=weather_service,
-        weather_repo=weather_repo,
-        farmer_repo=farmer_repo,
-    )
+    try:
+        ctx = assemble_advisory_context(
+            query=payload.query,
+            farm_id=payload.farm_id,
+            crop=payload.crop,
+            farmer_id=payload.farmer_id,
+            language=payload.language,
+            sowing_date_str=payload.sowing_date,
+            soil_type_str=payload.soil_type,
+            lat=payload.lat,
+            lon=payload.lon,
+            disease_label=payload.disease_label,
+            weather_service=weather_service,
+            weather_repo=weather_repo,
+            farmer_repo=farmer_repo,
+        )
+    except UnsupportedCropError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
     # Generate response
     response = generate_advisory_response(

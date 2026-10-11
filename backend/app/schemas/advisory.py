@@ -16,6 +16,8 @@ class CropStageNorm(BaseModel):
     gdd_cumulative_at_stage_end: float
     typical_days_fallback: int | None = None
     source: str
+    # Optional upper development threshold (horizontal cut-off) for GDD, °C
+    gdd_upper_c: float | None = None
 
 
 class CropKcReference(BaseModel):
@@ -49,12 +51,20 @@ class StageResult(BaseModel):
     crop: str
     stage_name: str
     stage_order: int
-    cumulative_gdd: float
+    # None under the calendar fallback: thermal time was NOT measured, so no number
+    # is shown (the old code displayed 75 % of the stage threshold as if measured).
+    cumulative_gdd: float | None = None
     days_since_sowing: int
     method: Literal["gdd", "calendar_fallback"]
     source: str
     next_stage_name: str | None = None
     gdd_remaining_in_stage: float | None = None
+    # Share of days since sowing with Tmax/Tmin on file, and how many missing days
+    # were filled with the mean daily GDD of the observed days.
+    weather_coverage_pct: float | None = None
+    imputed_days: int = 0
+    stage_progress_pct: float | None = None
+    gdd_upper_c: float | None = None
 
 
 class IrrigationAdvice(BaseModel):
@@ -68,10 +78,29 @@ class IrrigationAdvice(BaseModel):
     recommendation: str
     confidence: Literal["high", "medium", "low"] = "medium"
     source: str
+    # --- added: method + FAO-56 root-zone water balance details -------------
+    method: Literal["fao56_water_balance", "7day_deficit", "insufficient_data"] = "7day_deficit"
+    data_available: bool = True
+    effective_rain_7d_mm: float | None = None
+    root_zone_depletion_mm: float | None = None
+    taw_mm: float | None = None
+    raw_mm: float | None = None
+    root_depth_m: float | None = None
+    days_to_stress: int | None = None
+    forecast_rain_3d_mm: float | None = None
+    forecast_rain_prob_max_pct: float | None = None
+    net_irrigation_mm: float | None = None
+    gross_irrigation_mm: float | None = None
+    action: Literal["irrigate_now", "wait_for_rain", "no_irrigation_needed", "monitor", "unknown"] = "monitor"
+    assumptions: list[str] = Field(default_factory=list)
+    reading_source: str = "weather_estimate"  # weather_estimate | iot_live
 
 
 class SoilFlag(BaseModel):
-    flag_type: Literal["soil_type_mismatch", "ph_out_of_range", "low_nitrogen", "low_phosphorus", "low_potassium", "high_nitrogen"]
+    flag_type: Literal[
+        "soil_type_mismatch", "ph_out_of_range", "low_nitrogen", "low_phosphorus",
+        "low_potassium", "high_nitrogen", "low_organic_carbon",
+    ]
     actual_value: Any
     expected: Any
     notes: str | None = None
@@ -110,7 +139,8 @@ class AgronomyDiagnosticResponse(BaseModel):
     stage: StageResult
     irrigation: IrrigationAdvice
     soil_flags: list[SoilFlag]
-    climate: ClimateVerdict
+    climate: ClimateVerdict | None = None
+    irrigation_events_logged: int = 0
 
 
 class AdvisorySource(BaseModel):
@@ -124,12 +154,15 @@ class AdvisoryComputedContext(BaseModel):
     irrigation: IrrigationAdvice | None = None
     soil_flags: list[SoilFlag] = Field(default_factory=list)
     climate: ClimateVerdict | None = None
+    # Inputs that were defaulted because the farmer has not provided them (shown in the
+    # UI so a generic answer is never mistaken for a personalised one).
+    assumptions: list[str] = Field(default_factory=list)
 
 
 class AdvisoryAskRequest(BaseModel):
     farm_id: int | None = None
     crop: str | None = None
-    query: str
+    query: str = Field(..., min_length=1, max_length=1000)
     farmer_id: str | None = None
     language: str = "en"
     sowing_date: str | None = None
@@ -146,6 +179,9 @@ class AdvisoryAskResponse(BaseModel):
     sources: list[AdvisorySource] = Field(default_factory=list)
     computed: AdvisoryComputedContext
     retrieved_chunk_ids: list[int] = Field(default_factory=list)
+    # §17.2 post-generation number audit result (numbers not traceable to context)
+    ungrounded_numbers: list[str] = Field(default_factory=list)
+    generated_by: str = "deterministic"  # gemini model id or 'deterministic'
 
 
 class AdvisoryFeedbackRequest(BaseModel):
@@ -174,6 +210,11 @@ class DiseaseCheckResponse(BaseModel):
     confidence_status: Literal["high", "moderate", "low"]
     advisory_note: str
     treatments: list[DiseaseTreatmentExtract] = Field(default_factory=list)
+    # 'model' = trained classifier; 'unavailable' = no trained model installed (no
+    # diagnosis is invented); 'rejected' = image unusable / outside known classes.
+    status: Literal["model", "unavailable", "rejected"] = "model"
+    model_version: str | None = None
+    top_k: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class GovernmentScheme(BaseModel):
