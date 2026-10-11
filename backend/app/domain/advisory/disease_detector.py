@@ -9,6 +9,7 @@ and automatically links the identified disease label to verified RAG treatment r
 from io import BytesIO
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Literal
 import numpy as np
@@ -158,24 +159,57 @@ DISEASE_METADATA: dict[str, dict[str, Any]] = {
 ALL_CLASSES = list(DISEASE_METADATA.keys())
 
 
+BACKEND_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_MODEL_PATH = BACKEND_ROOT / "models" / "disease_mobilenetv2_v1.keras"
+
+
 class DiseaseDetector:
     """
-    Lightweight plant disease classification engine using MobileNetV2 standards.
+    MobileNetV2 leaf-disease classifier (Architecture §11).
+
+    Honesty rules (README §9 "no fake data"):
+    - No trained model installed -> status "unavailable" and NO diagnosis. The first
+      version guessed a disease from colour ratios with an invented confidence.
+    - Unusable photo (blank, too dark/bright) -> status "rejected", never "healthy".
+    - Class names come from the `disease_classes.json` written by
+      training/train_disease_model.py (Keras orders classes alphabetically by folder),
+      not from this module's dict order, which would silently mislabel predictions.
+    - When the farmer's crop is known, only that crop's classes compete (renormalised),
+      which removes cross-crop confusions.
     """
 
-    def __init__(self, model_path: str = "models/disease_mobilenetv2_v1.keras"):
-        self.model_path = Path(model_path)
+    def __init__(self, model_path: str | Path | None = None, classes_path: str | Path | None = None):
+        env_path = os.getenv("DISEASE_MODEL_PATH")
+        self.model_path = Path(model_path or env_path or DEFAULT_MODEL_PATH)
+        if not self.model_path.is_absolute():
+            self.model_path = BACKEND_ROOT / self.model_path
+        self.classes_path = Path(classes_path) if classes_path else self.model_path.parent / "disease_classes.json"
         self._keras_model = None
+        self.class_names: list[str] = []
+        self.model_version: str | None = None
         self._load_keras_model_if_exists()
 
     def _load_keras_model_if_exists(self):
-        if self.model_path.exists():
-            try:
-                import tensorflow as tf
-                self._keras_model = tf.keras.models.load_model(str(self.model_path))
-                logger.info(f"Loaded trained Keras disease model from {self.model_path}")
-            except Exception as e:
-                logger.warning(f"Could not load Keras model: {e}")
+        if not self.model_path.exists():
+            logger.info(f"No disease model at {self.model_path}; disease checks will report 'unavailable'.")
+            return
+        try:
+            import tensorflow as tf  # optional heavy dependency
+
+            self._keras_model = tf.keras.models.load_model(str(self.model_path))
+            self.model_version = self.model_path.stem
+        except Exception as e:
+            logger.warning(f"Could not load Keras model: {e}")
+            return
+        if self.classes_path.exists():
+            self.class_names = json.loads(self.classes_path.read_text(encoding="utf-8"))
+        else:
+            self.class_names = sorted(ALL_CLASSES)
+            logger.warning(f"{self.classes_path} missing; assuming alphabetical class order.")
+
+    @property
+    def available(self) -> bool:
+        return self._keras_model is not None and bool(self.class_names)
 
     def preprocess_image(self, image_bytes: bytes) -> tuple[np.ndarray, bool]:
         """
@@ -185,154 +219,127 @@ class DiseaseDetector:
         img = Image.open(BytesIO(image_bytes)).convert("RGB")
         img_resized = img.resize((224, 224), Image.Resampling.BILINEAR)
         arr = np.array(img_resized, dtype=np.float32)
-
-        # Check for uninformative noise, extreme dark, or pure blank images
         std_val = float(np.std(arr))
         mean_val = float(np.mean(arr))
-        # If standard deviation is extremely low (solid color) or completely dark
         is_informative = std_val > 15.0 and 10.0 < mean_val < 245.0
-
-        # MobileNetV2 standard normalization to [-1, 1]
-        arr_norm = (arr / 127.5) - 1.0
+        arr_norm = (arr / 127.5) - 1.0  # MobileNetV2 preprocessing
         return arr_norm, is_informative
 
-    def predict(
-        self,
-        image_bytes: bytes,
-        crop_hint: str | None = None,
-    ) -> tuple[str, float, str]:
-        """
-        Executes prediction on image bytes.
-        Returns: (predicted_class_key, confidence, confidence_status).
-        """
+    def predict_detailed(self, image_bytes: bytes, crop_hint: str | None = None) -> dict[str, Any]:
         arr_norm, is_informative = self.preprocess_image(image_bytes)
-
-        # If image is non-informative or pure noise (§11 / acceptance criteria: out-of-distribution image)
         if not is_informative:
-            fallback_class = f"{crop_hint}___healthy" if crop_hint and f"{crop_hint}___healthy" in DISEASE_METADATA else "Tomato___healthy"
-            return fallback_class, 0.35, "low"
+            return {"status": "rejected", "key": None, "confidence": 0.0, "confidence_status": "low", "top_k": []}
+        if not self.available:
+            return {"status": "unavailable", "key": None, "confidence": 0.0, "confidence_status": "low", "top_k": []}
 
-        # If a trained Keras model is loaded, run inference through it
-        if self._keras_model is not None:
-            batch = np.expand_dims(arr_norm, axis=0)
-            preds = self._keras_model.predict(batch)[0]
-            top_idx = int(np.argmax(preds))
-            conf = float(preds[top_idx])
-            pred_class = ALL_CLASSES[top_idx] if top_idx < len(ALL_CLASSES) else ALL_CLASSES[0]
-        else:
-            # Calibrated visual diagnostic signature matching (RGB color-space, lesion contrast)
-            # Analyzes green (healthy tissue) vs yellow/brown/necrotic lesion distributions
-            r = (arr_norm[:, :, 0] + 1.0) / 2.0
-            g = (arr_norm[:, :, 1] + 1.0) / 2.0
-            b = (arr_norm[:, :, 2] + 1.0) / 2.0
+        probs = np.asarray(self._keras_model.predict(np.expand_dims(arr_norm, axis=0), verbose=0)[0], dtype=float)
+        names = self.class_names[: len(probs)]
+        idx = list(range(len(names)))
+        if crop_hint:
+            crop_idx = [
+                i for i in idx
+                if DISEASE_METADATA.get(names[i], {}).get("crop", names[i].split("___")[0]).lower() == crop_hint.lower()
+                or names[i].lower().startswith(crop_hint.lower())
+            ]
+            if crop_idx:
+                idx = crop_idx
+        sub = probs[idx]
+        total = float(sub.sum()) or 1.0
+        ranked = sorted(((names[i], float(probs[i]) / total) for i in idx), key=lambda t: t[1], reverse=True)
+        key, conf = ranked[0]
+        status = "high" if conf >= 0.75 else "moderate" if conf >= 0.60 else "low"
+        return {
+            "status": "model",
+            "key": key,
+            "confidence": round(conf, 2),
+            "confidence_status": status,
+            "top_k": [{"label": k, "confidence": round(c, 3)} for k, c in ranked[:3]],
+        }
 
-            green_ratio = float(np.mean(g / (r + b + 1e-4)))
-            rust_indicator = float(np.mean((r > 0.45) & (g > 0.25) & (b < 0.25)))
-            blight_indicator = float(np.mean((r < 0.3) & (g < 0.3) & (b < 0.3)))
-            yellowing = float(np.mean((r > 0.5) & (g > 0.5) & (b < 0.3)))
+    def predict(self, image_bytes: bytes, crop_hint: str | None = None) -> tuple[str | None, float, str]:
+        """(class_key or None, confidence, confidence_status). None when no diagnosis is possible."""
+        r = self.predict_detailed(image_bytes, crop_hint)
+        return r["key"], r["confidence"], r["confidence_status"]
 
-            # Filter candidates by crop_hint if provided
-            candidates = [c for c in ALL_CLASSES if (not crop_hint or DISEASE_METADATA[c]["crop"].lower() == crop_hint.lower())]
-            if not candidates:
-                candidates = ALL_CLASSES
+    def diagnose(self, image_bytes: bytes, crop: str | None = None) -> DiseaseCheckResponse:
+        r = self.predict_detailed(image_bytes, crop_hint=crop)
+        crop_label = crop or "Unknown crop"
 
-            scores = {}
-            for c in candidates:
-                base_score = 0.50
-                if "healthy" in c:
-                    base_score = 0.60 + min(0.35, green_ratio * 0.4)
-                elif "rust" in c.lower():
-                    base_score = 0.55 + min(0.40, rust_indicator * 4.0)
-                elif "blight" in c.lower() or "spot" in c.lower():
-                    base_score = 0.55 + min(0.40, blight_indicator * 4.0)
-                elif "curl" in c.lower() or "yellow" in c.lower():
-                    base_score = 0.55 + min(0.40, yellowing * 3.5)
-                scores[c] = base_score
-
-            # Softmax normalization over candidates
-            keys = list(scores.keys())
-            raw_vals = np.array([scores[k] for k in keys])
-            exp_vals = np.exp(raw_vals * 4.0)
-            probs = exp_vals / np.sum(exp_vals)
-
-            top_idx = int(np.argmax(probs))
-            pred_class = keys[top_idx]
-            conf = float(probs[top_idx])
-
-        # Phrasing & confidence tier (§11)
-        if conf >= 0.75:
-            conf_status = "high"
-        elif conf >= 0.60:
-            conf_status = "moderate"
-        else:
-            conf_status = "low"
-
-        return pred_class, round(conf, 2), conf_status
-
-    def diagnose(
-        self,
-        image_bytes: bytes,
-        crop: str | None = None,
-    ) -> DiseaseCheckResponse:
-        """
-        Complete diagnosis pipeline:
-        1. Predicts disease class & confidence.
-        2. Links identified disease label into RAG retrieval for verified scientific treatments (§11).
-        """
-        pred_key, conf, conf_status = self.predict(image_bytes, crop_hint=crop)
-        meta = DISEASE_METADATA.get(pred_key, {
-            "crop": crop or "Tomato",
-            "display_name": pred_key.replace("___", " ").replace("_", " "),
-            "scientific_name": None,
-            "typical_symptoms": "",
-        })
-
-        effective_crop = meta["crop"]
-        display_name = meta["display_name"]
-        sci_name = meta.get("scientific_name")
-
-        # Phrasing based on confidence level per Architecture §11
-        if conf_status == "high":
-            if "Healthy" in display_name:
-                note = f"Visual assessment indicates healthy {effective_crop} foliage with normal vegetative appearance."
-            else:
-                note = f"Symptom patterns strongly indicate {display_name}. Consult verified treatments below."
-        elif conf_status == "moderate":
-            note = f"Possibly {display_name} — field conditions or early symptoms warrant confirmation by your local KVK."
-        else:
-            note = (
-                f"Low diagnostic confidence ({conf * 100:.0f}%). Visual patterns are inconclusive or blurred. "
-                f"Please take a clear close-up of affected leaf margins in bright natural daylight, or consult your nearest KVK."
+        if r["status"] == "rejected":
+            return DiseaseCheckResponse(
+                crop=crop_label,
+                label="Photo not usable",
+                confidence=0.0,
+                confidence_status="low",
+                advisory_note=(
+                    "The photo is too dark, too bright or too plain to assess. Take a close-up of one "
+                    "affected leaf in daylight, filling the frame, and try again."
+                ),
+                status="rejected",
+            )
+        if r["status"] == "unavailable":
+            return DiseaseCheckResponse(
+                crop=crop_label,
+                label="Diagnosis unavailable",
+                confidence=0.0,
+                confidence_status="low",
+                advisory_note=(
+                    "Automatic disease identification is not switched on yet (no trained model is "
+                    "installed), so no diagnosis is given. Please show the plant to your nearest "
+                    "Krishi Vigyan Kendra (KVK) or agriculture officer."
+                ),
+                status="unavailable",
             )
 
-        # 3. Retrieve verified treatment text from RAG (§11, §10.3)
+        key = r["key"]
+        conf, conf_status = r["confidence"], r["confidence_status"]
+        meta = DISEASE_METADATA.get(key, {
+            "crop": crop or key.split("___")[0].replace("_", " "),
+            "display_name": key.replace("___", " ").replace("_", " "),
+            "scientific_name": None,
+        })
+        effective_crop, display_name = meta["crop"], meta["display_name"]
+        healthy = "healthy" in key.lower()
+
+        if conf_status == "high":
+            note = (f"The leaf looks healthy ({effective_crop})." if healthy
+                    else f"The symptoms match {display_name}. See the verified treatment guidance below.")
+        elif conf_status == "moderate":
+            note = f"Possibly {display_name}. Confirm with your local KVK before treating."
+        else:
+            note = (f"Not sure ({conf * 100:.0f}% confidence). Take a clear close-up of the affected leaf in "
+                    "daylight, or consult your nearest KVK.")
+
         treatments: list[DiseaseTreatmentExtract] = []
-        if "Healthy" not in display_name and conf >= 0.50:
-            rag_results = retrieve(
-                query=f"{effective_crop} {display_name} fungicide spray management",
+        if not healthy and conf_status in ("high", "moderate"):
+            for c in retrieve(
+                query=f"{effective_crop} {display_name} management control",
                 crop=effective_crop,
                 disease_label=display_name,
                 doc_types=["disease_treatment"],
                 top_k=3,
-            )
-            for r in rag_results:
-                treatments.append(
-                    DiseaseTreatmentExtract(
-                        source_title=r.source_title or "ICAR Kharif Agro-Advisories 2025",
-                        page_number=r.page_number,
-                        treatment_text=r.chunk_text,
-                        similarity=r.similarity,
-                    )
-                )
+            ):
+                treatments.append(DiseaseTreatmentExtract(
+                    source_title=c.source_title or "Untitled source",
+                    page_number=c.page_number,
+                    treatment_text=c.chunk_text,
+                    similarity=c.similarity,
+                ))
 
         return DiseaseCheckResponse(
             crop=effective_crop,
             label=display_name,
-            scientific_name=sci_name,
+            scientific_name=meta.get("scientific_name"),
             confidence=conf,
             confidence_status=conf_status,
             advisory_note=note,
             treatments=treatments,
+            status="model",
+            model_version=self.model_version,
+            top_k=[
+                {**t, "display_name": DISEASE_METADATA.get(t["label"], {}).get("display_name", t["label"])}
+                for t in r["top_k"]
+            ],
         )
 
 

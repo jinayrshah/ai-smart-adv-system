@@ -17,13 +17,12 @@ from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_LANGUAGES = {"en", "hi", "mr", "gu"}
+SUPPORTED_LANGUAGES = {"en", "hi", "mr", "gu", "kn", "te"}  # all offered in the UI; Bhashini covers each
 
 
 def is_indic_text(text: str) -> bool:
-    """Check if string contains Devanagari or Gujarati Unicode characters."""
-    # Devanagari: \u0900-\u097F, Gujarati: \u0A80-\u0AFF
-    return bool(re.search(r"[\u0900-\u097F\u0A80-\u0AFF]", text))
+    """Devanagari, Gujarati, Telugu or Kannada characters present?"""
+    return bool(re.search(r"[\u0900-\u097F\u0A80-\u0AFF\u0C00-\u0C7F\u0C80-\u0CFF]", text))
 
 
 # --------------------------------------------------------------------------- Bhashini
@@ -48,7 +47,11 @@ def _pipeline_for(src: str, tgt: str, key: str, user: str) -> tuple[str, str, st
     """(inference_url, auth_header_name, auth_value, service_id) for a language pair."""
     if (src, tgt) in _PIPELINE_CACHE:
         return _PIPELINE_CACHE[(src, tgt)]
-    pipeline_id = os.getenv("BHASHINI_PIPELINE_ID", DEFAULT_PIPELINE_ID)
+    pipeline_id = (
+        os.getenv("BHASHINI_PIPELINE_ID")
+        or getattr(get_settings(), "BHASHINI_PIPELINE_ID", "")
+        or DEFAULT_PIPELINE_ID
+    )
     body = {
         "pipelineTasks": [
             {"taskType": "translation", "config": {"language": {"sourceLanguage": src, "targetLanguage": tgt}}}
@@ -122,6 +125,10 @@ def detect_source_language(text: str, hint: str = "auto") -> str:
     """Gujarati script -> gu; Devanagari -> mr if the farmer's language is Marathi, else hi."""
     if re.search(r"[\u0A80-\u0AFF]", text):
         return "gu"
+    if re.search(r"[\u0C00-\u0C7F]", text):
+        return "te"
+    if re.search(r"[\u0C80-\u0CFF]", text):
+        return "kn"
     if re.search(r"[\u0900-\u097F]", text):
         return "mr" if hint == "mr" else "hi"
     return "en"
