@@ -19,6 +19,9 @@ interface PriceTrendChartProps {
   isLoading?: boolean;
 }
 
+/** Revisions §2.7: below this many reports a line chart of isolated dots looks broken. */
+export const THIN_DATA_MIN_REPORTS = 3;
+
 const CustomTooltip = ({ active, payload, label, unit }: any) => {
   if (active && payload && payload.length) {
     const data: TrendPoint = payload[0].payload;
@@ -75,7 +78,9 @@ export const PriceTrendChart: React.FC<PriceTrendChartProps> = ({
   onRangeChange,
   isLoading,
 }) => {
-  const hasData = points.some((p) => p.modal !== null && p.modal !== undefined);
+  const reports = points.filter((p) => p.modal !== null && p.modal !== undefined);
+  const hasData = reports.length > 0;
+  const isThin = hasData && reports.length < THIN_DATA_MIN_REPORTS;
 
   // Format data for chart display
   const chartData = points.map((p) => ({
@@ -127,6 +132,48 @@ export const PriceTrendChart: React.FC<PriceTrendChartProps> = ({
           <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
             Try expanding the date range or selecting another priority mandi.
           </p>
+        </div>
+      ) : isThin && !isLoading ? (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/60 dark:bg-amber-950/20 p-4">
+          <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-3">
+            Only {reports.length} report{reports.length === 1 ? "" : "s"} in the last {rangeDays} days — too few to draw a
+            trend. The reports are listed below.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="text-zinc-500 dark:text-zinc-400">
+                <tr>
+                  <th className="py-1.5 pr-4 font-semibold">Date</th>
+                  <th className="py-1.5 pr-4 font-semibold">Modal (₹/qtl)</th>
+                  <th className="py-1.5 pr-4 font-semibold">₹/kg</th>
+                  <th className="py-1.5 font-semibold">Min – Max (₹/qtl)</th>
+                </tr>
+              </thead>
+              <tbody className="text-zinc-800 dark:text-zinc-200">
+                {reports
+                  .slice()
+                  .reverse()
+                  .map((p) => (
+                    <tr key={p.date} className="border-t border-amber-200/60 dark:border-amber-800/40">
+                      <td className="py-1.5 pr-4">
+                        {new Date(p.date + "T00:00:00").toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+                      <td className="py-1.5 pr-4 font-semibold">{(p.modal as number).toLocaleString("en-IN")}</td>
+                      <td className="py-1.5 pr-4">{((p.modal as number) / 100).toFixed(2)}</td>
+                      <td className="py-1.5">
+                        {p.min !== null && p.max !== null
+                          ? `${p.min.toLocaleString("en-IN")} – ${p.max.toLocaleString("en-IN")}`
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="h-72 w-full">

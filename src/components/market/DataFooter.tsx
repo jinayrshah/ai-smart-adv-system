@@ -6,13 +6,23 @@ interface DataFooterProps {
   stale: boolean;
   sources: Record<string, number>;
   sourceAttribution?: string;
+  /** date of the newest report for this market (YYYY-MM-DD) */
+  latestReportDate?: string | null;
+  marketName?: string;
 }
+
+const daysAgo = (iso: string): number => {
+  const then = new Date(iso.slice(0, 10) + "T00:00:00").getTime();
+  return Math.max(0, Math.floor((Date.now() - then) / 86_400_000));
+};
 
 export const DataFooter: React.FC<DataFooterProps> = ({
   asOf,
   stale,
   sources,
   sourceAttribution,
+  latestReportDate,
+  marketName,
 }) => {
   const formattedAsOf = new Date(asOf).toLocaleString("en-IN", {
     timeZone: "Asia/Kolkata",
@@ -30,10 +40,25 @@ export const DataFooter: React.FC<DataFooterProps> = ({
   return (
     <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400 space-y-3">
       {stale && (
+        // Revisions §2.7: say when this market last reported, in plain words. (Whether our
+        // own daily pipeline is late is a separate signal, not inferred from one market.)
         <div className="flex items-center gap-2 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-amber-800 dark:text-amber-300">
           <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <span>
-            <strong>Showing last available data:</strong> The mandi feed has not updated within the last 36 hours.
+            {latestReportDate ? (
+              <>
+                Latest report from {marketName || "this market"}:{" "}
+                <strong>
+                  {new Date(latestReportDate.slice(0, 10) + "T00:00:00").toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </strong>{" "}
+                ({daysAgo(latestReportDate)} days ago). Prices may have changed since.
+              </>
+            ) : (
+              <>No recent price report from {marketName || "this market"} in this period.</>
+            )}
           </span>
         </div>
       )}

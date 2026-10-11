@@ -2,12 +2,11 @@ import React, { useState } from "react";
 import { fetchMarketSearch, MarketSearchResponse, MarketSearchResult } from "../../services/marketApi";
 import { Search, MapPin, TrendingUp, Clock, Loader2, Star, Globe } from "lucide-react";
 
-// Common Indian crops beyond the 6 advisory ones
+// The 6 deep-advisory crops (README §5 Q1) first, then popular explore-tier commodities
+const DEEP_CROPS = ["Wheat", "Tomato", "Cotton", "Soybean", "Rice", "Maize"];
 const ALL_CROPS = [
-  // Advisory tier (6 core)
-  "Wheat", "Rice", "Maize", "Sugarcane", "Potato", "Cotton",
-  // Explore tier - popular commodities
-  "Onion", "Tomato", "Soyabean", "Groundnut", "Mustard", "Chana (Gram)",
+  ...DEEP_CROPS,
+  "Onion", "Potato", "Sugarcane", "Groundnut", "Mustard", "Chana (Gram)",
   "Tur/Arhar Dal", "Urad Dal", "Moong Dal", "Jowar (Sorghum)", "Bajra (Pearl Millet)",
   "Garlic", "Ginger", "Green Chilli", "Capsicum", "Brinjal", "Cauliflower",
   "Cabbage", "Banana", "Mango", "Apple", "Guava", "Papaya",
@@ -22,7 +21,34 @@ const ALL_STATES = [
   "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
 ];
 
-export const MandiExplore: React.FC = () => {
+const FAV_KEY = "mandi_favorites_v1";
+const favKey = (m: MarketSearchResult, commodity: string) => `${commodity}|${m.state}|${m.district}|${m.market}`.toLowerCase();
+const readFavs = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem(FAV_KEY) || "[]");
+  } catch {
+    return [];
+  }
+};
+
+interface MandiExploreProps {
+  /** Clicking a card opens it in the price-trend view above (one selection model). */
+  onSelect?: (sel: { commodity: string; state: string; market: string }) => void;
+}
+
+export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
+  const [favs, setFavs] = useState<string[]>(readFavs);
+  const toggleFav = (k: string) => {
+    setFavs((prev) => {
+      const next = prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k];
+      try {
+        localStorage.setItem(FAV_KEY, JSON.stringify(next));
+      } catch {
+        /* storage unavailable: favourites last for this visit only */
+      }
+      return next;
+    });
+  };
   const [commodity, setCommodity] = useState("");
   const [state, setState] = useState("");
   const [market, setMarket] = useState("");
@@ -177,7 +203,18 @@ export const MandiExplore: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {result.markets.map((m, idx) => (
-                <MarketCard key={`${m.market}-${idx}`} market={m} tier={result.tier} />
+                <MarketCard
+                  key={`${m.market}-${idx}`}
+                  market={m}
+                  tier={result.tier}
+                  isFavorite={favs.includes(favKey(m, result.commodity))}
+                  onToggleFavorite={() => toggleFav(favKey(m, result.commodity))}
+                  onOpen={
+                    onSelect
+                      ? () => onSelect({ commodity: result.commodity, state: m.state || result.state, market: m.market })
+                      : undefined
+                  }
+                />
               ))}
             </div>
           )}
@@ -186,8 +223,8 @@ export const MandiExplore: React.FC = () => {
           {result.tier === "explore" && (
             <div className="text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-3">
               <strong>Explore tier:</strong> Shows today's price as reported to APMCs. 
-              For 6 deep-advisory crops (Wheat, Rice, Maize, Sugarcane, Potato, Cotton), 
-              use the Advisory tab for 30/90/180-day trends with full data coverage.
+              For the 6 deep-advisory crops ({DEEP_CROPS.join(", ")}), open a market card to see its
+              30/90/180-day trend above.
               Prices are indicative and sourced from data.gov.in (Agmarknet).
             </div>
           )}
@@ -199,9 +236,29 @@ export const MandiExplore: React.FC = () => {
 
 // ===== Market Card Sub-Component =====
 
-const MarketCard: React.FC<{ market: MarketSearchResult; tier: string }> = ({ market: m, tier }) => {
+const MarketCard: React.FC<{
+  market: MarketSearchResult;
+  tier: string;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  onOpen?: () => void;
+}> = ({ market: m, tier, isFavorite, onToggleFavorite, onOpen }) => {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div
+      className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow ${
+        onOpen ? "cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-600" : ""
+      }`}
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (onOpen && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      title={onOpen ? "Open this market's price trend" : undefined}
+    >
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">
@@ -210,9 +267,19 @@ const MarketCard: React.FC<{ market: MarketSearchResult; tier: string }> = ({ ma
           </div>
           <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">{m.market}</h4>
         </div>
-        {tier === "advisory" && (
-          <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-        )}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite();
+          }}
+          aria-pressed={isFavorite}
+          aria-label={isFavorite ? "Remove from favourites" : "Add to favourites"}
+          title={isFavorite ? "Remove from favourites" : "Add to favourites"}
+          className="p-1 -m-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        >
+          <Star className={`w-4 h-4 ${isFavorite ? "text-amber-500 fill-amber-500" : "text-zinc-400"}`} />
+        </button>
       </div>
 
       {m.latest_modal !== null && m.latest_modal !== undefined ? (
@@ -250,7 +317,7 @@ const MarketCard: React.FC<{ market: MarketSearchResult; tier: string }> = ({ ma
 
       {m.records_available > 1 && (
         <div className="mt-2 text-[10px] text-zinc-400">
-          {m.records_available} historical records
+          {m.records_available} recent report{m.records_available === 1 ? "" : "s"} on file{tier === "advisory" ? " • tracked market" : ""}
         </div>
       )}
     </div>

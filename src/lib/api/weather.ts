@@ -45,6 +45,9 @@ export interface AgroMetricsDetail {
   tmax_7d_anomaly_c: number | null;
   et0_7d_mm: number | null;
   confidence: 'high' | 'medium' | 'low';
+  /** days of each window actually on file (backend reports coverage honestly) */
+  days_in_7d_window?: number | null;
+  days_in_30d_window?: number | null;
 }
 
 export interface WeatherSummaryResponse {

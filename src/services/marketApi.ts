@@ -36,6 +36,18 @@ export interface MarketTrendResponse {
   first_reported_date?: string | null;
   max_gap_days?: number;
   varieties_included?: string[];
+  /** market-days with a report in the window */
+  reports_in_window?: number;
+  /** fewer than 3 reports: no line chart and no % change (Revisions §2.7) */
+  thin_data?: boolean;
+  latest_date?: string | null;
+  latest_modal?: number | null;
+  /** % change vs a real report ~7 / ~30 days before the latest one (null when none exists) */
+  change_7d_pct?: number | null;
+  change_7d_base_date?: string | null;
+  change_30d_pct?: number | null;
+  change_30d_base_date?: string | null;
+  market_names_merged?: string[];
 }
 
 export interface MarketInsightResponse {
@@ -47,6 +59,8 @@ export interface MarketInsightResponse {
   confidence: "high" | "medium" | "low";
   coverage_pct: number;
   as_of: string;
+  generated_by?: string;
+  reports_in_window?: number | null;
 }
 
 

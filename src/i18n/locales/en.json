@@ -39,7 +39,8 @@
     "backToLogin": "Back to Login",
     "sendResetOtp": "Send Reset OTP",
     "quickTest": "Quick Test Account",
-    "demoMode": "Demo Mode"
+    "demoMode": "Demo Mode",
+    "error": "Something went wrong. Please try again."
   },
   "home": {
     "greeting": "Good morning",
@@ -130,6 +131,7 @@
     "security": "Security",
     "currentPassword": "Current Password",
     "updateProfile": "Update Profile",
-    "changePassword": "Change Password"
+    "changePassword": "Change Password",
+    "settings": "Profile Settings"
   }
 }
