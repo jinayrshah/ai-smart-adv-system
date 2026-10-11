@@ -140,3 +140,47 @@ def test_api_disease_check_invalid_file():
     files = {"file": ("empty.jpg", b"", "image/jpeg")}
     resp = client.post("/api/advisory/disease-check", files=files)
     assert resp.status_code == 400
+
+
+def test_plantvillage_folder_names_map_to_metadata():
+    from app.domain.advisory.disease_detector import crop_of, metadata_key
+
+    assert metadata_key("Corn_(maize)___Common_rust_") == "Corn___Common_rust"
+    assert metadata_key("Tomato___Tomato_Yellow_Leaf_Curl_Virus") == "Tomato___Yellow_Leaf_Curl_Virus"
+    assert crop_of("Corn_(maize)___healthy") == "Maize"
+    assert crop_of("Soybean___healthy") == "Soybean"
+
+
+class _RecordingModel(_StubModel):
+    def predict(self, batch, verbose=0):
+        self.seen = batch
+        return super().predict(batch, verbose)
+
+
+def test_model_receives_raw_pixels_and_temperature_is_applied():
+    classes = ["Tomato___Late_blight", "Tomato___healthy"]
+    det = _detector_with_stub([0.9, 0.1], classes)
+    rec = _RecordingModel([0.9, 0.1])
+    det._keras_model = rec
+    det.temperature = 2.0
+    key, conf, _ = det.predict(_create_sample_leaf_image(), crop_hint="Tomato")
+    # model has MobileNetV2 preprocessing built in -> expects 0..255, not [-1, 1]
+    assert rec.seen.max() > 100 and rec.seen.min() >= 0
+    # T = 2 softens 0.9/0.1 to 0.75/0.25
+    assert key == "Tomato___Late_blight" and conf == 0.75
+
+
+def test_temperature_fit_reduces_overconfidence():
+    import numpy as np
+    from app.domain.advisory.calibration import apply_temperature, expected_calibration_error, fit_temperature
+
+    rng = np.random.default_rng(0)
+    n, k = 2000, 4
+    labels = rng.integers(0, k, n)
+    # over-confident model: 0.95 on its pick, right only 70 % of the time
+    picks = np.where(rng.random(n) < 0.7, labels, (labels + 1) % k)
+    probs = np.full((n, k), 0.05 / (k - 1))
+    probs[np.arange(n), picks] = 0.95
+    t = fit_temperature(probs, labels)
+    assert t > 1.0
+    assert expected_calibration_error(apply_temperature(probs, t), labels) < expected_calibration_error(probs, labels)
