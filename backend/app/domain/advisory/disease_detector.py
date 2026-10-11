@@ -15,6 +15,7 @@ from typing import Any, Literal
 import numpy as np
 from PIL import Image
 
+from app.domain.advisory.calibration import apply_temperature
 from app.domain.advisory.retrieve import retrieve
 from app.schemas.advisory import DiseaseCheckResponse, DiseaseTreatmentExtract
 
@@ -160,6 +161,34 @@ ALL_CLASSES = list(DISEASE_METADATA.keys())
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
+
+# Dataset folder prefixes -> project crop names (PlantVillage writes maize as "Corn_(maize)")
+CROP_ALIASES = {"corn_(maize)": "Maize", "corn": "Maize", "maize": "Maize", "soybean": "Soybean",
+                "tomato": "Tomato", "rice": "Rice", "wheat": "Wheat", "cotton": "Cotton"}
+
+
+def metadata_key(class_name: str) -> str:
+    """Map a dataset class folder name onto DISEASE_METADATA's key, when one exists."""
+    if class_name in DISEASE_METADATA:
+        return class_name
+    crop, _, label = class_name.partition("___")
+    crop = "Corn" if crop.lower().startswith("corn") else crop
+    label = label.strip("_ ")
+    if label.lower().startswith(crop.lower() + "_"):  # "Tomato___Tomato_Yellow_Leaf_Curl_Virus"
+        label = label[len(crop) + 1:]
+    candidate = f"{crop}___{label}"
+    if candidate in DISEASE_METADATA:
+        return candidate
+    norm = candidate.lower().replace(" ", "_")
+    return next((k for k in DISEASE_METADATA if k.lower() == norm), class_name)
+
+
+def crop_of(class_name: str) -> str:
+    key = metadata_key(class_name)
+    if key in DISEASE_METADATA:
+        return DISEASE_METADATA[key]["crop"]
+    prefix = class_name.split("___")[0]
+    return CROP_ALIASES.get(prefix.lower(), prefix.replace("_", " "))
 DEFAULT_MODEL_PATH = BACKEND_ROOT / "models" / "disease_mobilenetv2_v1.keras"
 
 
@@ -184,9 +213,15 @@ class DiseaseDetector:
         if not self.model_path.is_absolute():
             self.model_path = BACKEND_ROOT / self.model_path
         self.classes_path = Path(classes_path) if classes_path else self.model_path.parent / "disease_classes.json"
+        self.meta_path = self.model_path.parent / "disease_model_meta.json"
         self._keras_model = None
         self.class_names: list[str] = []
         self.model_version: str | None = None
+        self.temperature = 1.0
+        # training/train_disease_model.py builds MobileNetV2 preprocessing into the model,
+        # so it expects raw 0-255 pixels. Scaling to [-1, 1] here as well (what the first
+        # version did) would feed the network near-constant inputs.
+        self.model_includes_preprocessing = True
         self._load_keras_model_if_exists()
 
     def _load_keras_model_if_exists(self):
@@ -201,7 +236,15 @@ class DiseaseDetector:
         except Exception as e:
             logger.warning(f"Could not load Keras model: {e}")
             return
-        if self.classes_path.exists():
+        meta = {}
+        if self.meta_path.exists():
+            meta = json.loads(self.meta_path.read_text(encoding="utf-8"))
+            self.temperature = float(meta.get("temperature") or 1.0)
+            self.model_includes_preprocessing = meta.get("preprocessing", "model_includes_mobilenet_v2_preprocess") \
+                == "model_includes_mobilenet_v2_preprocess"
+        if meta.get("classes"):
+            self.class_names = list(meta["classes"])
+        elif self.classes_path.exists():
             self.class_names = json.loads(self.classes_path.read_text(encoding="utf-8"))
         else:
             self.class_names = sorted(ALL_CLASSES)
@@ -232,15 +275,13 @@ class DiseaseDetector:
         if not self.available:
             return {"status": "unavailable", "key": None, "confidence": 0.0, "confidence_status": "low", "top_k": []}
 
-        probs = np.asarray(self._keras_model.predict(np.expand_dims(arr_norm, axis=0), verbose=0)[0], dtype=float)
+        model_input = (arr_norm + 1.0) * 127.5 if self.model_includes_preprocessing else arr_norm
+        raw = np.asarray(self._keras_model.predict(np.expand_dims(model_input, axis=0), verbose=0)[0], dtype=float)
+        probs = apply_temperature(raw, self.temperature)
         names = self.class_names[: len(probs)]
         idx = list(range(len(names)))
         if crop_hint:
-            crop_idx = [
-                i for i in idx
-                if DISEASE_METADATA.get(names[i], {}).get("crop", names[i].split("___")[0]).lower() == crop_hint.lower()
-                or names[i].lower().startswith(crop_hint.lower())
-            ]
+            crop_idx = [i for i in idx if crop_of(names[i]).lower() == crop_hint.strip().lower()]
             if crop_idx:
                 idx = crop_idx
         sub = probs[idx]
@@ -291,11 +332,11 @@ class DiseaseDetector:
                 status="unavailable",
             )
 
-        key = r["key"]
+        key = metadata_key(r["key"])
         conf, conf_status = r["confidence"], r["confidence_status"]
         meta = DISEASE_METADATA.get(key, {
-            "crop": crop or key.split("___")[0].replace("_", " "),
-            "display_name": key.replace("___", " ").replace("_", " "),
+            "crop": crop_of(r["key"]),
+            "display_name": r["key"].replace("___", " ").replace("_", " ").strip(),
             "scientific_name": None,
         })
         effective_crop, display_name = meta["crop"], meta["display_name"]
@@ -337,7 +378,7 @@ class DiseaseDetector:
             status="model",
             model_version=self.model_version,
             top_k=[
-                {**t, "display_name": DISEASE_METADATA.get(t["label"], {}).get("display_name", t["label"])}
+                {**t, "display_name": DISEASE_METADATA.get(metadata_key(t["label"]), {}).get("display_name", t["label"])}
                 for t in r["top_k"]
             ],
         )
