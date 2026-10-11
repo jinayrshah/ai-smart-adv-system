@@ -1,9 +1,11 @@
 import logging
 from datetime import date, datetime, timezone
+from functools import lru_cache
 from typing import Any
 from supabase import Client, create_client
 
 from app.core.config import get_settings
+from app.data.mandi.canonical import clean_market_name, normalize_lookup_key
 from app.data.types import MandiRecord
 
 logger = logging.getLogger(__name__)
@@ -13,7 +15,25 @@ def get_supabase_client() -> Client:
     settings = get_settings()
     if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
         raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured in environment")
-    return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+    # One client per process instead of a new HTTP client (and connection pool) per request.
+    return _cached_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+
+
+@lru_cache(maxsize=4)
+def _cached_client(url: str, key: str) -> Client:
+    return create_client(url, key)
+
+
+def market_key(name: str | None) -> str:
+    """Canonical comparison key: 'APMC Malegaon', 'malegaon ' and 'Malegaon APMC' are one market."""
+    return normalize_lookup_key(clean_market_name(name or ""))
+
+
+def filter_market_rows(rows: list[dict[str, Any]], market: str | None) -> list[dict[str, Any]]:
+    if not market:
+        return rows
+    key = market_key(market)
+    return [r for r in rows if market_key(r.get("market")) == key]
 
 
 def chunk_list(items: list[Any], chunk_size: int = 1000):
@@ -113,6 +133,21 @@ class MandiRepository:
         except Exception as exc:
             logger.warning(f"Could not finish ingestion_runs: {exc}")
 
+    def _scoped(self, table: str, columns: str, commodity: str | None, state: str | None,
+                market: str | None, district: str | None = None):
+        """Case-insensitive commodity/state match and alias-tolerant market prefilter
+        (exactness is restored in Python by `filter_market_rows`)."""
+        query = self.client.table(table).select(columns)
+        if commodity:
+            query = query.ilike("commodity", commodity.strip())
+        if state:
+            query = query.ilike("state", state.strip())
+        if district:
+            query = query.ilike("district", district.strip())
+        if market:
+            query = query.ilike("market", f"%{clean_market_name(market)}%")
+        return query
+
     def get_latest_prices(
         self,
         commodity: str | None = None,
@@ -122,22 +157,43 @@ class MandiRepository:
         limit: int = 50,
         include_flagged: bool = False,
     ) -> list[dict[str, Any]]:
-        """Query latest mandi price rows from mandi_prices."""
-        query = self.client.table("mandi_prices").select("*")
+        """Latest mandi price rows (newest first), alias-tolerant on market name."""
+        query = self._scoped("mandi_prices", "*", commodity, state, market, district)
         if not include_flagged:
             query = query.eq("quality_flag", "ok")
-        if commodity:
-            query = query.eq("commodity", commodity)
-        if state:
-            query = query.eq("state", state)
-        if district:
-            query = query.eq("district", district)
-        if market:
-            query = query.eq("market", market)
+        # Over-fetch when filtering by market: the ilike prefilter can match neighbours
+        # ("Pune" also matches "Pune(Pimpri)") that are removed below.
+        fetch = min(limit * 3, 1000) if market else limit
+        res = query.order("arrival_date", desc=True).limit(fetch).execute()
+        return filter_market_rows(res.data or [], market)[:limit]
 
-        query = query.order("arrival_date", desc=True).limit(limit)
-        res = query.execute()
-        return res.data or []
+    def get_raw_rows(
+        self,
+        commodity: str,
+        market: str,
+        state: str,
+        start_date: date | None,
+        end_date: date | None,
+        columns: str = "arrival_date, source, variety, market",
+    ) -> list[dict[str, Any]]:
+        query = self._scoped("mandi_prices", columns if "market" in columns else columns + ", market",
+                             commodity, state, market)
+        if start_date:
+            query = query.gte("arrival_date", start_date.isoformat())
+        if end_date:
+            query = query.lte("arrival_date", end_date.isoformat())
+        res = query.limit(5000).execute()
+        return filter_market_rows(res.data or [], market)
+
+    def get_first_reported_date(self, commodity: str, market: str, state: str) -> str | None:
+        res = (
+            self._scoped("mandi_prices", "arrival_date, market", commodity, state, market)
+            .order("arrival_date", desc=False)
+            .limit(50)
+            .execute()
+        )
+        rows = filter_market_rows(res.data or [], market)
+        return str(rows[0]["arrival_date"]) if rows else None
 
     def get_daily_trend(
         self,
@@ -147,16 +203,12 @@ class MandiRepository:
         start_date: date,
         end_date: date,
     ) -> list[dict[str, Any]]:
-        """Query v_mandi_daily view for daily aggregated prices."""
+        """Daily aggregated prices from v_mandi_daily (alias-tolerant on market)."""
         query = (
-            self.client.table("v_mandi_daily")
-            .select("*")
-            .eq("commodity", commodity)
-            .eq("market", market)
-            .eq("state", state)
+            self._scoped("v_mandi_daily", "*", commodity, state, market)
             .gte("arrival_date", start_date.isoformat())
             .lte("arrival_date", end_date.isoformat())
             .order("arrival_date", desc=False)
         )
         res = query.execute()
-        return res.data or []
+        return filter_market_rows(res.data or [], market)
