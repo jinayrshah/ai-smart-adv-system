@@ -142,9 +142,10 @@ def test_health_ok_when_all_jobs_fresh():
 
 
 def test_rate_limiting_headers_and_enforcement():
-    """Test rate limiting middleware returns limit headers and enforces 60/min cap."""
+    """Rate-limit headers are present (enforcement is covered by the middleware tests).
+    Uses a DB-free endpoint so the test runs offline."""
     # Test headers are present
-    resp = client.get("/api/market/prices/latest?limit=1")
+    resp = client.get("/api/advisory/crops")
     assert resp.status_code == 200
     assert "X-RateLimit-Limit" in resp.headers
     assert resp.headers["X-RateLimit-Limit"] == "60"

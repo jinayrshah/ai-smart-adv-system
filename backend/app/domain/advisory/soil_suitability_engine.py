@@ -125,4 +125,22 @@ def check_soil_suitability(
             except (ValueError, TypeError):
                 pass
 
+        # Organic carbon (%): <0.50 Low, 0.50-0.75 Medium, >0.75 High (Soil Health Card ratings)
+        oc = soil_npk.get("oc", soil_npk.get("organic_carbon"))
+        if oc is not None:
+            try:
+                oc_val = float(oc)
+                if oc_val < 0.5:
+                    flags.append(
+                        SoilFlag(
+                            flag_type="low_organic_carbon",
+                            actual_value=oc_val,
+                            expected=">= 0.5 %",
+                            notes="Soil test indicates Low organic carbon (<0.5 %). Add FYM, compost or green manure to build soil organic matter.",
+                            source="DAC&FW Soil Health Card Rating Standards & ICAR",
+                        )
+                    )
+            except (ValueError, TypeError):
+                pass
+
     return flags

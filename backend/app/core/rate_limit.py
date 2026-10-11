@@ -25,6 +25,16 @@ def client_ip_from_request(request: Request, trusted_proxies: set[str] | None = 
     return peer
 
 
+_INSTANCES: list["RateLimitMiddleware"] = []
+
+
+def reset_rate_limits() -> None:
+    """Clear all per-IP windows (used by the test suite between tests)."""
+    for inst in _INSTANCES:
+        with inst.lock:
+            inst.requests.clear()
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
     Sliding window per-IP rate limiter middleware.
@@ -44,6 +54,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.requests: dict[str, list[float]] = defaultdict(list)
         self.lock = Lock()
         self.last_cleanup = time.time()
+        _INSTANCES.append(self)
 
     def _cleanup(self, now: float):
         """Remove IPs that have no timestamps in the window."""
