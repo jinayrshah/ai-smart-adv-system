@@ -44,6 +44,22 @@ const POPULAR_LOCATIONS = [
   { name: "Kota", state: "Rajasthan", lat: 25.21, lon: 75.86 },
 ];
 
+const PROVIDER_NAMES: Record<string, string> = {
+  open_meteo: "Open-Meteo",
+  nasa_power: "NASA POWER",
+  openweather: "OpenWeatherMap",
+  era5_land: "ERA5-Land reanalysis",
+};
+const providerName = (p?: string | null) => (p ? PROVIDER_NAMES[p] || p.replace(/_/g, " ") : "Open-Meteo");
+
+// WMO weather codes used by Open-Meteo (open-meteo.com/en/docs) -> plain words
+const WMO_TEXT: Record<number, string> = {
+  0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Fog", 48: "Fog",
+  51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle", 61: "Light rain", 63: "Moderate rain",
+  65: "Heavy rain", 80: "Light showers", 81: "Showers", 82: "Violent showers", 95: "Thunderstorm",
+  96: "Thunderstorm with hail", 99: "Thunderstorm with hail",
+};
+
 export const WeatherStrip: React.FC<WeatherStripProps> = ({
   locationId,
   lat: initialLat = 20.0,
@@ -300,8 +316,11 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
                   <div className="text-3xl font-extrabold text-white mt-1 flex items-baseline gap-1">
                     {data.current?.temp_c != null ? `${data.current.temp_c}°C` : "—"}
                   </div>
-                  <p className="text-xs text-zinc-400 capitalize mt-0.5">
-                    Source: <span className="text-zinc-200">{data.current?.source || "open_meteo"}</span>
+                  {data.current?.weather_code != null && WMO_TEXT[data.current.weather_code] && (
+                    <p className="text-sm text-zinc-200 mt-0.5">{WMO_TEXT[data.current.weather_code]}</p>
+                  )}
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    From <span className="text-zinc-200">{providerName(data.current?.source)}</span>
                   </p>
                 </div>
                 {data.current && renderConfidenceBadge(data.current.confidence, false)}
@@ -382,11 +401,17 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
                       </span>
                     ) : (
                       <span className="text-sm font-semibold text-zinc-400 block leading-tight">
-                        Baseline N/A
+                        Not enough data yet
                       </span>
                     )}
                   </div>
-                  <span className="text-[11px] text-zinc-500">Prorated 2010-24 normal</span>
+                  <span className="text-[11px] text-zinc-500">
+                    {data.metrics.rain_30d_vs_normal_pct != null
+                      ? "vs. the 2010–24 average"
+                      : data.metrics.days_in_30d_window != null
+                      ? `${data.metrics.days_in_30d_window} of 30 days on file`
+                      : "Needs 27 of the last 30 days"}
+                  </span>
                 </div>
 
                 <div className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl flex flex-col justify-between">
@@ -555,11 +580,11 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
                 <span>
                   Validation:{" "}
                   {selectedDay.validators && selectedDay.validators.length > 0
-                    ? `Double-checked against ${selectedDay.validators.join(", ")}`
-                    : "Not yet double-checked against secondary satellites"}
+                    ? `Double-checked against ${selectedDay.validators.map(providerName).join(", ")}`
+                    : "Not yet double-checked against a second source"}
                 </span>
                 {selectedDay.degraded && (
-                  <span className="text-amber-400">Degraded mode active (Fallback source used)</span>
+                  <span className="text-amber-400">Backup source used for this day</span>
                 )}
               </div>
             </div>

@@ -39,7 +39,8 @@
     "backToLogin": "लॉगिन पर वापस जाएं",
     "sendResetOtp": "रीसेट ओटीपी भेजें",
     "quickTest": "त्वरित परीक्षण खाता",
-    "demoMode": "डेमो मोड"
+    "demoMode": "डेमो मोड",
+    "error": "कुछ गलत हो गया। कृपया फिर से प्रयास करें।"
   },
   "home": {
     "greeting": "नमस्ते",
@@ -130,6 +131,7 @@
     "security": "सुरक्षा",
     "currentPassword": "वर्तमान पासवर्ड",
     "updateProfile": "प्रोफ़ाइल अपडेट करें",
-    "changePassword": "पासवर्ड बदलें"
+    "changePassword": "पासवर्ड बदलें",
+    "settings": "प्रोफ़ाइल सेटिंग्स"
   }
 }

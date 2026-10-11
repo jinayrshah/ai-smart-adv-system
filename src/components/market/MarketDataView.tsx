@@ -11,16 +11,30 @@ import { ErrorBoundary } from "../common/ErrorBoundary";
 import { fetchMarketTrend, MarketTrendResponse } from "../../services/marketApi";
 import { RefreshCw, Download, Share2, Check } from "lucide-react";
 
+export interface MarketSelection {
+  commodity: string;
+  state: string;
+  market: string;
+  /** bump to re-apply the same selection */
+  nonce: number;
+}
+
 interface MarketDataViewProps {
   initialCommodity?: string;
   initialState?: string;
   initialMarket?: string;
+  /** set by the Mandi Explorer: clicking a card loads it here (Revisions §2.7, one selection model) */
+  selection?: MarketSelection | null;
+  /** saved farm size, used to prefill the margin calculator */
+  farmFieldSizeAcres?: number | null;
 }
 
 export const MarketDataView: React.FC<MarketDataViewProps> = ({
   initialCommodity = "Wheat",
   initialState = "Maharashtra",
   initialMarket = "Malegaon",
+  selection,
+  farmFieldSizeAcres,
 }) => {
   // Read initial query params from URL if present
   const getInitialParam = (key: string, fallback: string) => {
@@ -45,6 +59,14 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!selection) return;
+    setCommodity(selection.commodity);
+    setState(selection.state);
+    setMarket(selection.market);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [selection?.nonce]);
 
   // Sync URL query params on selection changes without reloading
   useEffect(() => {
@@ -122,23 +144,15 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Derive latest modal price and change metrics
+  // Latest price and changes come from the API, which compares against a real report
+  // ~7 / ~30 days before the latest one and suppresses them under 3 reports. The old
+  // client-side math compared against the 4th-last and the first report, which printed
+  // the same "+7%" for both windows from just two reports (cleanup doc P3).
   const availablePoints = (trendData?.points || []).filter((p) => p.modal !== null);
-  const latestPrice = availablePoints.length > 0 ? availablePoints[availablePoints.length - 1].modal : null;
-
-  let change7d: number | null = null;
-  let change30d: number | null = null;
-
-  if (availablePoints.length >= 2 && latestPrice) {
-    const oldestPrice = availablePoints[0].modal;
-    if (oldestPrice) {
-      change30d = Math.round(((latestPrice - oldestPrice) / oldestPrice) * 100);
-    }
-    const midPoint = availablePoints[Math.max(0, availablePoints.length - 4)].modal;
-    if (midPoint) {
-      change7d = Math.round(((latestPrice - midPoint) / midPoint) * 100);
-    }
-  }
+  const latestPrice =
+    trendData?.latest_modal ?? (availablePoints.length > 0 ? availablePoints[availablePoints.length - 1].modal : null);
+  const change7d: number | null = trendData?.thin_data ? null : trendData?.change_7d_pct ?? null;
+  const change30d: number | null = trendData?.thin_data ? null : trendData?.change_30d_pct ?? null;
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
@@ -251,6 +265,9 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
             firstReportedDate={trendData.first_reported_date}
             maxGapDays={trendData.max_gap_days}
             varietiesIncluded={trendData.varieties_included}
+            latestDate={trendData.latest_date}
+            reportsInWindow={trendData.reports_in_window}
+            mergedNames={trendData.market_names_merged}
           />
 
           <ErrorBoundary fallbackTitle="Unable to load grounded market insight">
@@ -285,6 +302,7 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
               market={market}
               state={state}
               currentPrice={latestPrice}
+              defaultFieldSizeAcres={farmFieldSizeAcres}
             />
           </ErrorBoundary>
 
@@ -300,6 +318,8 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
             asOf={trendData.as_of}
             stale={trendData.stale}
             sources={trendData.sources}
+            latestReportDate={trendData.latest_date}
+            marketName={trendData.market}
           />
         </>
       )}
