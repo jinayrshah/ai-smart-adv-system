@@ -298,12 +298,29 @@ curl -s -X GET "http://127.0.0.1:8000/api/farmer/profile/00000000-0000-0000-0000
 
 ---
 
+### 21. Frontend Architecture & Design System (Arva Tokens & MandiLens Trust)
+- **Design Tokens**: Forest Ink (`#07503f`), Bone Canvas (`#f1efdf`), Bone Surface (`#faf9f2`), Vivid Lime (`#e8fe85`), and Pastel Quilt cards (Sky `#d0e6f6`, Peach `#f8d4c8`, Sage `#d9e2d5`, Ash `#d5d8db`).
+- **Typography**: Cormorant Garamond display serif headers paired with Inter sans-serif and Noto Sans Devanagari / Gujarati scripts for Indic multilingual rendering.
+- **Shape Language**: 100px pill buttons (`rounded-full`), 24px-36px card radii (`rounded-3xl`), and 33px input fields.
+- **Cinematic Home Page (`src/components/home/CinematicHome.tsx`)**:
+  - Kinetic typography with staggered word/character reveal springs.
+  - Interactive 3D perspective stage with mouse parallax (`perspective(1000px)`, `rotateX`, `rotateY`).
+  - Seamless 3-perspective virtual camera sequence: `01 Subsurface` (Soil NPK & hydraulics), `02 Canopy` (Atmospheric vapor & ET₀), and `03 Phenology` (GDD trajectory).
+  - MandiLens-class live dataset health & integrity telemetry ticker (88.9K Agmarknet records, 121 agro-stations, 100% ICAR grounding).
+  - Task-first command launchpad linking directly to Crop Advisory, Weather, and Farmer settings.
+- **Sign-In & Farmer Portal (`src/components/auth/AuthPortal.tsx`)**:
+  - Direct Indian language switcher (EN, HI, MR, GU, KN, TE).
+  - Dedicated authentication tabs: Sign In (Phone/Email + Password), New Farmer Registration with full farm parameters (State, District, Village, Field Size in Acres, Primary Crop, Soil Type, Irrigation Method), and 1-Click Instant Demo Profiles (Rajesh Patel, Harpreet Singh, Anita Sharma).
+- **Streamlined Navigation**: Streamlined 4-tab pill shell: `Home`, `Advisor`, `Weather`, and `Profile`. Legacy non-core tabs (`fertilizer`, `market`/`marketplace`, `disease`, `learn`, `history`) have been cleanly removed from the active navigation.
+
+---
+
 ## 📁 Key Source Directories
+- `src/components/home/CinematicHome.tsx` — Cinematic 3D motion graphics sequence, kinetic typography & MandiLens telemetry
+- `src/components/auth/AuthPortal.tsx` — Comprehensive sign-in portal & farmer farm parameters registration
 - `backend/app/core/auth.py` — Supabase HS256 JWT authorization & farmer ownership verification dependency (`require_self_or_dev`)
 - `src/components/farmer/` — `FarmerOnboardingModal`, `FarmDiagnosticCard`, and `GovernmentSchemesCard` UI
-- `src/lib/api/advisory.ts` — Frontend API client for agronomic calculation engines, RAG search, `/ask` Q&A, `disease-check`, and `schemes`
-- `src/components/market/` — Market trend charts, MandiExplore, MarketContextCard, MarketInsightCard (Gemini 2.5 Flash grounded synthesis), MandiRecentReportsTable (IQR outlier quality audits), MandiAutocomplete, and MarketCalculators (₹/qtl and ₹/kg unit conversions, explicit cost exclusions)
-- `src/components/weather/` — WeatherStrip with multi-source fusion, confidence badges, responsive layout collision fixes, plain-language provider inspection, and India-wide explore search
+- `src/components/weather/` — WeatherStrip with multi-source fusion, confidence badges, responsive layout collision fixes
 - `backend/app/api/routes/` — FastAPI endpoints (`market.py`, `weather.py`, `context.py`, `farmer.py`, `advisory.py`)
 - `backend/app/domain/advisory/` — Computation engines, RAG & schemes (`growth_stage_engine.py`, `water_requirement_engine.py`, `soil_suitability_engine.py`, `climate_suitability_engine.py`, `retrieve.py`, `generator.py`, `disease_detector.py`, `schemes.py`, `context.py`, `audit.py`, `translation.py`)
 - `training/` — Offline model training pipelines (`train_disease_model.py` MobileNetV2 fine-tuning)

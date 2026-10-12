@@ -3,18 +3,31 @@
 
 @theme {
   --font-sans: "Inter", "Noto Sans Devanagari", "Noto Sans Gujarati", "Noto Sans Kannada", "Noto Sans Telugu", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, Cambria, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --color-brand-green: #22c55e;
-  --color-brand-green-dark: #16a34a;
+  --color-brand-green: #07503f;
+  --color-brand-green-dark: #04362b;
+  --color-forest: #07503f;
+  --color-forest-dark: #04362b;
+  --color-forest-light: #0d6e57;
+  --color-bone: #f1efdf;
+  --color-bone-light: #faf9f2;
+  --color-bone-card: #f6f4ea;
+  --color-bone-border: #e2dfcb;
+  --color-lime-vivid: #e8fe85;
+  --color-pastel-sky: #d0e6f6;
+  --color-pastel-peach: #f8d4c8;
+  --color-pastel-sage: #d9e2d5;
+  --color-pastel-ash: #d5d8db;
   --color-dark-bg: #0b0f19;
   --color-dark-card: #111827;
   --color-dark-input: #1f2937;
   --color-dark-border: #1f2937;
-  --color-dark-accent: #22c55e;
+  --color-dark-accent: #e8fe85;
 }
 
 body {
-  @apply bg-dark-bg text-stone-200 antialiased selection:bg-brand-green/30 selection:text-white;
+  @apply bg-dark-bg text-stone-200 antialiased selection:bg-forest/30 selection:text-white font-sans;
 }
 
 /* Custom scrollbar */
@@ -31,13 +44,34 @@ body {
 }
 
 input, select, textarea {
-  @apply bg-dark-input border-dark-border text-white focus:ring-2 focus:ring-brand-green/50 outline-none transition-all;
+  @apply bg-dark-input border-dark-border text-white focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all;
 }
 
 .glass-panel {
   @apply bg-dark-card/80 backdrop-blur-md border border-dark-border;
 }
 
+.glass-forest {
+  @apply bg-forest/90 backdrop-blur-md border border-forest-light/30 text-white;
+}
+
 .nav-item-active {
-  @apply text-brand-green bg-brand-green/10;
+  @apply text-lime-vivid bg-forest/40;
+}
+
+/* 3D transforms */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-2000 {
+  perspective: 2000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
 }
