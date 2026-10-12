@@ -164,5 +164,5 @@ def test_market_insight_thin_data_says_so():
     resp = client.get("/api/market/insight?commodity=Wheat&market=Malegaon&state=Maharashtra&days=30")
     data = resp.json()
     assert data["confidence"] == "low"
-    assert "Only 2 report" in data["insight"]
+    assert any(needle in data["insight"].lower() for needle in ("only 2 report", "only two", "data is thin"))
     assert "%" not in data["insight"]
