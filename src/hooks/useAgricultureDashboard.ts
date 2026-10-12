@@ -68,30 +68,10 @@ export const getFarmingInsights = (weather: WeatherData, t: any) => {
     });
   }
 
-  // Crop Suggestion (Rule-based AI)
-  let cropSuggestion = '';
-  let cropTitle = t('home.cropSuitability');
-  
-  if (weather.temp > 30 && (weather.humidity < 40 || (weather.rain && weather.rain < 0.5))) {
-    cropSuggestion = t('home.milletSorghum', { temp: weather.temp });
-  } else if (weather.temp >= 20 && weather.temp <= 30 && (weather.humidity > 60 || (weather.rain && weather.rain > 1))) {
-    cropSuggestion = t('home.riceMaize', { temp: weather.temp });
-  } else if (weather.temp < 20) {
-    cropSuggestion = t('home.wheatBarley', { temp: weather.temp });
-  } else if (weather.condition.toLowerCase().includes('rain')) {
-    cropSuggestion = t('home.moistureLoving');
-  } else {
-    cropSuggestion = t('home.stableGeneral', { temp: weather.temp, humidity: weather.humidity });
-  }
-
-  insights.push({
-    id: 'crop-suggestion',
-    type: 'suggestion',
-    title: cropTitle,
-    message: cropSuggestion,
-    color: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-    icon: 'Sprout'
-  });
+  // R2 (Cleanup_Frontend_Baseline.md §5): "Crop Suitability" card removed.
+  // It made unsourced agronomic claims (e.g. "Rice or Maize are ideal now")
+  // based solely on temperature rules, with no cited source and no farm context.
+  // Grounded crop guidance lives in the Advisor page.
 
   return insights;
 };
