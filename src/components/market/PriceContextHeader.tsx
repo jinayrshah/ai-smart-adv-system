@@ -45,6 +45,8 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
   const unitLabel = unit === "Rs/Quintal" ? "quintal" : unit;
   const coveragePct = Math.round((coverage.days_with_data / (coverage.expected_days || 1)) * 100);
   const isHealthyCoverage = coveragePct >= 60;
+  /** §2.7: suppress % badges when fewer than 3 reports — they're built from the same 2 points */
+  const isThinWindow = typeof reportsInWindow === "number" && reportsInWindow < 3;
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm mb-6">
@@ -78,7 +80,10 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {change7dPct !== undefined && change7dPct !== null && (
+          {/* §2.7 (Revisions_MarketWeather.md): only show % badges when there are 3+ reports;
+               with ≤2 reports both 7d and 30d are computed from the same pair of points
+               and showing "+7% / +7%" is actively misleading. */}
+          {!isThinWindow && change7dPct !== undefined && change7dPct !== null && (
             <div
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium ${
                 change7dPct >= 0
@@ -91,7 +96,7 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
             </div>
           )}
 
-          {change30dPct !== undefined && change30dPct !== null && (
+          {!isThinWindow && change30dPct !== undefined && change30dPct !== null && (
             <div
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium ${
                 change30dPct >= 0
@@ -101,6 +106,17 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
             >
               {change30dPct >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
               <span>{change30dPct > 0 ? `+${change30dPct}%` : `${change30dPct}%`} vs ~1 month ago</span>
+            </div>
+          )}
+
+          {/* Show honest caveat in place of badges when data is thin */}
+          {isThinWindow && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>
+                Only {reportsInWindow} report{reportsInWindow === 1 ? "" : "s"} in this period
+                {" — "} trend percentages not shown
+              </span>
             </div>
           )}
 
