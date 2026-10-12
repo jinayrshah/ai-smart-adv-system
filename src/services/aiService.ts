@@ -1,4 +1,23 @@
 import { GoogleGenAI } from "@google/genai";
+import { checkCropDisease } from '../lib/api/advisory';
+
+function dataUrlToFile(dataUrl: string, filename = 'leaf.jpg'): File {
+  try {
+    const parts = dataUrl.split(',');
+    const mimeMatch = parts[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const bstr = atob(parts[1] || parts[0]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  } catch {
+    const blob = new Blob([], { type: 'image/jpeg' });
+    return new File([blob], filename, { type: 'image/jpeg' });
+  }
+}
 
 const getGeminiApiKey = () => {
   let viteKey = '';
@@ -180,71 +199,150 @@ export const agricultureService = {
     }
   },
 
-  async detectDisease(base64Image: string): Promise<PredictionResult> {
-    const prompt = `As a plant pathologist, analyze this image of a plant leaf and identify any diseases. 
-    Provide your response in JSON format:
-    {
-      "disease": "Name of the disease or 'Healthy'",
-      "confidence": 0.0 to 1.0,
-      "description": "Brief description of the symptoms",
-      "treatment": ["Treatment step 1", "Treatment step 2"]
-    }`;
-
-    const ai = getGeminiClient();
-    if (!ai) {
-      return {
-        type: 'disease',
-        result: 'AI Diagnosis Unavailable',
-        confidence: 0,
-        recommendations: [
-          'Gemini is not configured. Set VITE_GEMINI_API_KEY for the frontend build or GEMINI_API_KEY for server-side usage.',
-          'Retake the photo in clear daylight and consult a local agronomist for a confirmed diagnosis.'
-        ]
-      };
-    }
-
+  async detectDisease(base64Image: string, cropHint?: string): Promise<PredictionResult> {
+    // 1. First attempt: Grounded backend diagnosis (Architecture §11, §14)
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [
-          { text: prompt },
-          { inlineData: { mimeType: "image/jpeg", data: base64Image.split(',')[1] || base64Image } }
-        ],
-        config: { responseMimeType: "application/json" }
-      });
-
-      const data = JSON.parse(response.text || '{}');
-
-      // Confidence threshold check
-      if (data.confidence < 0.80) {
-        return {
-          type: 'disease',
-          result: "Low Confidence Detection",
-          confidence: data.confidence,
-          recommendations: ["The image quality might be too low.", "Please retake the photo in better lighting.", "Ensure the leaf is clearly visible."]
-        };
+      const file = dataUrlToFile(base64Image);
+      if (file.size > 100) {
+        const backendRes = await checkCropDisease(file, cropHint);
+        if (backendRes.status === 'model') {
+          const treatments = (backendRes.treatments || []).map((t) =>
+            `📖 [${t.source_title}${t.page_number ? `, p. ${t.page_number}` : ''}] ${t.treatment_text}`
+          );
+          return {
+            type: 'disease',
+            result: backendRes.label,
+            confidence: backendRes.confidence,
+            recommendations: [
+              backendRes.advisory_note,
+              ...(treatments.length > 0
+                ? treatments
+                : ['No specific chemical treatment recorded in the reference catalog. Consult your local KVK for verified control measures.']),
+            ],
+          };
+        }
+        if (backendRes.status === 'rejected') {
+          return {
+            type: 'disease',
+            result: backendRes.label || 'Photo Not Usable',
+            confidence: 0,
+            recommendations: [backendRes.advisory_note],
+          };
+        }
       }
-
-      return {
-        type: 'disease',
-        result: data.disease,
-        confidence: data.confidence,
-        recommendations: [data.description, ...data.treatment]
-      };
-    } catch (error) {
-      console.error("Disease detection error:", error);
-      if (isGeminiKeyError(error)) {
-        return {
-          type: 'disease',
-          result: 'AI Diagnosis Unavailable',
-          confidence: 0,
-          recommendations: [
-            'Gemini rejected the configured API key. Check the Render environment variable value.',
-            'For now, monitor the plant closely and ask a local expert if symptoms spread.'
-          ]
-        };
-      }
-      throw new Error("Failed to detect plant disease.");
+    } catch (backendErr) {
+      console.warn('Backend /api/advisory/disease-check unavailable, falling back:', backendErr);
     }
-  }
+
+    // 2. Second attempt: Gemini Vision + RAG Grounding
+    const ai = getGeminiClient();
+    if (ai) {
+      const prompt = `As a plant pathologist, analyze this image of a plant leaf and identify any crop and diseases.
+      Provide your response strictly in JSON format:
+      {
+        "crop": "Crop name (e.g. Tomato, Wheat, Rice, Cotton, Soybean, Maize, or Other)",
+        "disease": "Name of the disease or 'Healthy'",
+        "confidence": 0.0 to 1.0,
+        "description": "Brief description of the symptoms",
+        "treatment": ["Treatment step 1", "Treatment step 2"]
+      }`;
+
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: [
+            { text: prompt },
+            { inlineData: { mimeType: 'image/jpeg', data: base64Image.split(',')[1] || base64Image } },
+          ],
+          config: { responseMimeType: 'application/json' },
+        });
+
+        const data = JSON.parse(response.text || '{}');
+
+        // Confidence threshold check
+        if (data.confidence < 0.8) {
+          return {
+            type: 'disease',
+            result: 'Low Confidence Detection',
+            confidence: data.confidence,
+            recommendations: [
+              'The image quality or symptom clarity is insufficient for a reliable diagnosis.',
+              'Please retake the photo in clear daylight, filling the frame with a single affected leaf.',
+              'Consult your nearest Krishi Vigyan Kendra (KVK) or local agronomist before applying any treatments.',
+            ],
+          };
+        }
+
+        // Ground treatments via backend RAG retrieve
+        let groundedTreatments: string[] = [];
+        try {
+          const effectiveCrop = data.crop || cropHint;
+          const ragRes = await fetch('/api/advisory/retrieve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: `${effectiveCrop || ''} ${data.disease} treatment control management`,
+              crop: effectiveCrop,
+              disease_label: data.disease,
+              doc_types: ['disease_treatment'],
+              top_k: 3,
+            }),
+          });
+          if (ragRes.ok) {
+            const chunks = await ragRes.json();
+            if (Array.isArray(chunks) && chunks.length > 0) {
+              groundedTreatments = chunks.map(
+                (c: any) =>
+                  `📖 [${c.source_title || 'ICAR PoP'}${c.page_number ? `, p. ${c.page_number}` : ''}] ${c.chunk_text}`
+              );
+            }
+          }
+        } catch (ragErr) {
+          console.warn('Backend RAG retrieve fallback error:', ragErr);
+        }
+
+        const recommendations = [
+          data.description,
+          ...(groundedTreatments.length > 0
+            ? groundedTreatments
+            : [
+                ...(data.treatment || []),
+                '⚠️ Notice: Preliminary AI visual estimate (ungrounded). Not verified by ICAR / KVK. Verify all chemical dosages with a local agriculture officer before spraying.',
+              ]),
+        ];
+
+        return {
+          type: 'disease',
+          result: data.disease,
+          confidence: data.confidence,
+          recommendations,
+        };
+      } catch (error) {
+        console.error('Disease detection error:', error);
+        if (isGeminiKeyError(error)) {
+          return {
+            type: 'disease',
+            result: 'AI Diagnosis Unavailable',
+            confidence: 0,
+            recommendations: [
+              'Gemini rejected the configured API key. Check the environment variable value.',
+              'For verified treatment, show the leaf to your nearest Krishi Vigyan Kendra (KVK).',
+            ],
+          };
+        }
+      }
+    }
+
+    // 3. Honest Offline Refusal (README §9 / AGENTS.md Data Integrity)
+    return {
+      type: 'disease',
+      result: 'Diagnosis Unavailable',
+      confidence: 0,
+      recommendations: [
+        'Automatic disease identification is currently unavailable (no trained model installed on server, and Gemini API key not configured).',
+        'In accordance with data integrity guidelines, ungrounded diagnoses are not fabricated.',
+        'Please take a fresh leaf sample to your nearest Krishi Vigyan Kendra (KVK) or local Agriculture Extension Officer.',
+      ],
+    };
+  },
 };

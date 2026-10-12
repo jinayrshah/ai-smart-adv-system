@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     # Supabase
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
+    # JWT secret from Supabase dashboard → Settings → API → JWT Secret.
+    # When set, /api/farmer/* routes enforce ownership checks.
+    SUPABASE_JWT_SECRET: str = ""
 
     # Market Data
     DATA_GOV_IN_KEY: str = ""

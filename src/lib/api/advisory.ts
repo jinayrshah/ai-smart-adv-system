@@ -111,13 +111,26 @@ export interface IrrigationEvent {
   note?: string | null;
 }
 
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('agri_auth_token');
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+  }
+  return {};
+}
+
 export async function logIrrigation(
   farmId: string | number,
   event: { irrigated_on: string; amount_mm: number; farm_crop_id?: number | null; note?: string },
 ): Promise<IrrigationEvent> {
   const res = await fetch(`/api/farmer/farms/${farmId}/irrigation`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
     body: JSON.stringify(event),
   });
   if (!res.ok) {
@@ -128,7 +141,9 @@ export async function logIrrigation(
 }
 
 export async function fetchIrrigationLog(farmId: string | number): Promise<IrrigationEvent[]> {
-  const res = await fetch(`/api/farmer/farms/${farmId}/irrigation`);
+  const res = await fetch(`/api/farmer/farms/${farmId}/irrigation`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) throw new Error('Could not load the irrigation log');
   return res.json();
 }

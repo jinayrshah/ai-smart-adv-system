@@ -288,7 +288,18 @@ npm run build
 
 ---
 
+### 20. Farmer Ownership & Authentication Verification
+```bash
+# When SUPABASE_JWT_SECRET is set, requests without Authorization header or with mismatched sub return 401/403.
+# In dev/CI (when SUPABASE_JWT_SECRET is empty), routes operate in open mode for backward compatibility.
+curl -s -X GET "http://127.0.0.1:8000/api/farmer/profile/00000000-0000-0000-0000-000000000001" \
+  -H "Authorization: Bearer <SUPABASE_JWT_TOKEN>"
+```
+
+---
+
 ## 📁 Key Source Directories
+- `backend/app/core/auth.py` — Supabase HS256 JWT authorization & farmer ownership verification dependency (`require_self_or_dev`)
 - `src/components/farmer/` — `FarmerOnboardingModal`, `FarmDiagnosticCard`, and `GovernmentSchemesCard` UI
 - `src/lib/api/advisory.ts` — Frontend API client for agronomic calculation engines, RAG search, `/ask` Q&A, `disease-check`, and `schemes`
 - `src/components/market/` — Market trend charts, MandiExplore, MarketContextCard, MarketInsightCard (Gemini 2.5 Flash grounded synthesis), MandiRecentReportsTable (IQR outlier quality audits), MandiAutocomplete, and MarketCalculators (₹/qtl and ₹/kg unit conversions, explicit cost exclusions)
@@ -316,6 +327,7 @@ npm run build
 | Variable | Required In | Description |
 |---|---|---|
 | `JWT_SECRET` | **Production (Mandatory)** | HMAC secret for session authentication tokens. Express server refuses to start in production without it. |
+| `SUPABASE_JWT_SECRET` | Optional (Production recommended) | Supabase Project JWT secret. When set, `/api/farmer/*` routes enforce caller ownership on profile and farm resources. |
 | `GEMINI_API_KEY` | Development & Production | Google Gemini API key for grounded market insights and agronomic advisory. |
 | `GEMINI_MODEL` | Optional (default: `gemini-2.5-flash`) | Primary LLM model for generation; fallbacks to `gemini-2.5-flash-lite`. |
 | `BHASHINI_USER_ID` | Optional | MeitY Bhashini User ID for Indic language translations (hi, mr, gu, etc.). |

@@ -71,10 +71,23 @@ export interface OnboardingResult {
   crops: FarmCrop[];
 }
 
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('agri_auth_token');
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+  }
+  return {};
+}
+
 export async function submitOnboarding(payload: OnboardingPayload): Promise<OnboardingResult> {
   const res = await fetch('/api/farmer/onboard', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -85,7 +98,9 @@ export async function submitOnboarding(payload: OnboardingPayload): Promise<Onbo
 }
 
 export async function fetchFarmerProfile(farmerId: string): Promise<FarmerProfile> {
-  const res = await fetch(`/api/farmer/profile/${farmerId}`);
+  const res = await fetch(`/api/farmer/profile/${farmerId}`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) {
     throw new Error('Failed to fetch farmer profile');
   }
@@ -93,7 +108,9 @@ export async function fetchFarmerProfile(farmerId: string): Promise<FarmerProfil
 }
 
 export async function fetchFarmerFarms(farmerId: string): Promise<Farm[]> {
-  const res = await fetch(`/api/farmer/farms?farmer_id=${encodeURIComponent(farmerId)}`);
+  const res = await fetch(`/api/farmer/farms?farmer_id=${encodeURIComponent(farmerId)}`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) {
     throw new Error('Failed to fetch farmer farms');
   }
@@ -101,7 +118,9 @@ export async function fetchFarmerFarms(farmerId: string): Promise<Farm[]> {
 }
 
 export async function fetchFarmCrops(farmId: number): Promise<FarmCrop[]> {
-  const res = await fetch(`/api/farmer/farms/${farmId}/crops?status=active`);
+  const res = await fetch(`/api/farmer/farms/${farmId}/crops?status=active`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) {
     throw new Error('Failed to fetch farm crops');
   }

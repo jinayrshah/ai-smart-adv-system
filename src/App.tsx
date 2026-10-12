@@ -382,7 +382,8 @@ export function AppContent() {
     updateModuleData('diseaseLoading', true);
     updateModuleData('diseaseError', null);
     try {
-      const res = await agricultureService.detectDisease(appData.selectedImage);
+      const cropHint = farmView?.crop?.name;
+      const res = await agricultureService.detectDisease(appData.selectedImage, cropHint);
       updateModuleData('disease', res);
       addEntry({
         id: Date.now(),
