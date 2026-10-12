@@ -363,12 +363,13 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
 
             {/* Agro Climatology Metrics Card */}
             <div className="lg:col-span-2 bg-zinc-800/40 border border-zinc-700/60 rounded-xl p-4 flex flex-col justify-between space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                <div className="min-w-0">
+              {/* §1.2 fix: flex-wrap + min-w-0 prevent badge from overlapping the header on narrow viewports */}
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
                   <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Agro-Climatology Metrics</span>
-                  <p className="text-xs text-zinc-400 mt-0.5">Calculated over historical actuals & 15-year ERA5-Land normals</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">Calculated over historical actuals &amp; 15-year ERA5-Land normals</p>
                 </div>
-                <div className="shrink-0 self-start sm:self-auto">
+                <div className="shrink-0">
                   {renderConfidenceBadge(data.metrics.confidence, false)}
                 </div>
               </div>
@@ -591,8 +592,9 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
           )}
 
           {/* Collapsible Area Estimate & Provenance Disclaimer (Architecture §19 & §15) */}
-          <div className="pt-2 border-t border-zinc-800 text-[11px] text-zinc-500 leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+          {/* §1.2 fix: removed whitespace-nowrap on Sources line so it wraps on mobile instead of floating */}
+          <div className="pt-2 border-t border-zinc-800 text-[11px] text-zinc-500 leading-relaxed flex flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <button
                 type="button"
                 onClick={() => setShowAreaNotice(!showAreaNotice)}
@@ -601,15 +603,15 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
                 <Info className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Area Estimate Notice {showAreaNotice ? "▲" : "▼"}</span>
               </button>
-              {showAreaNotice && (
-                <span className="text-zinc-400 text-[10px] sm:ml-1">
-                  Weather is derived from the 0.1° (~9–11 km) ERA5-Land grid cell. Gridded rainfall reflects an area average; local farm-level rainfall may vary due to monsoon convection.
-                </span>
-              )}
+              <span className="text-zinc-600 text-[10px]">
+                Sources: Open-Meteo (primary), NASA POWER &amp; OpenWeather (validation).
+              </span>
             </div>
-            <div className="text-zinc-500 whitespace-nowrap text-[10px]">
-              Sources: Open-Meteo (primary), NASA POWER & OpenWeather (validation).
-            </div>
+            {showAreaNotice && (
+              <p className="text-zinc-400 text-[10px] leading-relaxed">
+                Weather is derived from the 0.1° (~9–11 km) ERA5-Land grid cell. Gridded rainfall reflects an area average; local farm-level rainfall may vary due to monsoon convection.
+              </p>
+            )}
           </div>
         </>
       )}
