@@ -1,162 +1,120 @@
 """
-Market Insight Generation Engine.
-Revisions - Market & Weather UI (Priority 2.3) & Architecture_MarketData_Weather.md §10.4.
+Market Insight Generation.
+Revisions_MarketWeather.md §2.3 & Architecture_MarketData_Weather.md §10.4.
 
-Grounded 2-3 sentence market synthesis using Gemini 2.5 Flash.
-Strict non-predictive discipline: narrates existing numbers only, never forecasts prices.
+A 2-3 sentence summary that may only re-phrase numbers already shown on the page. It
+never forecasts. Two safeguards beyond the prompt:
+- the context holds only real values (no placeholder "normal weather" line — the first
+  version told the model there was "no transport disruption" without any data);
+- the generated text is audited: if it contains a number that is not in the context,
+  the deterministic summary is returned instead (Revisions §2.3 acceptance rule).
 """
+
+from __future__ import annotations
 
 import logging
 import re
 from typing import Any
-import httpx
 
-from app.core.config import get_settings
+from app.core.gemini import generate_text
+from app.domain.advisory.audit import audit_number_grounding
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-2.5-flash"
+
+def _fmt_pct(v: float | None) -> str:
+    if v is None:
+        return "not available"
+    return f"+{v}%" if v > 0 else f"{v}%"
 
 
 def format_context_for_prompt(ctx: dict[str, Any]) -> str:
-    commodity = ctx.get("commodity", "")
-    market = ctx.get("market", "")
-    state = ctx.get("state", "")
-    latest_price = ctx.get("latest_price")
+    latest = ctx.get("latest_price")
     unit = ctx.get("unit", "Rs/Quintal")
-    c7 = ctx.get("change7d_pct")
-    c30 = ctx.get("change30d_pct")
-    cov = ctx.get("coverage_pct", 0)
-    gaps = ctx.get("gaps_count", 0)
-    weather_sig = ctx.get("weather_signals", [])
-
+    reports = ctx.get("reports_in_window")
     lines = [
-        f"Commodity: {commodity}",
-        f"Market: {market}, {state}",
-        f"Latest Price: ₹{latest_price} /{unit} (₹{round(latest_price / 100, 1)} /kg)" if latest_price else "Latest Price: Unavailable",
-        f"7-Day Price Change: {f'+{c7}%' if c7 and c7 > 0 else f'{c7}%' if c7 is not None else 'N/A'}",
-        f"30-Day Price Change: {f'+{c30}%' if c30 and c30 > 0 else f'{c30}%' if c30 is not None else 'N/A'}",
-        f"Mandi Data Reporting Coverage: {cov}% (Missing/unreported days: {gaps})",
+        f"Commodity: {ctx.get('commodity', '')}",
+        f"Market: {ctx.get('market', '')}, {ctx.get('state', '')}",
     ]
-
-    if weather_sig:
-        lines.append(f"District Weather Signals: {'; '.join(weather_sig)}")
+    if latest:
+        lines.append(f"Latest modal price: ₹{latest} per quintal (₹{round(latest / 100, 2)} per kg)"
+                     + (f", reported {ctx['latest_date']}" if ctx.get("latest_date") else ""))
     else:
-        lines.append("District Weather Signals: Normal seasonal rainfall, no transport disruption detected")
-
+        lines.append("Latest modal price: no report in the window")
+    if reports is not None:
+        lines.append(f"Market-days with a price report in the last {ctx.get('window_days', 30)} days: {reports}")
+    lines.append(f"Change vs about 7 days earlier: {_fmt_pct(ctx.get('change7d_pct'))}")
+    lines.append(f"Change vs about 30 days earlier: {_fmt_pct(ctx.get('change30d_pct'))}")
+    lines.append(f"Reporting coverage: {ctx.get('coverage_pct', 0)}% of days")
+    for sig in ctx.get("weather_signals") or []:
+        lines.append(f"Weather signal: {sig}")
     if ctx.get("cost_c2") is not None:
-        lines.append(f"DES Reference Production Cost (C2): ₹{ctx['cost_c2']} /qtl (₹{round(ctx['cost_c2'] / 100, 1)} /kg)")
+        lines.append(f"Reference production cost (DES C2): ₹{ctx['cost_c2']} per quintal")
     if ctx.get("net_margin") is not None:
-        lines.append(f"Estimated Farm Margin vs Benchmark: ₹{ctx['net_margin']} /qtl (₹{round(ctx['net_margin'] / 100, 1)} /kg)")
+        lines.append(f"Margin vs that cost: ₹{ctx['net_margin']} per quintal")
     if ctx.get("breakeven_price") is not None:
-        lines.append(f"Storage Breakeven Price: ₹{ctx['breakeven_price']} /qtl (₹{round(ctx['breakeven_price'] / 100, 1)} /kg)")
-
+        lines.append(f"Storage breakeven price: ₹{ctx['breakeven_price']} per quintal")
     return "\n".join(lines)
 
 
 def generate_fallback_market_insight(ctx: dict[str, Any]) -> str:
-    """
-    Deterministic factual summary for offline execution, test runs, or when LLM quota is exhausted.
-    Strictly uses only computed values from context.
-    """
+    """Deterministic summary using only values in `ctx`."""
     commodity = ctx.get("commodity", "this crop")
     market = ctx.get("market", "the market")
-    latest_price = ctx.get("latest_price")
-    c7 = ctx.get("change7d_pct")
+    latest = ctx.get("latest_price")
+    c7, c30 = ctx.get("change7d_pct"), ctx.get("change30d_pct")
     cov = ctx.get("coverage_pct", 0)
+    reports = ctx.get("reports_in_window")
 
-    sentences = []
-    if latest_price:
-        per_kg = round(latest_price / 100, 1)
-        if c7 is not None and c7 != 0:
-            trend_dir = "risen" if c7 > 0 else "declined"
-            sentences.append(
-                f"The latest reported modal price for {commodity} in {market} is ₹{int(latest_price):,} per quintal (₹{per_kg} per kg), having {trend_dir} by {abs(c7)}% over the last 7 days."
-            )
-        else:
-            sentences.append(
-                f"The latest reported modal price for {commodity} in {market} is ₹{int(latest_price):,} per quintal (₹{per_kg} per kg)."
-            )
+    out = []
+    if latest:
+        s = (f"The latest modal price for {commodity} in {market} is ₹{latest:,.0f} per quintal "
+             f"(₹{round(latest / 100, 2)} per kg)")
+        if c7 is not None:
+            s += f", {'up' if c7 > 0 else 'down' if c7 < 0 else 'unchanged'}"
+            s += f" {abs(c7)}% from about a week earlier" if c7 != 0 else " from about a week earlier"
+        out.append(s + ".")
+        if c30 is not None and c7 is None:
+            out.append(f"Compared with about a month earlier it is {_fmt_pct(c30)}.")
     else:
-        sentences.append(f"No recent modal price report has been filed for {commodity} in {market}.")
+        out.append(f"No price report for {commodity} in {market} was filed in this period.")
 
-    if cov < 30:
-        sentences.append(
-            f"Mandi reporting consistency is limited ({cov}% coverage over the window), so current figures should be treated as indicative."
-        )
-    elif ctx.get("weather_signals"):
-        signals_summary = "; ".join(ctx["weather_signals"])
-        sentences.append(f"Local district weather indicates: {signals_summary}.")
-    else:
-        sentences.append("District weather conditions show normal logistics without major arrival disruptions.")
+    if reports is not None and reports < 3:
+        out.append(f"Only {reports} report(s) were filed in this window, so no trend can be read from them.")
+    elif cov < 30:
+        out.append(f"Reporting is patchy ({cov}% of days have a report), so treat these figures as indicative.")
+    if ctx.get("net_margin") is not None:
+        out.append(f"Against the reference production cost the margin is ₹{ctx['net_margin']:,.0f} per quintal.")
+    return " ".join(out)
 
-    return " ".join(sentences)
+
+def _confidence(ctx: dict[str, Any]) -> str:
+    cov = ctx.get("coverage_pct", 0)
+    reports = ctx.get("reports_in_window")
+    if reports is not None and reports < 3:
+        return "low"
+    return "high" if cov >= 70 else "medium" if cov >= 30 else "low"
 
 
 def generate_market_insight(ctx: dict[str, Any]) -> dict[str, Any]:
-    """
-    Generates a 2-3 sentence grounded market summary using Gemini 2.5 Flash, falling back to deterministic synthesis.
-    """
-    settings = get_settings()
-    api_key = settings.GEMINI_API_KEY
+    confidence = _confidence(ctx)
+    cov = ctx.get("coverage_pct", 0)
     context_text = format_context_for_prompt(ctx)
-    cov = ctx.get("coverage_pct", 50)
-    confidence = "high" if cov >= 70 else "medium" if cov >= 30 else "low"
-
-    if not api_key:
-        logger.info("GEMINI_API_KEY not configured; using deterministic market insight.")
-        return {
-            "insight": generate_fallback_market_insight(ctx),
-            "confidence": confidence,
-            "coverage_pct": cov,
-        }
-
-    prompt = f"""Summarize the following market information for an Indian farmer in 2-3 short, plain sentences.
-Do not use conversational filler (such as 'Here is the summary:').
-Do not use markdown bolding or bullet points.
-Use ONLY the figures and facts given below. Do not add any outside number, fact, or prediction.
-DO NOT forecast future prices. If data coverage is low or degraded, state that plainly.
+    prompt = f"""Summarize this market information for an Indian farmer in 2-3 short, plain sentences.
+No filler, no markdown, no bullet points.
+Use ONLY the figures below; do not add any other number, fact or prediction, and never forecast prices.
+If there are fewer than 3 reports or coverage is low, say plainly that the data is thin.
 
 DATA:
 {context_text}
 """
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={api_key}"
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.2,
-            "maxOutputTokens": 600,
-            "thinkingConfig": {"thinkingBudget": 0},
-        },
-    }
-
-    try:
-        with httpx.Client(timeout=8.0) as client:
-            resp = client.post(url, json=payload)
-            if resp.status_code == 200:
-                data = resp.json()
-                candidates = data.get("candidates", [])
-                if candidates:
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    if parts:
-                        text = parts[0].get("text", "").strip()
-                        # Clean any stray formatting
-                        text = re.sub(r"\s+", " ", text)
-                        if text:
-                            return {
-                                "insight": text,
-                                "confidence": confidence,
-                                "coverage_pct": cov,
-                            }
-            else:
-                logger.warning(f"Gemini market insight returned {resp.status_code}: {resp.text[:120]}")
-    except Exception as exc:
-        logger.warning(f"Gemini market insight call failed: {exc}")
-
-    # Fallback
-    return {
-        "insight": generate_fallback_market_insight(ctx),
-        "confidence": confidence,
-        "coverage_pct": cov,
-    }
+    text, model = generate_text(prompt, temperature=0.2, max_output_tokens=300, timeout=8.0)
+    text = re.sub(r"\s+", " ", text or "").strip()
+    if text:
+        audit = audit_number_grounding(text, {"ctx": ctx, "context_text": context_text})
+        if audit["ungrounded_numbers"]:
+            logger.warning(f"Market insight contained untraceable numbers {audit['ungrounded_numbers']}; using fallback")
+            text = ""
+    if not text:
+        text, model = generate_fallback_market_insight(ctx), None
+    return {"insight": text, "confidence": confidence, "coverage_pct": cov, "generated_by": model or "deterministic"}

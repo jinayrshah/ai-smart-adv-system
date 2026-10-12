@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Calculator,
   Warehouse,
@@ -29,16 +29,28 @@ interface MarketCalculatorsProps {
   market: string;
   state: string;
   currentPrice: number | null;
+  /** saved farm size for a logged-in farmer (Revisions §2.7: prefill, always overridable) */
+  defaultFieldSizeAcres?: number | null;
 }
+
+const DEBOUNCE_MS = 450;
 
 export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
   commodity,
   market,
   state,
   currentPrice,
+  defaultFieldSizeAcres,
 }) => {
   // Margin Calculator state
-  const [fieldSize, setFieldSize] = useState<number>(2.0);
+  const [fieldSize, setFieldSize] = useState<number>(defaultFieldSizeAcres && defaultFieldSizeAcres > 0 ? defaultFieldSizeAcres : 2.0);
+  const marginReq = useRef(0);
+  const storageReq = useRef(0);
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    if (defaultFieldSizeAcres && defaultFieldSizeAcres > 0) setFieldSize(defaultFieldSizeAcres);
+  }, [defaultFieldSizeAcres]);
   const [marginPriceOverride, setMarginPriceOverride] = useState<string>("");
   const [marginData, setMarginData] = useState<MarginEstimateResponse | null>(null);
   const [marginLoading, setMarginLoading] = useState(false);
@@ -56,6 +68,7 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
 
   // Load Margin
   const loadMargin = async () => {
+    const reqId = ++marginReq.current;
     setMarginLoading(true);
     try {
       const priceToUse = marginPriceOverride ? parseFloat(marginPriceOverride) : (currentPrice ?? undefined);
@@ -66,19 +79,22 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
         market: market,
         price_per_qtl: priceToUse,
       });
+      if (reqId !== marginReq.current) return; // a newer request superseded this one
       setMarginData(res);
       setMarginSearched(true);
     } catch (err) {
+      if (reqId !== marginReq.current) return;
       console.warn("Error loading crop margin:", err);
       setMarginData(null);
       setMarginSearched(true);
     } finally {
-      setMarginLoading(false);
+      if (reqId === marginReq.current) setMarginLoading(false);
     }
   };
 
   // Load Storage
   const loadStorage = async () => {
+    const reqId = ++storageReq.current;
     setStorageLoading(true);
     try {
       const res = await fetchStorageEstimate({
@@ -89,12 +105,14 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
         months: storageMonths,
         current_price: currentPrice ?? undefined,
       });
+      if (reqId !== storageReq.current) return;
       setStorageData(res);
     } catch (err) {
+      if (reqId !== storageReq.current) return;
       console.warn("Error loading storage estimate:", err);
       setStorageData(null);
     } finally {
-      setStorageLoading(false);
+      if (reqId === storageReq.current) setStorageLoading(false);
     }
   };
 
@@ -119,7 +137,26 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
     loadMargin();
     loadStorage();
     loadMarketWeather();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commodity, market, state, currentPrice]);
+
+  // Live recalculation as the farmer edits inputs (replaces the "Recalculate" buttons).
+  useEffect(() => {
+    if (firstRender.current) return;
+    const t = setTimeout(loadMargin, DEBOUNCE_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldSize, marginPriceOverride]);
+
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    const t = setTimeout(loadStorage, DEBOUNCE_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageMonths, storageCostMonthly]);
 
   return (
     <div className="space-y-6">
@@ -196,14 +233,13 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
             </div>
           </div>
 
-          <button
-            onClick={loadMargin}
-            disabled={marginLoading}
-            className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${marginLoading ? "animate-spin" : ""}`} />
-            Recalculate Margin
-          </button>
+          <div className="h-4 text-[11px] text-zinc-400 flex items-center gap-1.5" aria-live="polite">
+            {marginLoading && (
+              <>
+                <RefreshCw className="w-3 h-3 animate-spin" /> Updating…
+              </>
+            )}
+          </div>
 
           {/* Result calculation */}
           {marginData ? (
@@ -344,14 +380,13 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
             </div>
           </div>
 
-          <button
-            onClick={loadStorage}
-            disabled={storageLoading}
-            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${storageLoading ? "animate-spin" : ""}`} />
-            Recalculate Storage Math
-          </button>
+          <div className="h-4 text-[11px] text-zinc-400 flex items-center gap-1.5" aria-live="polite">
+            {storageLoading && (
+              <>
+                <RefreshCw className="w-3 h-3 animate-spin" /> Updating…
+              </>
+            )}
+          </div>
 
           {/* Storage outcome */}
           {storageData && (

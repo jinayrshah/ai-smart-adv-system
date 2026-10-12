@@ -12,6 +12,8 @@ function cn(...inputs: ClassValue[]) {
 const languages = [
   { code: 'en', name: 'English', nativeName: 'English' },
   { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
+  { code: 'mr', name: 'Marathi', nativeName: 'मराठी' },
+  { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી' },
   { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ' },
   { code: 'te', name: 'Telugu', nativeName: 'తెలుగు' }
 ];

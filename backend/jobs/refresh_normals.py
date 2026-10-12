@@ -77,7 +77,7 @@ def run_refresh_normals(force: bool = False) -> int:
                     break
 
     elapsed = time.time() - start_time
-    status = "ok" if not failed_grids else "partial"
+    status = "ok" if not failed_grids else ("partial" if len(failed_grids) < len(grids) else "failed")
 
     weather_repo.finish_ingestion_run(
         run_id=run_id,

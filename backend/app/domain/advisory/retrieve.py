@@ -1,5 +1,5 @@
 """
-RAG retrieval engine for query embedding and semantic search.
+RAG retrieval engine for query embedding and hybrid (dense + BM25) search.
 Architecture_Advisory.md §10.3, §17.4.
 """
 
@@ -22,10 +22,11 @@ def retrieve(
 ) -> list[RetrievedChunk]:
     """
     Retrieves top-k relevant knowledge chunks for a query.
-    Embeds query with gemini-embedding-001 (768 dims) and matches against rag_chunks.
-    Architecture §10.3.
+
+    The query is embedded with gemini-embedding-001 (RETRIEVAL_QUERY) and searched with
+    hybrid dense + BM25 retrieval. If the embedding API is unavailable the search is
+    lexical-only rather than using a fake vector.
     """
-    # 1. Synthesize grounded query text
     parts = []
     if crop:
         parts.append(crop)
@@ -36,7 +37,6 @@ def retrieve(
     parts.append(query)
     query_text = " ".join(parts).strip()
 
-    # 2. Determine targeted doc types
     if not doc_types:
         if disease_label:
             target_types = ["disease_treatment", "agronomy_pop"]
@@ -45,21 +45,19 @@ def retrieve(
     else:
         target_types = doc_types
 
-    # 3. Generate query embedding
     query_embedding = get_gemini_embedding(
         text=query_text,
         task_type="RETRIEVAL_QUERY",
         use_mock=use_mock_embedding,
     )
+    if query_embedding is None:
+        logger.info("Query embedding unavailable; using lexical (BM25) retrieval only.")
 
-    # 4. Execute vector match
     repo = get_rag_repo()
-    chunks = repo.match_chunks(
+    return repo.match_chunks(
         query_embedding=query_embedding,
         match_crop=crop,
         match_doc_types=target_types,
         match_count=top_k,
         query_text=query_text,
     )
-
-    return chunks

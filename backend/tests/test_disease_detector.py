@@ -53,52 +53,66 @@ def test_image_preprocessing():
     assert is_informative is True
 
 
-def test_disease_prediction_on_leaf_image():
-    """Verify prediction outputs registered disease class and confidence score."""
-    detector = get_disease_detector()
-    img_bytes = _create_sample_leaf_image()
+class _StubModel:
+    """Stands in for a trained Keras model: fixed probabilities over the class list."""
 
-    pred_class, conf, conf_status = detector.predict(img_bytes, crop_hint="Tomato")
+    def __init__(self, probs):
+        self._probs = np.asarray(probs, dtype=float)
 
-    assert pred_class in DISEASE_METADATA
-    assert 0.0 <= conf <= 1.0
-    assert conf_status in ("high", "moderate", "low")
+    def predict(self, batch, verbose=0):
+        return np.asarray([self._probs])
 
 
-def test_uninformative_image_produces_low_confidence():
-    """Verify non-leaf / uninformative images trigger low confidence (§11 acceptance)."""
-    detector = get_disease_detector()
-    noise_bytes = _create_noise_image()
+def _detector_with_stub(probs, classes):
+    det = DiseaseDetector(model_path="/nonexistent/model.keras")
+    det._keras_model = _StubModel(probs)
+    det.class_names = classes
+    det.model_version = "stub"
+    return det
 
-    pred_class, conf, conf_status = detector.predict(noise_bytes, crop_hint="Tomato")
 
-    assert conf < 0.60
-    assert conf_status == "low"
+def test_no_model_gives_no_diagnosis():
+    """Without a trained model the API must not invent a disease (README §9: no fake data)."""
+    det = DiseaseDetector(model_path="/nonexistent/model.keras")
+    assert det.available is False
+    key, conf, status = det.predict(_create_sample_leaf_image(), crop_hint="Tomato")
+    assert key is None and conf == 0.0 and status == "low"
+    res = det.diagnose(_create_sample_leaf_image(), crop="Tomato")
+    assert res.status == "unavailable"
+    assert res.treatments == []
+    assert "KVK" in res.advisory_note
 
-    # Diagnose phrasing check
-    res = detector.diagnose(noise_bytes, crop="Tomato")
-    assert res.confidence_status == "low"
-    assert "Low diagnostic confidence" in res.advisory_note or "KVK" in res.advisory_note
+
+def test_unusable_photo_is_rejected_not_called_healthy():
+    det = _detector_with_stub([0.9, 0.1], ["Tomato___healthy", "Tomato___Late_blight"])
+    res = det.diagnose(_create_noise_image(), crop="Tomato")
+    assert res.status == "rejected"
+    assert "healthy" not in res.label.lower()
+
+
+def test_model_labels_follow_training_order_and_crop_hint():
+    classes = ["Corn___Common_rust", "Tomato___Late_blight", "Tomato___healthy"]
+    det = _detector_with_stub([0.50, 0.40, 0.10], classes)
+    # Without a crop hint, the maize class wins
+    assert det.predict(_create_sample_leaf_image())[0] == "Corn___Common_rust"
+    # With the crop known, only tomato classes compete and are renormalised: 0.4 / 0.5 = 0.8
+    key, conf, status = det.predict(_create_sample_leaf_image(), crop_hint="Tomato")
+    assert key == "Tomato___Late_blight"
+    assert conf == 0.8 and status == "high"
+    res = det.diagnose(_create_sample_leaf_image(), crop="Tomato")
+    assert res.status == "model" and res.model_version == "stub"
+    assert res.top_k[0]["label"] == "Tomato___Late_blight"
 
 
 def test_disease_treatment_rag_linking():
-    """Verify disease diagnosis automatically links to verified RAG treatment extracts (§11)."""
-    detector = get_disease_detector()
-    img_bytes = _create_sample_leaf_image()
-
-    res = detector.diagnose(img_bytes, crop="Tomato")
-
+    """A confident disease diagnosis links to verified RAG treatment extracts (§11)."""
+    det = _detector_with_stub([0.95, 0.05], ["Tomato___Late_blight", "Tomato___healthy"])
+    res = det.diagnose(_create_sample_leaf_image(), crop="Tomato")
     assert res.crop == "Tomato"
-    assert res.label != ""
-    assert isinstance(res.confidence, float)
-    assert res.advisory_note != ""
-
-    # If disease was identified with confidence, treatments list is populated
-    if "Healthy" not in res.label and res.confidence >= 0.50:
-        assert len(res.treatments) > 0
-        top_tx = res.treatments[0]
-        assert top_tx.source_title != ""
-        assert len(top_tx.treatment_text) > 20
+    assert res.label == DISEASE_METADATA["Tomato___Late_blight"]["display_name"]
+    assert res.confidence_status == "high"
+    for tx in res.treatments:
+        assert tx.source_title != ""
 
 
 def test_api_disease_check_endpoint():
@@ -116,6 +130,7 @@ def test_api_disease_check_endpoint():
     assert "label" in out
     assert "confidence" in out
     assert out["confidence_status"] in ("high", "moderate", "low")
+    assert out["status"] in ("model", "unavailable", "rejected")
     assert "advisory_note" in out
     assert "treatments" in out
 
@@ -125,3 +140,47 @@ def test_api_disease_check_invalid_file():
     files = {"file": ("empty.jpg", b"", "image/jpeg")}
     resp = client.post("/api/advisory/disease-check", files=files)
     assert resp.status_code == 400
+
+
+def test_plantvillage_folder_names_map_to_metadata():
+    from app.domain.advisory.disease_detector import crop_of, metadata_key
+
+    assert metadata_key("Corn_(maize)___Common_rust_") == "Corn___Common_rust"
+    assert metadata_key("Tomato___Tomato_Yellow_Leaf_Curl_Virus") == "Tomato___Yellow_Leaf_Curl_Virus"
+    assert crop_of("Corn_(maize)___healthy") == "Maize"
+    assert crop_of("Soybean___healthy") == "Soybean"
+
+
+class _RecordingModel(_StubModel):
+    def predict(self, batch, verbose=0):
+        self.seen = batch
+        return super().predict(batch, verbose)
+
+
+def test_model_receives_raw_pixels_and_temperature_is_applied():
+    classes = ["Tomato___Late_blight", "Tomato___healthy"]
+    det = _detector_with_stub([0.9, 0.1], classes)
+    rec = _RecordingModel([0.9, 0.1])
+    det._keras_model = rec
+    det.temperature = 2.0
+    key, conf, _ = det.predict(_create_sample_leaf_image(), crop_hint="Tomato")
+    # model has MobileNetV2 preprocessing built in -> expects 0..255, not [-1, 1]
+    assert rec.seen.max() > 100 and rec.seen.min() >= 0
+    # T = 2 softens 0.9/0.1 to 0.75/0.25
+    assert key == "Tomato___Late_blight" and conf == 0.75
+
+
+def test_temperature_fit_reduces_overconfidence():
+    import numpy as np
+    from app.domain.advisory.calibration import apply_temperature, expected_calibration_error, fit_temperature
+
+    rng = np.random.default_rng(0)
+    n, k = 2000, 4
+    labels = rng.integers(0, k, n)
+    # over-confident model: 0.95 on its pick, right only 70 % of the time
+    picks = np.where(rng.random(n) < 0.7, labels, (labels + 1) % k)
+    probs = np.full((n, k), 0.05 / (k - 1))
+    probs[np.arange(n), picks] = 0.95
+    t = fit_temperature(probs, labels)
+    assert t > 1.0
+    assert expected_calibration_error(apply_temperature(probs, t), labels) < expected_calibration_error(probs, labels)

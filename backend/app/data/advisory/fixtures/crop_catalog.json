@@ -17,7 +17,7 @@
           "stage_name": "Crown Root Initiation (CRI)",
           "gdd_cumulative_at_stage_end": 350.0,
           "typical_days_fallback": 25,
-          "kc": 0.50,
+          "kc": 0.5,
           "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & FAO-56"
         },
         {
@@ -57,7 +57,7 @@
           "stage_name": "Milking & Dough (Grain Fill)",
           "gdd_cumulative_at_stage_end": 2100.0,
           "typical_days_fallback": 120,
-          "kc": 0.90,
+          "kc": 0.9,
           "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & FAO-56"
         },
         {
@@ -65,7 +65,7 @@
           "stage_name": "Physiological Maturity & Harvest",
           "gdd_cumulative_at_stage_end": 2400.0,
           "typical_days_fallback": 135,
-          "kc": 0.40,
+          "kc": 0.4,
           "source": "PAU Ludhiana Wheat Package of Practices 2024-25 & FAO-56"
         }
       ],
@@ -88,6 +88,12 @@
         "ideal_humidity_max_pct": 70.0,
         "notes": "Wheat requires cool vegetative weather and warm, sunny conditions during grain ripening.",
         "source": "ICAR-IIWBR Karnal Wheat Agronomy Norms"
+      },
+      "fao56_water": {
+        "root_depth_min_m": 1.0,
+        "root_depth_max_m": 1.5,
+        "depletion_fraction_p": 0.55,
+        "source": "FAO Irrigation and Drainage Paper 56, Table 22 (max effective rooting depth Zr, soil water depletion fraction p)"
       }
     },
     "Tomato": {
@@ -99,7 +105,7 @@
           "stage_name": "Nursery & Transplant Establishment",
           "gdd_cumulative_at_stage_end": 160.0,
           "typical_days_fallback": 20,
-          "kc": 0.60,
+          "kc": 0.6,
           "source": "TNAU Agritech Portal & FAO-56"
         },
         {
@@ -107,7 +113,7 @@
           "stage_name": "Vegetative Growth",
           "gdd_cumulative_at_stage_end": 480.0,
           "typical_days_fallback": 45,
-          "kc": 0.80,
+          "kc": 0.8,
           "source": "TNAU Agritech Portal & FAO-56"
         },
         {
@@ -131,7 +137,7 @@
           "stage_name": "Ripening & Harvest",
           "gdd_cumulative_at_stage_end": 2050.0,
           "typical_days_fallback": 130,
-          "kc": 0.80,
+          "kc": 0.8,
           "source": "TNAU Agritech Portal & FAO-56"
         }
       ],
@@ -153,6 +159,12 @@
         "ideal_humidity_max_pct": 70.0,
         "notes": "High temperatures above 35°C during flowering cause blossom drop and poor fruit setting.",
         "source": "ICAR-IIHR Bengaluru Horticultural Climate Guide"
+      },
+      "fao56_water": {
+        "root_depth_min_m": 0.7,
+        "root_depth_max_m": 1.5,
+        "depletion_fraction_p": 0.4,
+        "source": "FAO Irrigation and Drainage Paper 56, Table 22 (max effective rooting depth Zr, soil water depletion fraction p)"
       }
     },
     "Cotton": {
@@ -180,7 +192,7 @@
           "stage_name": "Squaring (Square Formation)",
           "gdd_cumulative_at_stage_end": 980.0,
           "typical_days_fallback": 65,
-          "kc": 0.90,
+          "kc": 0.9,
           "source": "MPKV Rahuri & FAO-56"
         },
         {
@@ -188,7 +200,7 @@
           "stage_name": "Flowering & Boll Formation",
           "gdd_cumulative_at_stage_end": 1650.0,
           "typical_days_fallback": 105,
-          "kc": 1.20,
+          "kc": 1.2,
           "source": "MPKV Rahuri & FAO-56"
         },
         {
@@ -204,7 +216,7 @@
           "stage_name": "Defoliation & Picking",
           "gdd_cumulative_at_stage_end": 2750.0,
           "typical_days_fallback": 175,
-          "kc": 0.50,
+          "kc": 0.5,
           "source": "MPKV Rahuri & FAO-56"
         }
       ],
@@ -226,6 +238,12 @@
         "ideal_humidity_max_pct": 75.0,
         "notes": "Sensitive to frost. Requires warm days and plentiful sunshine during boll opening.",
         "source": "ICAR-CICR Nagpur Agronomy Advisory"
+      },
+      "fao56_water": {
+        "root_depth_min_m": 1.0,
+        "root_depth_max_m": 1.7,
+        "depletion_fraction_p": 0.65,
+        "source": "FAO Irrigation and Drainage Paper 56, Table 22 (max effective rooting depth Zr, soil water depletion fraction p)"
       }
     },
     "Soybean": {
@@ -237,7 +255,7 @@
           "stage_name": "Emergence (VE-VC)",
           "gdd_cumulative_at_stage_end": 130.0,
           "typical_days_fallback": 8,
-          "kc": 0.40,
+          "kc": 0.4,
           "source": "ICAR-IISR Indore & FAO-56"
         },
         {
@@ -245,7 +263,7 @@
           "stage_name": "Vegetative Development (V1-V4)",
           "gdd_cumulative_at_stage_end": 420.0,
           "typical_days_fallback": 28,
-          "kc": 0.70,
+          "kc": 0.7,
           "source": "ICAR-IISR Indore & FAO-56"
         },
         {
@@ -253,7 +271,7 @@
           "stage_name": "Flowering & Pod Initiation (R1-R3)",
           "gdd_cumulative_at_stage_end": 820.0,
           "typical_days_fallback": 50,
-          "kc": 1.10,
+          "kc": 1.1,
           "source": "ICAR-IISR Indore & FAO-56"
         },
         {
@@ -269,7 +287,7 @@
           "stage_name": "Physiological Maturity & Senescence (R7-R8)",
           "gdd_cumulative_at_stage_end": 1800.0,
           "typical_days_fallback": 105,
-          "kc": 0.50,
+          "kc": 0.5,
           "source": "ICAR-IISR Indore & FAO-56"
         }
       ],
@@ -291,6 +309,12 @@
         "ideal_humidity_max_pct": 80.0,
         "notes": "Thrives in warm, moist Kharif conditions. High temperatures >38°C during flowering trigger flower abortion.",
         "source": "ICAR-IISR Indore Agro-Climatic Norms"
+      },
+      "fao56_water": {
+        "root_depth_min_m": 0.6,
+        "root_depth_max_m": 1.3,
+        "depletion_fraction_p": 0.5,
+        "source": "FAO Irrigation and Drainage Paper 56, Table 22 (max effective rooting depth Zr, soil water depletion fraction p)"
       }
     },
     "Rice": {
@@ -310,7 +334,7 @@
           "stage_name": "Tillering & Stem Elongation",
           "gdd_cumulative_at_stage_end": 700.0,
           "typical_days_fallback": 50,
-          "kc": 1.10,
+          "kc": 1.1,
           "source": "TNAU Agritech Portal & FAO-56"
         },
         {
@@ -318,7 +342,7 @@
           "stage_name": "Panicle Initiation & Booting",
           "gdd_cumulative_at_stage_end": 1150.0,
           "typical_days_fallback": 75,
-          "kc": 1.20,
+          "kc": 1.2,
           "source": "TNAU Agritech Portal & FAO-56"
         },
         {
@@ -334,7 +358,7 @@
           "stage_name": "Milk & Dough (Grain Filling)",
           "gdd_cumulative_at_stage_end": 1950.0,
           "typical_days_fallback": 115,
-          "kc": 1.10,
+          "kc": 1.1,
           "source": "TNAU Agritech Portal & FAO-56"
         },
         {
@@ -342,7 +366,7 @@
           "stage_name": "Ripening & Harvest",
           "gdd_cumulative_at_stage_end": 2350.0,
           "typical_days_fallback": 135,
-          "kc": 0.90,
+          "kc": 0.9,
           "source": "TNAU Agritech Portal & FAO-56"
         }
       ],
@@ -364,7 +388,8 @@
         "ideal_humidity_max_pct": 90.0,
         "notes": "Requires warm humid weather and abundant sunshine during panicle and grain ripening.",
         "source": "ICAR-NRRI Cuttack Rice Climate Advisory"
-      }
+      },
+      "fao56_water": null
     },
     "Maize": {
       "gdd_base_c": 10.0,
@@ -375,7 +400,7 @@
           "stage_name": "Emergence & Early Vegetative (VE-V4)",
           "gdd_cumulative_at_stage_end": 160.0,
           "typical_days_fallback": 12,
-          "kc": 0.40,
+          "kc": 0.4,
           "source": "ICAR-IIMR Ludhiana & FAO-56"
         },
         {
@@ -383,7 +408,7 @@
           "stage_name": "Knee-High Vegetative (V5-V10)",
           "gdd_cumulative_at_stage_end": 520.0,
           "typical_days_fallback": 35,
-          "kc": 0.80,
+          "kc": 0.8,
           "source": "ICAR-IIMR Ludhiana & FAO-56"
         },
         {
@@ -391,7 +416,7 @@
           "stage_name": "Tasseling & Silking (VT-R1)",
           "gdd_cumulative_at_stage_end": 920.0,
           "typical_days_fallback": 58,
-          "kc": 1.20,
+          "kc": 1.2,
           "source": "ICAR-IIMR Ludhiana & FAO-56"
         },
         {
@@ -407,7 +432,7 @@
           "stage_name": "Physiological Maturity & Harvest (R5-R6)",
           "gdd_cumulative_at_stage_end": 1880.0,
           "typical_days_fallback": 110,
-          "kc": 0.60,
+          "kc": 0.6,
           "source": "ICAR-IIMR Ludhiana & FAO-56"
         }
       ],
@@ -429,7 +454,15 @@
         "ideal_humidity_max_pct": 75.0,
         "notes": "Requires moderate temperatures and warm soils. Frost or temperatures >38°C at silking desiccatess pollen.",
         "source": "ICAR-IIMR Ludhiana Agro-Climatic Advisory"
-      }
+      },
+      "fao56_water": {
+        "root_depth_min_m": 1.0,
+        "root_depth_max_m": 1.7,
+        "depletion_fraction_p": 0.55,
+        "source": "FAO Irrigation and Drainage Paper 56, Table 22 (max effective rooting depth Zr, soil water depletion fraction p)"
+      },
+      "gdd_upper_c": 30.0,
+      "gdd_upper_source": "Modified growing-degree-day method for corn (10 °C base / 30 °C cut-off), e.g. Kansas State Univ. Extension MF3740"
     }
   }
 }

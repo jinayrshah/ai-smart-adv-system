@@ -80,7 +80,10 @@ class AgronomyReferenceRepository:
             )
             if res.data:
                 stages: list[CropStageNorm] = []
+                # The DB table predates the upper cut-off column; use the catalog value then.
+                fixture_upper = (self._fixture_data.get(norm_crop) or {}).get("gdd_upper_c")
                 for row in res.data:
+                    upper_val = row.get("gdd_upper_c", fixture_upper)
                     if not row.get("source"):
                         raise ValueError(f"Crop stage norm {row.get('stage_name')} missing source provenance.")
                     stages.append(CropStageNorm(
@@ -91,6 +94,7 @@ class AgronomyReferenceRepository:
                         gdd_cumulative_at_stage_end=float(row["gdd_cumulative_at_stage_end"]),
                         typical_days_fallback=row.get("typical_days_fallback"),
                         source=row["source"],
+                        gdd_upper_c=float(upper_val) if upper_val is not None else None,
                     ))
                 return stages
         except Exception as exc:
@@ -102,6 +106,7 @@ class AgronomyReferenceRepository:
             raise ValueError(f"Crop '{crop}' not found in agronomic stage norms database.")
 
         base_gdd = float(crop_data.get("gdd_base_c", 10.0))
+        upper = crop_data.get("gdd_upper_c")
         stages = []
         for s in crop_data["stages"]:
             source = s.get("source") or crop_data.get("source")
@@ -115,8 +120,21 @@ class AgronomyReferenceRepository:
                 gdd_cumulative_at_stage_end=float(s["gdd_cumulative_at_stage_end"]),
                 typical_days_fallback=s.get("typical_days_fallback"),
                 source=source,
+                gdd_upper_c=float(upper) if upper is not None else None,
             ))
         return stages
+
+    def get_water_params(self, crop: str) -> dict[str, Any] | None:
+        """
+        FAO-56 Table 22 root-zone parameters (Zr range, depletion fraction p) for the
+        soil water balance. None for crops where the method does not apply (paddy).
+        """
+        norm_crop = self._normalize_crop_name(crop)
+        crop_data = self._fixture_data.get(norm_crop) or {}
+        params = crop_data.get("fao56_water")
+        if not params or not params.get("source"):
+            return None
+        return params
 
     def get_kc(self, crop: str, stage_name: str) -> CropKcReference:
         """

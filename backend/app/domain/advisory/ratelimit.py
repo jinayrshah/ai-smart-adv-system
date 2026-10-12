@@ -29,6 +29,12 @@ class SlidingWindowRateLimiter:
             (allowed: bool, remaining_requests: int, retry_after_seconds: float)
         """
         now = time.time()
+        # Keys are now per client IP for anonymous callers, so drop idle keys instead of
+        # letting the dict grow without bound.
+        if len(self._history) > 5000:
+            cutoff = now - self.window_seconds
+            for k in [k for k, ts in self._history.items() if not ts or ts[-1] <= cutoff]:
+                del self._history[k]
         if key not in self._history:
             self._history[key] = deque()
 

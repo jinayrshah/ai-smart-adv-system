@@ -136,6 +136,22 @@ curl -s -X POST "http://127.0.0.1:8000/api/farmer/onboard" \
 curl -s "http://127.0.0.1:8000/api/farmer/farms"
 ```
 
+### 12b. Farmer Irrigation Log & FAO-56 Water Balance Tracking
+```bash
+# 1. Log an irrigation event (feeds the daily FAO-56 root-zone water balance):
+curl -s -X POST "http://127.0.0.1:8000/api/farmer/farms/1/irrigation" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "irrigated_on": "2026-10-10",
+    "amount_mm": 45.0,
+    "method": "drip",
+    "note": "Regular scheduled irrigation"
+  }'
+
+# 2. Retrieve irrigation history for a farm:
+curl -s "http://127.0.0.1:8000/api/farmer/farms/1/irrigation"
+```
+
 ### 13. Phase 2 Agronomy Engines (GDD Stages, ETc Deficit, Soil & Climate)
 ```bash
 # 1. Supported crops & stage norms:
@@ -208,12 +224,17 @@ curl -s -X POST "http://127.0.0.1:8000/api/advisory/queries/1001/feedback" \
 ### 16. Phase 5 Crop Disease Detection & RAG Treatment Linking
 ```bash
 # 1. Analyze crop leaf photo (multipart upload with verified ICAR treatment extracts):
+# Note: Returns {"status": "unavailable"} safely if no trained .keras model exists in models/
 curl -s -X POST "http://127.0.0.1:8000/api/advisory/disease-check" \
   -F "file=@path/to/leaf_photo.jpg" \
   -F "crop=Tomato"
 
-# 2. Train / fine-tune MobileNetV2 on PlantVillage dataset (offline script):
-python training/train_disease_model.py --data-dir path/to/dataset --epochs 10
+# 2. Train / fine-tune MobileNetV2 with held-out test split and temperature calibration:
+python training/train_disease_model.py \
+  --data-dir path/to/dataset \
+  --holdout-test-dir path/to/field_test \
+  --epochs 10 \
+  --calibrate
 ```
 
 ### 17. Phase 6 Government Schemes Catalog & Grounded Q&A
@@ -278,5 +299,28 @@ npm run build
 - `backend/app/data/advisory/` — Agronomic reference repository, RAG repository (`rag_repo.py`), query repository (`query_repo.py`), and fixtures
 - `backend/app/schemas/` — Pydantic models for advisory (`advisory.py`, `rag.py`)
 - `backend/jobs/` — Scheduled pipelines & ingest jobs (`load_advisory_reference.py`, `ingest_document.py`, `prune.py`)
-- `supabase/migrations/` — `20261006000000_advisory_phase1.sql`, `20261006000001_advisory_phase2_engines.sql`, `20261006000002_advisory_phase3_rag.sql`, `20261006000003_advisory_phase4_ask.sql`
+- `supabase/migrations/`:
+  - `20261006000000_advisory_phase1.sql` — Farmer profile & farm crop schema
+  - `20261006000001_advisory_phase2_engines.sql` — Crop stages and agronomic benchmarks
+  - `20261006000002_advisory_phase3_rag.sql` — RAG vector embeddings & pgvector store
+  - `20261006000003_advisory_phase4_ask.sql` — Advisory queries & farmer feedback tracking
+  - `20261010000000_rag_hybrid_search.sql` — Full-text search (FTS) index & `search_rag_chunks_fts` RPC
+  - `20261011000000_irrigation_events.sql` — Irrigation log table & RLS policies
+  - `20261011000001_farm_crop_status.sql` — Daily growth stage & water balance cache
+  - `20261011000002_mandi_market_name_cleanup.sql` — APMC market duplicate cleanup migration
 
+---
+
+## 🔐 Environment Variables Reference
+
+| Variable | Required In | Description |
+|---|---|---|
+| `JWT_SECRET` | **Production (Mandatory)** | HMAC secret for session authentication tokens. Express server refuses to start in production without it. |
+| `GEMINI_API_KEY` | Development & Production | Google Gemini API key for grounded market insights and agronomic advisory. |
+| `GEMINI_MODEL` | Optional (default: `gemini-2.5-flash`) | Primary LLM model for generation; fallbacks to `gemini-2.5-flash-lite`. |
+| `BHASHINI_USER_ID` | Optional | MeitY Bhashini User ID for Indic language translations (hi, mr, gu, etc.). |
+| `BHASHINI_API_KEY` | Optional | MeitY Bhashini ULCA API key. |
+| `SUPABASE_URL` | Recommended | Supabase database instance URL. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Recommended | Supabase backend service key for migrations, RAG vectors, and farm persistence. |
+| `FASTAPI_URL` | Optional (default: `http://127.0.0.1:8000`) | Backend URL used by Express proxy routes. |
+| `CORS_ALLOW_ORIGINS` | Optional | Comma-separated allowed origins for FastAPI backend. |

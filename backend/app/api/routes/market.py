@@ -217,23 +217,12 @@ def get_market_insight_route(
     )
 
     expected = trend.coverage.expected_days or 1
-    actual = trend.coverage.days_with_data
-    cov = int(round((actual / expected) * 100))
-
-    valid_points = [p for p in trend.points if p.modal is not None]
-    change7d_pct = None
-    change30d_pct = None
-    latest_price = valid_points[-1].modal if valid_points else None
-
-    if len(valid_points) >= 2:
-        if len(valid_points) >= 7 and valid_points[-7].modal:
-            base7 = valid_points[-7].modal
-            if base7 > 0 and latest_price:
-                change7d_pct = round(((latest_price - base7) / base7) * 100, 1)
-        if len(valid_points) >= 1 and valid_points[0].modal:
-            base30 = valid_points[0].modal
-            if base30 > 0 and latest_price:
-                change30d_pct = round(((latest_price - base30) / base30) * 100, 1)
+    cov = int(round(trend.coverage.days_with_data / expected * 100))
+    latest_price = trend.latest_modal
+    # Changes come from the trend builder: computed against a real report ~7 / ~30 days
+    # before the latest one, and suppressed when the window has < 3 reports.
+    change7d_pct = trend.change_7d_pct
+    change30d_pct = trend.change_30d_pct
 
     margin = calc_service.calculate_margin(
         crop=commodity,
@@ -266,6 +255,9 @@ def get_market_insight_route(
         "change30d_pct": change30d_pct,
         "coverage_pct": cov,
         "gaps_count": len(trend.coverage.gaps),
+        "reports_in_window": trend.reports_in_window,
+        "window_days": trend.coverage.expected_days,
+        "latest_date": trend.latest_date,
         "cost_c2": cost_c2,
         "net_margin": net_margin,
         "breakeven_price": breakeven,
@@ -282,5 +274,7 @@ def get_market_insight_route(
         confidence=res["confidence"],
         coverage_pct=res["coverage_pct"],
         as_of=now_utc_iso(),
+        generated_by=res.get("generated_by", "deterministic"),
+        reports_in_window=trend.reports_in_window,
     )
 

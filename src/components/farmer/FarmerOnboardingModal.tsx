@@ -321,7 +321,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                   className="w-full bg-zinc-800/80 border border-zinc-700 rounded-xl py-2.5 px-3 text-zinc-100 text-xs focus:border-emerald-500 focus:outline-none"
                 >
                   {SOIL_TYPES.map((s) => (
-                    <option key={s} value={s.split(' ')[0]}>{s}</option>
+                    <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
               </div>

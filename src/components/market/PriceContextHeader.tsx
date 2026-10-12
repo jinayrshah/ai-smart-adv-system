@@ -16,7 +16,15 @@ interface PriceContextHeaderProps {
   firstReportedDate?: string | null;
   maxGapDays?: number;
   varietiesIncluded?: string[];
+  latestDate?: string | null;
+  reportsInWindow?: number;
+  mergedNames?: string[];
 }
+
+const fmtDate = (iso?: string | null) =>
+  iso
+    ? new Date(iso.slice(0, 10) + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+    : "";
 
 export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
   commodity,
@@ -30,7 +38,11 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
   firstReportedDate,
   maxGapDays,
   varietiesIncluded,
+  latestDate,
+  reportsInWindow,
+  mergedNames,
 }) => {
+  const unitLabel = unit === "Rs/Quintal" ? "quintal" : unit;
   const coveragePct = Math.round((coverage.days_with_data / (coverage.expected_days || 1)) * 100);
   const isHealthyCoverage = coveragePct >= 60;
 
@@ -49,14 +61,20 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
               <span className="flex flex-wrap items-baseline gap-2">
                 <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
                   ₹{latestPrice.toLocaleString("en-IN")}
-                  <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400 ml-1">/{unit}</span>
+                  <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400 ml-1">/{unitLabel}</span>
                 </span>
                 <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded-md border border-zinc-200 dark:border-zinc-700">
-                  ₹{(latestPrice / 100).toFixed(1)} / kg
+                  ₹{(latestPrice / 100).toFixed(2)} / kg
                 </span>
               </span>
             )}
           </h2>
+          {latestDate && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              Latest report: {fmtDate(latestDate)}
+              {reportsInWindow !== undefined && ` • ${reportsInWindow} report${reportsInWindow === 1 ? "" : "s"} in this period`}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -69,7 +87,7 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
               }`}
             >
               {change7dPct >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-              <span>{change7dPct > 0 ? `+${change7dPct}%` : `${change7dPct}%`} (7d)</span>
+              <span>{change7dPct > 0 ? `+${change7dPct}%` : `${change7dPct}%`} vs ~1 week ago</span>
             </div>
           )}
 
@@ -82,7 +100,7 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
               }`}
             >
               {change30dPct >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-              <span>{change30dPct > 0 ? `+${change30dPct}%` : `${change30dPct}%`} (30d)</span>
+              <span>{change30dPct > 0 ? `+${change30dPct}%` : `${change30dPct}%`} vs ~1 month ago</span>
             </div>
           )}
 
@@ -110,18 +128,24 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
           {firstReportedDate && (
             <div className="flex items-center gap-1.5">
               <span className="font-semibold text-zinc-700 dark:text-zinc-300">First recorded:</span>
-              <span>{firstReportedDate}</span>
+              <span>{fmtDate(firstReportedDate)}</span>
             </div>
           )}
           {maxGapDays !== undefined && (
             <div className="flex items-center gap-1.5">
               <span className="font-semibold text-zinc-700 dark:text-zinc-300">Max reporting gap:</span>
-              <span>{maxGapDays === 0 ? "Continuous" : `${maxGapDays} consecutive days`}</span>
+              <span>{maxGapDays === 0 ? "None" : `${maxGapDays} day${maxGapDays === 1 ? "" : "s"} without a report`}</span>
+            </div>
+          )}
+          {mergedNames && mergedNames.length > 1 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Also reported as:</span>
+              <span>{mergedNames.join(", ")}</span>
             </div>
           )}
           {varietiesIncluded && varietiesIncluded.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Varieties:</span>
+              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Varieties included:</span>
               <span className="bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-700 dark:text-zinc-300">
                 {varietiesIncluded.join(", ")}
               </span>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Logo } from './components/Logo';
 import { ChatWidget } from './components/ChatWidget';
 import { 
@@ -58,7 +58,7 @@ import {
 import { agricultureService, CropInput, PredictionResult, WeatherContext } from './services/aiService';
 import { initKnowledgeBase } from './services/ragService';
 import { marketService, MarketPrice, MarketFilters } from './services/marketService';
-import { MarketDataView } from './components/market/MarketDataView';
+import { MarketDataView, type MarketSelection } from './components/market/MarketDataView';
 import { MandiExplore } from './components/market/MandiExplore';
 import { WeatherStrip } from './components/weather/WeatherStrip';
 import { fetchWeatherSummary } from './lib/api/weather';
@@ -85,6 +85,7 @@ import { useUIStore, type UIActiveTab } from './stores/uiStore';
 import { useTranslation } from 'react-i18next';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { normalizeFarmerProfile, formatIsoDate } from './lib/farmerProfile';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -135,7 +136,7 @@ const HERO_CONTENT = [
 ];
 
 export function AppContent() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [showLocationBanner, setShowLocationBanner] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const { appData, updateModuleData } = useAppContext();
@@ -155,6 +156,9 @@ export function AppContent() {
       return null;
     }
   });
+
+  const farmView = useMemo(() => normalizeFarmerProfile(farmerProfile), [farmerProfile]);
+  const [marketSelection, setMarketSelection] = useState<MarketSelection | null>(null);
 
   const [lastMarketUpdate, setLastMarketUpdate] = useState<Date>(new Date());
 
@@ -693,17 +697,23 @@ export function AppContent() {
                   Precision Farm Profile Active
                 </span>
                 <span className="text-xs text-zinc-400">
-                  Grid: {farmerProfile.farm?.agromet_grid_id || 'Auto-snapped'}
+                  Weather grid: {farmView?.farm?.gridKey || 'not set'}
                 </span>
               </div>
               <h3 className="text-lg font-bold text-stone-100 mt-2">
-                🌾 {farmerProfile.farm?.farm_name || 'My Farm'} • {farmerProfile.crop?.crop_name || 'Selected Crop'}
+                🌾 {farmView?.farm?.name || 'My farm'}
+                {farmView?.crop ? ` • ${farmView.crop.name}` : ''}
+                {farmView?.crop?.variety ? ` (${farmView.crop.variety})` : ''}
               </h3>
               <p className="text-xs text-stone-400 mt-1">
-                Soil: <span className="text-emerald-400 font-medium">{farmerProfile.farm?.soil_type || 'Unspecified'}</span> • 
-                Sown: <span className="text-stone-300 font-medium">{farmerProfile.crop?.sowing_date || 'Current Season'}</span>
-                {farmerProfile.farm?.shc_n !== undefined && (
-                  <span> • SHC (N: {farmerProfile.farm?.shc_n}, P: {farmerProfile.farm?.shc_p}, K: {farmerProfile.farm?.shc_k}, pH: {farmerProfile.farm?.shc_ph})</span>
+                Soil: <span className="text-emerald-400 font-medium">{farmView?.farm?.soilType || 'Not provided'}</span>
+                {farmView?.crop?.sowingDate && (
+                  <> • Sown: <span className="text-stone-300 font-medium">{formatIsoDate(farmView.crop.sowingDate)}</span></>
+                )}
+                {farmView?.farm?.npk && [farmView.farm.npk.n, farmView.farm.npk.p, farmView.farm.npk.k, farmView.farm.npk.ph].some((v) => v != null) && (
+                  <span>
+                    {' '}• Soil test: N {farmView.farm.npk.n ?? '–'} kg/ha, P {farmView.farm.npk.p ?? '–'} kg/ha, K {farmView.farm.npk.k ?? '–'} kg/ha, pH {farmView.farm.npk.ph ?? '–'}
+                  </span>
                 )}
               </p>
             </div>
@@ -719,10 +729,10 @@ export function AppContent() {
           </div>
         </div>
 
-        {farmerProfile.farm?.id && (
-          <FarmDiagnosticCard 
-            farmId={farmerProfile.farm.id} 
-            cropId={farmerProfile.crop?.id} 
+        {farmView?.farm?.id != null && (
+          <FarmDiagnosticCard
+            farmId={String(farmView.farm.id)}
+            cropId={farmView.crop?.id != null ? String(farmView.crop.id) : undefined}
           />
         )}
         </>
@@ -752,12 +762,12 @@ export function AppContent() {
       )}
 
       {/* Grounded Precision Agronomy Q&A Consultation */}
-      <AdvisoryChatCard 
-        farmId={farmerProfile.farm?.id ? String(farmerProfile.farm.id) : undefined}
-        crop={farmerProfile.crop?.crop_name}
-        farmerId={farmerProfile.profile?.id}
-        sowingDate={farmerProfile.crop?.sowing_date}
-        soilType={farmerProfile.farm?.soil_type}
+      <AdvisoryChatCard
+        farmId={farmView?.farm?.id != null ? String(farmView.farm.id) : undefined}
+        crop={farmView?.crop?.name}
+        farmerId={farmView?.profileId ?? undefined}
+        sowingDate={farmView?.crop?.sowingDate ?? undefined}
+        soilType={farmView?.farm?.soilType ?? undefined}
       />
 
       {/* Verified Government Schemes & Subsidies */}
@@ -845,11 +855,21 @@ export function AppContent() {
   const renderPriceTrends = () => {
     return (
       <div className="space-y-6 pb-24">
-        <MarketDataView />
+        <MarketDataView
+          selection={marketSelection}
+          farmFieldSizeAcres={farmView?.farm?.fieldSizeAcres ?? null}
+          initialCommodity={
+            farmView?.crop && ['Wheat', 'Tomato', 'Cotton', 'Soybean', 'Rice', 'Maize'].includes(farmView.crop.name)
+              ? farmView.crop.name
+              : undefined
+          }
+        />
 
-        {/* Phase 2B: Mandi Explorer — search any crop at any market */}
+        {/* Mandi Explorer — clicking a card loads it in the view above */}
         <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-8">
-          <MandiExplore />
+          <MandiExplore
+            onSelect={(sel) => setMarketSelection({ ...sel, nonce: Date.now() })}
+          />
         </div>
       </div>
     );
@@ -1259,6 +1279,12 @@ export function AppContent() {
         initialName={user?.name}
         onComplete={(result) => {
           setFarmerProfile(result);
+          // One language setting for the whole app (README §8): the advisory language the
+          // farmer picked during onboarding also drives the UI dictionaries.
+          const lang = result?.profile?.preferred_language;
+          if (lang && lang !== i18n.language) {
+            i18n.changeLanguage(lang);
+          }
           try {
             localStorage.setItem('farmer_onboarding_profile', JSON.stringify(result));
           } catch {}

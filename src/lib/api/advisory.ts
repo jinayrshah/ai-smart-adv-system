@@ -11,18 +11,24 @@ export interface CropStageNorm {
   gdd_cumulative_at_stage_end: number;
   typical_days_fallback?: number;
   source: string;
+  gdd_upper_c?: number | null;
 }
 
 export interface StageResult {
   crop: string;
   stage_name: string;
   stage_order: number;
-  cumulative_gdd: number;
+  /** null under the calendar fallback — thermal time was not measured */
+  cumulative_gdd: number | null;
   days_since_sowing: number;
   method: 'gdd' | 'calendar_fallback';
   source: string;
   next_stage_name?: string | null;
   gdd_remaining_in_stage?: number | null;
+  weather_coverage_pct?: number | null;
+  imputed_days?: number;
+  stage_progress_pct?: number | null;
+  gdd_upper_c?: number | null;
 }
 
 export interface IrrigationAdvice {
@@ -36,10 +42,31 @@ export interface IrrigationAdvice {
   recommendation: string;
   confidence: 'high' | 'medium' | 'low';
   source: string;
+  method?: 'fao56_water_balance' | '7day_deficit' | 'insufficient_data';
+  data_available?: boolean;
+  effective_rain_7d_mm?: number | null;
+  root_zone_depletion_mm?: number | null;
+  taw_mm?: number | null;
+  raw_mm?: number | null;
+  root_depth_m?: number | null;
+  days_to_stress?: number | null;
+  forecast_rain_3d_mm?: number | null;
+  forecast_rain_prob_max_pct?: number | null;
+  net_irrigation_mm?: number | null;
+  gross_irrigation_mm?: number | null;
+  action?: 'irrigate_now' | 'wait_for_rain' | 'no_irrigation_needed' | 'monitor' | 'unknown';
+  assumptions?: string[];
 }
 
 export interface SoilFlag {
-  flag_type: 'soil_type_mismatch' | 'ph_out_of_range' | 'low_nitrogen' | 'low_phosphorus' | 'low_potassium' | 'high_nitrogen';
+  flag_type:
+    | 'soil_type_mismatch'
+    | 'ph_out_of_range'
+    | 'low_nitrogen'
+    | 'low_phosphorus'
+    | 'low_potassium'
+    | 'high_nitrogen'
+    | 'low_organic_carbon';
   actual_value: any;
   expected: any;
   notes?: string | null;
@@ -69,7 +96,41 @@ export interface AgronomyDiagnosticResponse {
   stage: StageResult;
   irrigation: IrrigationAdvice;
   soil_flags: SoilFlag[];
-  climate: ClimateVerdict;
+  /** null when no temperature reading exists for the farm's grid */
+  climate: ClimateVerdict | null;
+  irrigation_events_logged?: number;
+}
+
+export interface IrrigationEvent {
+  id: number;
+  farm_id: number;
+  farm_crop_id?: number | null;
+  irrigated_on: string;
+  amount_mm: number;
+  method?: string | null;
+  note?: string | null;
+}
+
+export async function logIrrigation(
+  farmId: string | number,
+  event: { irrigated_on: string; amount_mm: number; farm_crop_id?: number | null; note?: string },
+): Promise<IrrigationEvent> {
+  const res = await fetch(`/api/farmer/farms/${farmId}/irrigation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(event),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(typeof err.detail === 'string' ? err.detail : 'Could not save the irrigation entry');
+  }
+  return res.json();
+}
+
+export async function fetchIrrigationLog(farmId: string | number): Promise<IrrigationEvent[]> {
+  const res = await fetch(`/api/farmer/farms/${farmId}/irrigation`);
+  if (!res.ok) throw new Error('Could not load the irrigation log');
+  return res.json();
 }
 
 export async function fetchCrops(): Promise<string[]> {
@@ -171,7 +232,10 @@ export async function fetchFarmDiagnostic(
   });
 
   const res = await fetch(`/api/advisory/diagnostic?${query.toString()}`);
-  if (!res.ok) throw new Error('Failed to generate farm agronomic diagnostic');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(typeof err.detail === 'string' ? err.detail : 'Failed to generate farm agronomic diagnostic');
+  }
   return res.json();
 }
 
@@ -186,6 +250,8 @@ export interface AdvisoryComputedContext {
   irrigation?: IrrigationAdvice | null;
   soil_flags?: SoilFlag[];
   climate?: ClimateVerdict | null;
+  /** inputs that were defaulted because the farmer has not provided them */
+  assumptions?: string[];
 }
 
 export interface AdvisoryAskRequest {
@@ -208,6 +274,8 @@ export interface AdvisoryAskResponse {
   sources: AdvisorySource[];
   computed: AdvisoryComputedContext;
   retrieved_chunk_ids: number[];
+  ungrounded_numbers?: string[];
+  generated_by?: string;
 }
 
 export interface AdvisoryFeedbackResponse {
@@ -259,6 +327,10 @@ export interface DiseaseCheckResponse {
   confidence_status: 'high' | 'moderate' | 'low';
   advisory_note: string;
   treatments: DiseaseTreatmentExtract[];
+  /** 'unavailable' = no trained model installed (no diagnosis given); 'rejected' = photo unusable */
+  status?: 'model' | 'unavailable' | 'rejected';
+  model_version?: string | null;
+  top_k?: Array<{ label: string; confidence: number; display_name?: string }>;
 }
 
 export async function checkCropDisease(

@@ -6,12 +6,17 @@ import en from './locales/en.json';
 import hi from './locales/hi.json';
 import kn from './locales/kn.json';
 import te from './locales/te.json';
+// Marathi and Gujarati: machine-drafted dictionaries (README §8) — pending native-speaker review.
+import mr from './locales/mr.json';
+import gu from './locales/gu.json';
 
 const resources = {
   en: { translation: en },
   hi: { translation: hi },
   kn: { translation: kn },
-  te: { translation: te }
+  te: { translation: te },
+  mr: { translation: mr },
+  gu: { translation: gu }
 };
 
 i18n

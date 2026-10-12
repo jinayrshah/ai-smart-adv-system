@@ -229,7 +229,17 @@ const getRuntimeDataFile = (fileName: string, defaultValue: unknown) => {
 export async function createApp() {
   const app = express();
   app.set('trust proxy', 1);
-  const JWT_SECRET = process.env.JWT_SECRET || 'smart-agri-secret-key-2026';
+  // A hard-coded fallback secret lets anyone who reads this repo forge login tokens.
+  // Production refuses to start without JWT_SECRET; development uses a random
+  // per-process secret (sessions reset on restart).
+  let JWT_SECRET = process.env.JWT_SECRET || '';
+  if (!JWT_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET must be set in production');
+    }
+    JWT_SECRET = crypto.randomBytes(32).toString('hex');
+    console.warn('[AUTH] JWT_SECRET not set; using a random development secret (logins reset on restart).');
+  }
 
   app.use(express.json());
 
@@ -849,13 +859,16 @@ export async function createApp() {
         return res.status(404).json({ status: 'error', error: 'User not found' });
       }
 
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otp = crypto.randomInt(100000, 1000000).toString(); // CSPRNG, not Math.random
       const hashedOtp = await bcrypt.hash(otp, 10);
       const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
       otpStore.set(identifier, { hashedOtp, expiresAt, attempts: 0 });
 
-      console.log(`[AUTH] Password Reset OTP for ${identifier}: ${otp}`);
+      if (process.env.NODE_ENV !== 'production') {
+        // Development only: no SMS/e-mail provider is wired up yet.
+        console.log(`[AUTH] (dev) Password reset OTP for ${identifier}: ${otp}`);
+      }
       res.json({ status: 'ok', message: 'Reset OTP sent successfully', expiresAt });
     } catch (error) {
       console.error('[API] Reset password request error:', error);
@@ -864,11 +877,15 @@ export async function createApp() {
   });
 
   // Password Reset Confirm
-  app.post('/api/auth/reset-password-confirm', async (req, res) => {
+  app.post('/api/auth/reset-password-confirm', authLimiter, async (req, res) => {
     try {
       const { identifier, otp, newPassword } = req.body;
       if (!identifier || !otp || !newPassword) {
         return res.status(400).json({ status: 'error', error: 'Identifier, OTP and new password are required' });
+      }
+
+      if (typeof newPassword !== 'string' || newPassword.length < 8) {
+        return res.status(400).json({ status: 'error', error: 'New password must be at least 8 characters' });
       }
 
       const storedData = otpStore.get(identifier);
@@ -901,24 +918,24 @@ export async function createApp() {
       res.json({ status: 'ok', message: 'Password reset successfully' });
     } catch (error) {
       console.error('[API] Reset password confirm error:', error);
-      res.json({ status: 'ok', fallback: true, message: 'Failed to reset password' });
+      res.status(500).json({ status: 'error', error: 'Failed to reset password' });
     }
   });
 
   // Deprecated OTP routes (for backward compatibility if needed, but we'll remove them from UI)
-  app.post('/api/auth/send-otp', async (req, res) => {
+  app.post('/api/auth/send-otp', authLimiter, async (req, res) => {
     const { identifier } = req.body;
     if (!identifier) return res.status(400).json({ status: 'error', error: 'Identifier is required' });
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
     otpStore.set(identifier, { hashedOtp, expiresAt, attempts: 0 });
-    console.log(`[AUTH] OTP for ${identifier}: ${otp}`);
+    if (process.env.NODE_ENV !== 'production') console.log(`[AUTH] (dev) OTP for ${identifier}: ${otp}`);
     res.json({ status: 'ok', message: 'OTP sent successfully', expiresAt });
   });
 
-  app.post('/api/auth/verify-otp', async (req, res) => {
+  app.post('/api/auth/verify-otp', authLimiter, async (req, res) => {
     const { identifier, otp } = req.body;
     if (!identifier || !otp) return res.status(400).json({ status: 'error', error: 'Identifier and OTP are required' });
 
@@ -995,66 +1012,67 @@ export async function createApp() {
   });
   // --- End Auth Routes ---
 
-  // Proxy FastAPI farmer & onboarding endpoints (all HTTP methods)
-  app.all('/api/farmer*', async (req, res) => {
+  // ---- FastAPI proxy -------------------------------------------------------------
+  // One helper instead of three copies. Fixes:
+  //  * multipart bodies (disease photo upload) are streamed through untouched — the old
+  //    proxies rebuilt every request as JSON from req.body, so uploads arrived empty;
+  //  * the caller's IP is forwarded (FastAPI trusts X-Forwarded-For only from this local
+  //    proxy), otherwise every user shared FastAPI's single per-IP rate-limit bucket;
+  //  * non-JSON responses are passed through instead of crashing on response.json().
+  const FASTAPI_URL = (process.env.FASTAPI_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+  const proxyToFastApi = async (req: any, res: any) => {
     try {
-      const fastApiUrl = `http://127.0.0.1:8000${req.originalUrl}`;
-      const options: RequestInit = {
-        method: req.method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(req.headers.authorization ? { 'Authorization': req.headers.authorization } : {}),
-        },
-      };
-      if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body && Object.keys(req.body).length > 0) {
-        options.body = JSON.stringify(req.body);
-      }
-      const response = await fetch(fastApiUrl, options);
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (err: any) {
-      res.status(502).json({
-        error: 'FastAPI backend unavailable',
-        hint: 'Make sure the FastAPI backend is running on port 8000 (python -m uvicorn app.main:app --port 8000)',
-        details: err.message,
-      });
-    }
-  });
+      const headers: Record<string, string> = {};
+      if (req.headers.authorization) headers['Authorization'] = req.headers.authorization;
+      const clientIp = req.ip || req.socket?.remoteAddress;
+      if (clientIp) headers['X-Forwarded-For'] = clientIp;
+      if (req.headers['accept-language']) headers['Accept-Language'] = String(req.headers['accept-language']);
 
-  // Proxy FastAPI advisory & agronomy computation endpoints (all HTTP methods)
-  app.all('/api/advisory*', async (req, res) => {
-    try {
-      const fastApiUrl = `http://127.0.0.1:8000${req.originalUrl}`;
-      const options: RequestInit = {
-        method: req.method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(req.headers.authorization ? { 'Authorization': req.headers.authorization } : {}),
-        },
-      };
-      if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body && Object.keys(req.body).length > 0) {
-        options.body = JSON.stringify(req.body);
+      const contentType = String(req.headers['content-type'] || '');
+      const init: any = { method: req.method, headers };
+      if (!['GET', 'HEAD'].includes(req.method)) {
+        if (contentType.startsWith('application/json')) {
+          headers['Content-Type'] = 'application/json';
+          init.body = JSON.stringify(req.body ?? {});
+        } else if (contentType) {
+          headers['Content-Type'] = contentType;
+          if (req.headers['content-length']) headers['Content-Length'] = String(req.headers['content-length']);
+          init.body = req; // stream (express.json() leaves non-JSON bodies unread)
+          init.duplex = 'half';
+        }
       }
-      const response = await fetch(fastApiUrl, options);
-      const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        const data = await response.json();
-        res.status(response.status).json(data);
+
+      const response = await fetch(`${FASTAPI_URL}${req.originalUrl}`, init);
+      const respType = response.headers.get('content-type') || '';
+      res.status(response.status);
+      if (respType.includes('application/json')) {
+        res.json(await response.json());
       } else {
-        const text = await response.text();
-        res.status(response.status).send(text);
+        if (respType) res.type(respType);
+        res.end(new Uint8Array(await response.arrayBuffer()));
       }
     } catch (err: any) {
       res.status(502).json({
         error: 'FastAPI backend unavailable',
-        hint: 'Make sure the FastAPI backend is running on port 8000 (npm run dev:backend)',
+        hint: `Make sure the FastAPI backend is running at ${FASTAPI_URL} (npm run dev:backend)`,
         details: err.message,
       });
     }
+  };
+
+  app.all('/api/farmer*', proxyToFastApi);
+  app.all('/api/advisory*', proxyToFastApi);
+
+  // The grounded market insight lives in FastAPI (Revisions §2.3). Requests that name a
+  // market come from the new market page; the legacy route below keeps serving the old
+  // state/district-only widget.
+  app.get('/api/market/insight', (req: any, res: any, next: any) => {
+    if (req.query.market) return proxyToFastApi(req, res);
+    next();
   });
 
-  // Proxy FastAPI data-layer endpoints (trend, latest prices, search, health, weather, calculators)
-  // MUST be declared BEFORE /api/weather/:city so routes like /api/weather/summary are not hijacked
+  // Data-layer endpoints (trend, latest prices, search, calculators, weather, context).
+  // MUST be declared BEFORE /api/weather/:city so routes like /api/weather/summary are not hijacked.
   app.get([
     '/api/market/trend',
     '/api/market/prices/latest',
@@ -1068,20 +1086,7 @@ export async function createApp() {
     '/api/weather/summary',
     '/api/weather/search',
     '/api/context/market-weather',
-  ], async (req, res) => {
-    try {
-      const fastApiUrl = `http://127.0.0.1:8000${req.originalUrl}`;
-      const response = await fetch(fastApiUrl);
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (err: any) {
-      res.status(502).json({
-        error: 'FastAPI backend unavailable',
-        hint: 'Make sure the FastAPI backend is running on port 8000 (python -m uvicorn app.main:app --port 8000)',
-        details: err.message,
-      });
-    }
-  });
+  ], proxyToFastApi);
 
   // Weather API Route
   app.get('/api/weather/:city', async (req, res) => {

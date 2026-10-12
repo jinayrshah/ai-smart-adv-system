@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   MessageSquare,
   Send,
@@ -34,6 +35,7 @@ export const AdvisoryChatCard: React.FC<Props> = ({
   sowingDate,
   soilType
 }) => {
+  const { i18n } = useTranslation();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +70,8 @@ export const AdvisoryChatCard: React.FC<Props> = ({
         farmer_id: farmerId || undefined,
         sowing_date: sowingDate || undefined,
         soil_type: soilType || undefined,
-        language: 'en'
+        // The backend answers in English and translates with Bhashini (README §8).
+        language: (i18n.language || 'en').split('-')[0]
       });
 
       setHistory(prev => [
@@ -237,9 +240,27 @@ export const AdvisoryChatCard: React.FC<Props> = ({
                     </span>
                     {item.response.computed.irrigation && (
                       <span className="text-stone-400">
-                        • Deficit: {item.response.computed.irrigation.deficit_mm} mm
+                        • Water:{' '}
+                        {{
+                          irrigate_now: 'irrigate now',
+                          wait_for_rain: 'wait for forecast rain',
+                          no_irrigation_needed: 'no irrigation needed',
+                          monitor: 'keep an eye on it',
+                          unknown: 'not enough data',
+                        }[item.response.computed.irrigation.action ?? 'monitor'] ?? 'see answer'}
                       </span>
                     )}
+                  </div>
+                )}
+
+                {item.response.computed?.assumptions && item.response.computed.assumptions.length > 0 && (
+                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-200">
+                    <span className="font-semibold block mb-0.5">This answer is approximate because:</span>
+                    <ul className="list-disc pl-4 space-y-0.5">
+                      {item.response.computed.assumptions.map((a, i) => (
+                        <li key={i}>{a}</li>
+                      ))}
+                    </ul>
                   </div>
                 )}
 

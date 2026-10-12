@@ -9,7 +9,7 @@ from app.data.locations.repository import LocationsRepository
 from app.data.types import WeatherDay
 from app.data.weather.fusion import fuse_range, load_fusion_config
 from app.data.weather.providers.open_meteo import OpenMeteoClient
-from app.data.weather.repository import WeatherRepository
+from app.data.weather.repository import WeatherRepository, weather_day_from_row
 
 logger = setup_logger("reconcile_recent")
 
@@ -69,24 +69,7 @@ def run_reconcile_recent() -> int:
 
             # 2. Fetch all raw rows for this grid and date range to re-fuse
             raw_db_rows = weather_repo.get_raw_daily_range(grid_key, start_date, end_date)
-            parsed_raw: list[WeatherDay] = []
-            for r in raw_db_rows:
-                d_val = r["date"]
-                d_obj = date.fromisoformat(d_val) if isinstance(d_val, str) else d_val
-                parsed_raw.append(
-                    WeatherDay(
-                        grid_key=grid_key,
-                        date=d_obj,
-                        source=r["source"],
-                        kind=r["kind"],
-                        tmax_c=r.get("tmax_c"),
-                        tmin_c=r.get("tmin_c"),
-                        precip_mm=r.get("precip_mm"),
-                        rh_mean_pct=r.get("rh_mean_pct"),
-                        radiation_mj_m2=r.get("radiation_mj_m2"),
-                        et0_mm=r.get("et0_mm"),
-                    )
-                )
+            parsed_raw: list[WeatherDay] = [weather_day_from_row(r, grid_key) for r in raw_db_rows]
 
             # 3. Re-fuse with newly replaced archive rows
             fused_days = fuse_range(
@@ -112,7 +95,7 @@ def run_reconcile_recent() -> int:
             failed_grids.append(grid_key)
 
     elapsed = time.time() - start_time
-    status = "ok" if not failed_grids else "partial"
+    status = "ok" if not failed_grids else ("partial" if len(failed_grids) < len(grids) else "failed")
 
     weather_repo.finish_ingestion_run(
         run_id=run_id,
@@ -130,6 +113,8 @@ def run_reconcile_recent() -> int:
         f"reconcile_recent completed in {elapsed:.2f}s: {total_archive_rows} archive rows, "
         f"{total_fused_updated} fused rows updated."
     )
+    if status == 'failed':
+        return -1
     return total_archive_rows + total_fused_updated
 
 

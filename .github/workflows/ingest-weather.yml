@@ -13,6 +13,7 @@ on:
           - reconcile_recent
           - power_validate
           - refresh_normals
+          - recompute_growth_stages
   schedule:
     # 4x daily forecast & current ingest (05:45, 11:45, 17:45, 23:45 IST)
     - cron: "15 0,6,12,18 * * *"
@@ -20,6 +21,8 @@ on:
     - cron: "30 2 * * *"
     # Daily NASA POWER validator at 08:30 IST (03:00 UTC)
     - cron: "0 3 * * *"
+    # Daily crop stage / water-balance recompute at 09:00 IST (03:30 UTC), after reconcile
+    - cron: "30 3 * * *"
 
 concurrency:
   group: ingest-weather
@@ -55,6 +58,8 @@ jobs:
             python -m jobs.reconcile_recent
           elif [ "${{ github.event.schedule }}" = "0 3 * * *" ]; then
             python -m jobs.power_validate
+          elif [ "${{ github.event.schedule }}" = "30 3 * * *" ]; then
+            python -m jobs.recompute_growth_stages
           else
             python -m jobs.ingest_weather
           fi

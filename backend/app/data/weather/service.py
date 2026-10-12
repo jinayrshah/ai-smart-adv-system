@@ -24,6 +24,10 @@ from app.schemas.weather import (
 
 logger = logging.getLogger(__name__)
 
+CURRENT_STALE_HOURS = 3
+# per-process cache of backfilled history: (grid_key, start, end) -> fused rows
+_HISTORY_CACHE: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+
 
 class WeatherService:
     def __init__(
@@ -141,10 +145,21 @@ class WeatherService:
 
         existing = self.weather_repo.get_fused_range(grid_key, start_date, end_date)
         if existing and not force_live:
-            # We already have data for today
+            # Fresh enough if today's row was (re)fused within the last 12 h — a row for
+            # today that was produced days ago as a far forecast is not good enough.
             today_str = today.isoformat()
-            if any(r.get("date") == today_str for r in existing):
-                return True
+            for r in existing:
+                if str(r.get("date")) != today_str:
+                    continue
+                try:
+                    upd = datetime.fromisoformat(str(r.get("updated_at") or "").replace("Z", "+00:00"))
+                    if upd.tzinfo is None:
+                        upd = upd.replace(tzinfo=timezone.utc)
+                    if datetime.now(timezone.utc) - upd <= timedelta(hours=12):
+                        return True
+                except ValueError:
+                    return True  # no timestamp to judge by; keep previous behaviour
+                break
 
         # Synchronous Open-Meteo-only fetch (8s timeout)
         try:
@@ -179,6 +194,91 @@ class WeatherService:
         except Exception as exc:
             logger.warning(f"On-demand Open-Meteo fetch failed for grid {grid_key}: {exc}")
             return False
+
+    def get_history_rows(
+        self,
+        grid_key: str,
+        lat: float,
+        lon: float,
+        start_date: date,
+        end_date: date | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Fused daily rows from `start_date` to `end_date` (default: today), backfilling
+        any missing past days from Open-Meteo (ERA5-Land archive for days older than
+        the ~5-day reanalysis lag, model analysis for the most recent days).
+
+        Without this the scheduled jobs only ever store today±7 days, so any crop sown
+        more than ~9 days ago failed the GDD engine's 80 % coverage test and every farm
+        showed "CALENDAR FALLBACK" instead of thermal-time growth stages.
+
+        Backfilled days are single-source, so their confidence is capped at 'medium'
+        and they never overwrite an existing multi-source fused row.
+        """
+        today = today_ist()
+        end = end_date or today
+        max_days = int(getattr(self.settings, "WEATHER_HISTORY_BACKFILL_MAX_DAYS", 240) or 240)
+        start = max(start_date, today - timedelta(days=max_days))
+        if start > end:
+            return []
+
+        existing = self.weather_repo.get_fused_range(grid_key, start, end)
+        by_date: dict[str, dict[str, Any]] = {str(r.get("date")): r for r in existing}
+
+        last_past = min(end, today - timedelta(days=1))
+        missing = []
+        d = start
+        while d <= last_past:
+            if d.isoformat() not in by_date:
+                missing.append(d)
+            d += timedelta(days=1)
+        if not missing:
+            return [by_date[k] for k in sorted(by_date)]
+
+        cache_key = (grid_key, missing[0].isoformat(), missing[-1].isoformat())
+        if cache_key in _HISTORY_CACHE:
+            for row in _HISTORY_CACHE[cache_key]:
+                by_date.setdefault(str(row["date"]), row)
+            return [by_date[k] for k in sorted(by_date)]
+
+        fetched: list[WeatherDay] = []
+        m_start, m_end = missing[0], missing[-1]
+        archive_end = min(m_end, today - timedelta(days=6))
+        try:
+            if m_start <= archive_end:
+                fetched.extend(self.open_meteo.fetch_archive(lat, lon, grid_key, m_start, archive_end))
+            recent_start = max(m_start, today - timedelta(days=5))
+            if recent_start <= m_end:
+                past_days = min(92, (today - recent_start).days)
+                _, recent = self.open_meteo.fetch_forecast_and_recent(
+                    lat=lat, lon=lon, grid_key=grid_key, past_days=past_days, forecast_days=1
+                )
+                fetched.extend(r for r in recent if recent_start <= r.date <= m_end)
+        except Exception as exc:
+            logger.warning(f"Weather history backfill failed for {grid_key}: {exc}")
+
+        fused = fuse_range(grid_key, fetched, m_start, m_end, today=today, cfg=load_fusion_config())
+        new_rows: list[dict[str, Any]] = []
+        missing_set = {x.isoformat() for x in missing}
+        for fd in fused:
+            if fd.date.isoformat() not in missing_set:
+                continue
+            if fd.confidence == "high":
+                fd.confidence = "medium"
+            row = fd.to_dict()
+            row["updated_at"] = now_utc_iso()
+            new_rows.append(row)
+            by_date[fd.date.isoformat()] = row
+
+        if new_rows:
+            try:
+                self.weather_repo.upsert_daily_records(fetched)
+                self.weather_repo.upsert_fused_days(new_rows)
+            except Exception as exc:
+                logger.info(f"History backfill not persisted (served from memory): {exc}")
+            _HISTORY_CACHE[cache_key] = new_rows
+
+        return [by_date[k] for k in sorted(by_date)]
 
     def get_summary(
         self,
@@ -219,7 +319,10 @@ class WeatherService:
             observed_at = curr_row.get("observed_at") or now_utc_iso()
             try:
                 obs_dt = datetime.fromisoformat(observed_at.replace("Z", "+00:00"))
-                if datetime.now(timezone.utc) - obs_dt > timedelta(hours=12):
+                if obs_dt.tzinfo is None:
+                    obs_dt = obs_dt.replace(tzinfo=timezone.utc)
+                # Architecture §12 freshness threshold for current conditions: 3 h
+                if datetime.now(timezone.utc) - obs_dt > timedelta(hours=CURRENT_STALE_HOURS):
                     stale = True
             except Exception:
                 stale = False
@@ -248,10 +351,13 @@ class WeatherService:
             else:
                 d_obj = d_val
 
+            # Phase is relative to *today*: a row fused days ago as "future" is "past" or
+            # "today" now, so never trust the stored value.
+            live_phase = "past" if d_obj < today else ("today" if d_obj == today else "future")
             fd = FusedDay(
                 grid_key=grid_key,
                 date=d_obj,
-                phase=r.get("phase", "today"),
+                phase=live_phase,
                 tmax_c=r.get("tmax_c"),
                 tmin_c=r.get("tmin_c"),
                 precip_mm=r.get("precip_mm"),

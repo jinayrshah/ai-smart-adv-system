@@ -11,9 +11,9 @@ from typing import Any
 
 from app.core.config import get_settings
 from app.core.timeutil import today_ist
-from app.data.mandi.canonical import Canonicalizer, load_tracked_scope
+from app.data.mandi.canonical import clean_market_name, Canonicalizer, load_tracked_scope
 from app.data.mandi.reconcile import dedupe_by_key
-from app.data.mandi.repository import MandiRepository
+from app.data.mandi.repository import MandiRepository, market_key
 from app.data.mandi.sources.datagov_live import DatagovLiveSource
 from app.data.mandi.validate import flag_quality
 from app.data.types import MandiRecord
@@ -68,11 +68,14 @@ def get_market_search(
     is_tracked = _is_tracked_scope(commodity, state, market)
 
     # 1. Check existing data (last 7 days for short trend)
+    # Without a market filter every market in the state competes for these rows, so
+    # fetch enough to cover them (30 rows used to hide most markets).
+    fetch_limit = 60 if market else 400
     existing = repo.get_latest_prices(
         commodity=commodity,
         state=state,
         market=market if market else None,
-        limit=30,
+        limit=fetch_limit,
     )
 
     has_today = any(
@@ -95,7 +98,7 @@ def get_market_search(
                     commodity=commodity,
                     state=state,
                     market=market if market else None,
-                    limit=30,
+                    limit=fetch_limit,
                 )
         except Exception as exc:
             logger.warning(f"Live lookup failed for {commodity}/{state}/{market}: {exc}")
@@ -109,16 +112,24 @@ def get_market_search(
     tier = "advisory" if is_tracked else "explore"
     history_available = len(existing) > 7
 
-    # Group by market for structured response
-    markets_seen: dict[str, dict[str, Any]] = {}
+    # One card per (state, district, canonical market): "APMC Malegaon" and "Malegaon"
+    # are the same mandi (Revisions §2.7 / cleanup P2). Rows arrive newest first, so the
+    # first row seen for a key is its latest report.
+    markets_seen: dict[tuple[str, str, str], dict[str, Any]] = {}
+    report_days: dict[tuple[str, str, str], set[str]] = {}
     for r in existing:
-        mkt = r.get("market", "")
-        if mkt not in markets_seen:
-            markets_seen[mkt] = {
-                "market": mkt,
+        raw_name = r.get("market", "")
+        key = (
+            (r.get("state") or state).strip().lower(),
+            (r.get("district") or "").strip().lower(),
+            market_key(raw_name),
+        )
+        if key not in markets_seen:
+            markets_seen[key] = {
+                "market": clean_market_name(raw_name),
                 "district": r.get("district", ""),
                 "state": r.get("state", state),
-                "latest_date": r.get("arrival_date"),
+                "latest_date": str(r.get("arrival_date")) if r.get("arrival_date") else None,
                 "latest_modal": r.get("modal_price"),
                 "latest_min": r.get("min_price"),
                 "latest_max": r.get("max_price"),
@@ -126,7 +137,9 @@ def get_market_search(
                 "source": r.get("source", ""),
                 "records_available": 0,
             }
-        markets_seen[mkt]["records_available"] += 1
+            report_days[key] = set()
+        report_days[key].add(str(r.get("arrival_date")))
+        markets_seen[key]["records_available"] = len(report_days[key])
 
     return {
         "commodity": commodity,

@@ -120,7 +120,9 @@ def test_water_requirement_etc_and_deficit():
     assert advice.rain_7d_mm == 3.0
     assert advice.deficit_mm == 18.0
     assert advice.confidence == "high"
-    assert "deficit is approximately 18.0 mm" in advice.recommendation
+    assert "by about 18.0 mm" in advice.recommendation
+    assert advice.method == "7day_deficit"
+    assert advice.action == "irrigate_now"
     assert "FAO-56" in advice.source
 
 
@@ -140,7 +142,8 @@ def test_water_requirement_zero_deficit_when_rain_exceeds_etc():
     )
 
     assert advice.deficit_mm == 0.0
-    assert "Withhold irrigation" in advice.recommendation
+    assert advice.action == "no_irrigation_needed"
+    assert "not needed" in advice.recommendation
 
 
 # ==================== ENGINE 3: SOIL SUITABILITY ====================

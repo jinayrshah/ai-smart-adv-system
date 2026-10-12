@@ -140,3 +140,17 @@ class OnboardingResponse(BaseModel):
     profile: FarmerProfileResponse
     farm: FarmResponse
     crops: list[FarmCropResponse]
+
+
+# --- Irrigation log (feeds the FAO-56 water balance) ---
+class IrrigationEventCreate(BaseModel):
+    irrigated_on: date
+    amount_mm: float = Field(..., gt=0.0, le=300.0, description="Depth of water applied, mm")
+    farm_crop_id: int | None = None
+    method: IrrigationType | None = None
+    note: str | None = Field(None, max_length=300)
+
+
+class IrrigationEventResponse(IrrigationEventCreate):
+    id: int
+    farm_id: int

@@ -92,7 +92,14 @@ def test_assemble_advisory_context():
     assert ctx.stage.stage_name != ""
     assert ctx.irrigation is not None
     assert ctx.irrigation.deficit_mm is not None
-    assert ctx.climate is not None
+    # No temperature reading is available offline, so no climate verdict is invented
+    # (the old code assumed 25 °C).
+    if ctx.weather_summary.get("current") is None and not any(
+        d.get("phase") == "today" for d in ctx.weather_summary.get("days", [])
+    ):
+        assert ctx.climate is None
+    else:
+        assert ctx.climate is not None
     assert len(ctx.retrieved_chunks) > 0
 
     snapshot = ctx.to_snapshot()

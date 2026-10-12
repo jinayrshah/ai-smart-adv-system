@@ -1,3 +1,4 @@
+import calendar
 import logging
 from datetime import date, timedelta
 from typing import Any
@@ -9,6 +10,9 @@ logger = logging.getLogger(__name__)
 
 CONFIDENCE_RANK = {"low": 1, "medium": 2, "high": 3}
 RANK_TO_CONFIDENCE = {1: "low", 2: "medium", 3: "high"}
+# Minimum days of the 30-day window that must be present before an anomaly vs. the
+# monthly normal is reported (≈90 % coverage).
+MIN_DAYS_FOR_30D_ANOMALY = 27
 
 
 def compute_normal_rain_30d(
@@ -30,8 +34,8 @@ def compute_normal_rain_30d(
         m = curr.month
         norm = normals_by_month.get(m)
         if norm and norm.get("precip_mm_month") is not None:
-            # Days in this month
-            days_in_month = 31 if m in (1, 3, 5, 7, 8, 10, 12) else (30 if m in (4, 6, 9, 11) else 28)
+            # Real month length (leap-year February included)
+            days_in_month = calendar.monthrange(curr.year, m)[1]
             daily_norm = float(norm["precip_mm_month"]) / days_in_month
             total_expected += daily_norm
         curr += timedelta(days=1)
@@ -76,10 +80,13 @@ def compute_agro_metrics(
     # 2. rain_30d_mm
     rain_30d = sum(fd.precip_mm or 0.0 for fd in past_30d_fused)
 
-    # 3. rain_30d_vs_normal_pct
+    # 3. rain_30d_vs_normal_pct — only when (almost) the whole 30-day window is on
+    # file. Comparing e.g. 8 stored days of rain against a full 30-day normal reported a
+    # fake "-75% vs normal" drought for every newly tracked location.
     expected_normal_30d = compute_normal_rain_30d(ref_today, normals_by_month)
     rain_30d_vs_normal_pct: float | None = None
-    if expected_normal_30d and expected_normal_30d > 0:
+    window_complete = len(past_30d_fused) >= MIN_DAYS_FOR_30D_ANOMALY
+    if window_complete and expected_normal_30d and expected_normal_30d > 0:
         rain_30d_vs_normal_pct = round(((rain_30d - expected_normal_30d) / expected_normal_30d) * 100.0, 1)
 
     # 4. dry_spell_days: consecutive days with precip < 1.0 mm ending today
@@ -112,12 +119,15 @@ def compute_agro_metrics(
     # Confidence inheritance: lowest confidence of the days used (Case (f) in §15)
     lowest_rank = 3  # default high
     if not past_7d_fused:
-        metrics_confidence = "medium"
+        metrics_confidence = "low"
     else:
         for fd in past_7d_fused:
             rank = CONFIDENCE_RANK.get(fd.confidence, 2)
             if rank < lowest_rank:
                 lowest_rank = rank
+        # A 7-day total built from fewer than 7 days cannot be "high" confidence.
+        if len(past_7d_fused) < 7:
+            lowest_rank = min(lowest_rank, 2)
         metrics_confidence = RANK_TO_CONFIDENCE.get(lowest_rank, "medium")
 
     return AgroMetrics(
@@ -128,4 +138,6 @@ def compute_agro_metrics(
         tmax_7d_anomaly_c=tmax_7d_anomaly,
         et0_7d_mm=et0_7d,
         confidence=metrics_confidence,
+        days_in_7d_window=len(past_7d_fused),
+        days_in_30d_window=len(past_30d_fused),
     )

@@ -35,6 +35,17 @@ class MarketTrendResponse(BaseModel):
     first_reported_date: str | None = None
     max_gap_days: int = 0
     varieties_included: list[str] = Field(default_factory=list)
+    # Honest thin-data handling (Revisions §2.7): number of market-days with a report in
+    # the window; changes are only computed against a real report ~7 / ~30 days earlier.
+    reports_in_window: int = 0
+    thin_data: bool = False
+    latest_date: str | None = None
+    latest_modal: float | None = None
+    change_7d_pct: float | None = None
+    change_7d_base_date: str | None = None
+    change_30d_pct: float | None = None
+    change_30d_base_date: str | None = None
+    market_names_merged: list[str] = Field(default_factory=list)
 
 
 class MarketInsightResponse(BaseModel):
@@ -46,6 +57,8 @@ class MarketInsightResponse(BaseModel):
     confidence: str = "medium"  # "high" | "medium" | "low"
     coverage_pct: int
     as_of: str
+    generated_by: str = "deterministic"
+    reports_in_window: int | None = None
 
 
 class LatestPriceRecord(BaseModel):
