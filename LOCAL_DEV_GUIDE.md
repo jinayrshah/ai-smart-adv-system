@@ -311,7 +311,7 @@ curl -s -X GET "http://127.0.0.1:8000/api/farmer/profile/00000000-0000-0000-0000
 - **Sign-In & Farmer Portal (`src/components/auth/AuthPortal.tsx`)**:
   - Direct Indian language switcher (EN, HI, MR, GU, KN, TE).
   - Dedicated authentication tabs: Sign In (Phone/Email + Password), New Farmer Registration with full farm parameters (State, District, Village, Field Size in Acres, Primary Crop, Soil Type, Irrigation Method), and 1-Click Instant Demo Profiles (Rajesh Patel, Harpreet Singh, Anita Sharma).
-- **Streamlined Navigation**: Streamlined 4-tab pill shell: `Home`, `Advisor`, `Weather`, and `Profile`. Legacy non-core tabs (`fertilizer`, `market`/`marketplace`, `disease`, `learn`, `history`) have been cleanly removed from the active navigation.
+- **Streamlined Navigation**: Streamlined 5-tab pill shell: `Home`, `Advisor`, `Prices` (Mandi Price Trends & Intelligence), `Weather`, and `Profile`. Legacy non-core tabs (`fertilizer`, `marketplace` e-commerce, `disease` photo scanner, `learn` articles, `history` modal) have been cleanly removed from the active navigation.
 
 ---
 

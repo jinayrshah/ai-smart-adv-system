@@ -21,7 +21,8 @@ import {
   Zap,
   Globe2,
   Calendar,
-  FileCheck
+  FileCheck,
+  TrendingUp
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUIStore } from '../../stores/uiStore';
@@ -235,6 +236,14 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({
               >
                 <span>Launch Crop Advisor</span>
                 <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button
+                onClick={() => setActiveTab('priceTrends')}
+                className="px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 text-[#f1efdf] border border-white/20 font-medium text-xs md:text-sm tracking-wide transition-all flex items-center space-x-2 active:scale-95"
+              >
+                <TrendingUp size={16} className="text-[#e8fe85]" />
+                <span>Mandi Prices</span>
               </button>
 
               <button
@@ -568,7 +577,33 @@ export const CinematicHome: React.FC<CinematicHomeProps> = ({
             <ChevronRight size={18} className="text-stone-500 group-hover:translate-x-1 transition-transform" />
           </button>
 
-          {/* Service Card 2: Weather */}
+          {/* Service Card 2: Mandi Price Trends */}
+          <button
+            onClick={() => setActiveTab('priceTrends')}
+            className="w-full text-left p-5 rounded-[24px] bg-dark-card hover:bg-stone-900 border border-dark-border hover:border-emerald-500/50 transition-all flex items-center justify-between group shadow-md"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+                <TrendingUp size={24} />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h4 className="font-bold text-stone-100 text-base">
+                    Mandi Price Trends & Intelligence
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-900/60 text-emerald-300 uppercase">
+                    Live Agmarknet
+                  </span>
+                </div>
+                <p className="text-xs text-stone-400 mt-0.5">
+                  Real APMC modal prices, unit conversions (₹/qtl & ₹/kg), AI market insights, crop margin & storage estimators.
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-stone-500 group-hover:translate-x-1 transition-transform" />
+          </button>
+
+          {/* Service Card 3: Weather */}
           <button
             onClick={() => setActiveTab('weather')}
             className="w-full text-left p-5 rounded-[24px] bg-dark-card hover:bg-stone-900 border border-dark-border hover:border-cyan-500/50 transition-all flex items-center justify-between group shadow-md"

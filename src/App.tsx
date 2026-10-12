@@ -11,11 +11,14 @@ import {
   LogOut,
   ChevronRight,
   ShieldCheck,
-  Compass
+  Compass,
+  TrendingUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { initKnowledgeBase } from './services/ragService';
 import { WeatherStrip } from './components/weather/WeatherStrip';
+import { MarketDataView, type MarketSelection } from './components/market/MarketDataView';
+import { MandiExplore } from './components/market/MandiExplore';
 import { useLocation } from './hooks/useLocation';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider, useAppContext } from './context/AppContext';
@@ -75,6 +78,7 @@ export function AppContent() {
   });
 
   const farmView = useMemo(() => normalizeFarmerProfile(farmerProfile), [farmerProfile]);
+  const [marketSelection, setMarketSelection] = useState<MarketSelection | null>(null);
 
   const { location, loading: locationLoading, error: locationError, denied: locationDenied, refresh: refreshLocation } = useLocation();
 
@@ -253,6 +257,27 @@ export function AppContent() {
     </div>
   );
 
+  const renderPriceTrends = () => (
+    <div className="space-y-6 pb-24">
+      <MarketDataView
+        selection={marketSelection}
+        farmFieldSizeAcres={farmView?.farm?.fieldSizeAcres ?? null}
+        initialCommodity={
+          farmView?.crop && ['Wheat', 'Tomato', 'Cotton', 'Soybean', 'Rice', 'Maize'].includes(farmView.crop.name)
+            ? farmView.crop.name
+            : undefined
+        }
+      />
+
+      {/* Mandi Explorer — clicking a card loads it in the view above */}
+      <div className="border-t border-zinc-800 pt-6 mt-8">
+        <MandiExplore
+          onSelect={(sel) => setMarketSelection({ ...sel, nonce: Date.now() })}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-dark-bg text-stone-200 font-sans selection:bg-[#07503f]/40">
       {/* Arva Header */}
@@ -331,6 +356,12 @@ export function AppContent() {
             </ErrorBoundary>
           </TabPanel>
 
+          <TabPanel active={activeTab === 'priceTrends'}>
+            <ErrorBoundary fallbackTitle="Unable to load Mandi Price Trends">
+              {renderPriceTrends()}
+            </ErrorBoundary>
+          </TabPanel>
+
           <TabPanel active={activeTab === 'weather'}>
             <ErrorBoundary fallbackTitle="Unable to load Weather Intelligence">
               {renderWeather()}
@@ -364,11 +395,12 @@ export function AppContent() {
       />
 
       {/* Arva Clean Pill Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-dark-bg/90 backdrop-blur-xl border-t border-dark-border z-50 px-4 py-2.5">
-        <div className="max-w-md mx-auto flex items-center justify-around">
+      <nav className="fixed bottom-0 left-0 right-0 bg-dark-bg/90 backdrop-blur-xl border-t border-dark-border z-50 px-3 py-2.5">
+        <div className="max-w-lg mx-auto flex items-center justify-around">
           {[
             { id: 'home', icon: Home, label: t('common.home') },
             { id: 'advisor', icon: Sprout, label: t('common.advisor') },
+            { id: 'priceTrends', icon: TrendingUp, label: t('common.priceTrends') || 'Prices' },
             { id: 'weather', icon: CloudRain, label: t('common.weather') },
             { id: 'profile', icon: User, label: t('common.profile') },
           ].map((item) => {
@@ -378,7 +410,7 @@ export function AppContent() {
                 key={item.id}
                 onClick={() => switchTab(item.id as Tab)}
                 className={cn(
-                  "flex flex-col items-center py-1.5 px-4 rounded-full transition-all duration-200 active:scale-95",
+                  "flex flex-col items-center py-1.5 px-3 rounded-full transition-all duration-200 active:scale-95",
                   isActive
                     ? "bg-[#07503f] text-[#e8fe85] shadow-md shadow-[#07503f]/40 font-bold"
                     : "text-stone-400 hover:text-stone-200 hover:bg-stone-800/40"

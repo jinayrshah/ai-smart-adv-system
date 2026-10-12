@@ -4,6 +4,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 export type UIActiveTab =
   | 'home'
   | 'advisor'
+  | 'priceTrends'
   | 'weather'
   | 'profile';
 
