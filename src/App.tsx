@@ -572,11 +572,52 @@ export function AppContent() {
               <Sprout className="text-white" />
             </div>
             <div className="text-left">
-              <h3 className="text-white font-bold text-lg">{t('home.cropAdvisor')}</h3>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-white font-bold text-lg">{t('home.cropAdvisor')}</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white px-2 py-0.5 rounded-full">Personalized</span>
+              </div>
               <p className="text-white/70 text-sm">{t('home.cropAdvisorDesc')}</p>
             </div>
           </div>
           <ChevronRight className="text-white group-hover:translate-x-1 transition-transform" />
+        </button>
+
+        <button 
+          onClick={() => switchTab('priceTrends')}
+          className="bg-dark-card p-6 rounded-3xl border border-dark-border flex items-center justify-between group hover:border-emerald-500/50 transition-colors"
+        >
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mr-4">
+              <TrendingUp className="text-emerald-400" />
+            </div>
+            <div className="text-left">
+              <div className="flex items-center space-x-2">
+                <h3 className="text-white font-bold text-lg">Mandi Price Trends</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30">Live Ingest</span>
+              </div>
+              <p className="text-stone-400 text-sm">Real APMC modal prices, unit conversions, AI market insights & storage calculators</p>
+            </div>
+          </div>
+          <ChevronRight className="text-stone-500 group-hover:translate-x-1 transition-transform" />
+        </button>
+
+        <button 
+          onClick={() => switchTab('weather')}
+          className="bg-dark-card p-6 rounded-3xl border border-dark-border flex items-center justify-between group hover:border-cyan-500/50 transition-colors"
+        >
+          <div className="flex items-center">
+            <div className="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center mr-4">
+              <CloudRain className="text-cyan-400" />
+            </div>
+            <div className="text-left">
+              <div className="flex items-center space-x-2">
+                <h3 className="text-white font-bold text-lg">Weather Intelligence</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full border border-cyan-500/30">Multi-Source</span>
+              </div>
+              <p className="text-stone-400 text-sm">Open-Meteo, NASA POWER & IMD 3-way fusion with confidence ratings</p>
+            </div>
+          </div>
+          <ChevronRight className="text-stone-500 group-hover:translate-x-1 transition-transform" />
         </button>
 
         <button 
