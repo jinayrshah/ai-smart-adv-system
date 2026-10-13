@@ -247,15 +247,24 @@ export function AppContent() {
     </div>
   );
 
-  const renderWeather = () => (
-    <div className="space-y-6 pb-24">
-      <WeatherStrip
-        lat={location?.lat}
-        lon={location?.lon}
-        locationName={location?.city || user?.location}
-      />
-    </div>
-  );
+  const renderWeather = () => {
+    // Prefer farmer's district+state from onboarding over raw GPS city name
+    const farmerLocationName = farmView?.farm?.district && farmView?.farm?.state
+      ? `${farmView.farm.district}, ${farmView.farm.state}`
+      : location?.city || user?.location;
+    // Prefer GPS coords; fallback to farmer profile district centroid if GPS denied
+    const weatherLat = location?.lat ?? farmView?.farm?.lat ?? undefined;
+    const weatherLon = location?.lon ?? farmView?.farm?.lon ?? undefined;
+    return (
+      <div className="space-y-6 pb-24">
+        <WeatherStrip
+          lat={weatherLat}
+          lon={weatherLon}
+          locationName={farmerLocationName}
+        />
+      </div>
+    );
+  };
 
   const renderPriceTrends = () => (
     <div className="space-y-6 pb-24">

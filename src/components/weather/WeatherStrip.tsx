@@ -33,15 +33,25 @@ interface WeatherStripProps {
 }
 
 const POPULAR_LOCATIONS = [
-  { name: "Nashik (Lasalgaon)", state: "Maharashtra", lat: 20.0, lon: 73.8 },
+  { name: "Nashik", state: "Maharashtra", lat: 20.0, lon: 73.8 },
   { name: "Pune", state: "Maharashtra", lat: 18.52, lon: 73.86 },
+  { name: "Aurangabad (Chhatrapati Sambhajinagar)", state: "Maharashtra", lat: 19.88, lon: 75.34 },
   { name: "Rajkot", state: "Gujarat", lat: 22.3, lon: 70.8 },
-  { name: "Surat", state: "Gujarat", lat: 21.17, lon: 72.83 },
-  { name: "Khanna / Ludhiana", state: "Punjab", lat: 30.7, lon: 76.2 },
+  { name: "Anand", state: "Gujarat", lat: 22.56, lon: 72.95 },
+  { name: "Ludhiana", state: "Punjab", lat: 30.9, lon: 75.85 },
+  { name: "Amritsar", state: "Punjab", lat: 31.63, lon: 74.87 },
   { name: "Agra", state: "Uttar Pradesh", lat: 27.18, lon: 78.01 },
+  { name: "Lucknow", state: "Uttar Pradesh", lat: 26.85, lon: 80.95 },
   { name: "Indore", state: "Madhya Pradesh", lat: 22.72, lon: 75.86 },
+  { name: "Bhopal", state: "Madhya Pradesh", lat: 23.26, lon: 77.41 },
   { name: "Bengaluru", state: "Karnataka", lat: 12.97, lon: 77.59 },
-  { name: "Kota", state: "Rajasthan", lat: 25.21, lon: 75.86 },
+  { name: "Hubli", state: "Karnataka", lat: 15.36, lon: 75.13 },
+  { name: "Hyderabad", state: "Telangana", lat: 17.38, lon: 78.49 },
+  { name: "Warangal", state: "Telangana", lat: 17.98, lon: 79.58 },
+  { name: "Jaipur", state: "Rajasthan", lat: 26.91, lon: 75.79 },
+  { name: "Jodhpur", state: "Rajasthan", lat: 26.29, lon: 73.03 },
+  { name: "Patna", state: "Bihar", lat: 25.61, lon: 85.14 },
+  { name: "Bhubaneswar", state: "Odisha", lat: 20.3, lon: 85.83 },
 ];
 
 const PROVIDER_NAMES: Record<string, string> = {
@@ -62,13 +72,19 @@ const WMO_TEXT: Record<number, string> = {
 
 export const WeatherStrip: React.FC<WeatherStripProps> = ({
   locationId,
-  lat: initialLat = 20.0,
-  lon: initialLon = 73.8,
-  locationName: initialName = "Nashik (Maharashtra)",
+  lat: initialLat,
+  lon: initialLon,
+  locationName: initialName,
 }) => {
-  const [lat, setLat] = useState<number>(initialLat);
-  const [lon, setLon] = useState<number>(initialLon);
-  const [displayName, setDisplayName] = useState<string>(initialName);
+  // Use GPS/prop lat-lon when available, else fallback to a central India default
+  const propLat = initialLat ?? 22.5;
+  const propLon = initialLon ?? 78.0;
+  const propName = initialName || "India (Default)";
+
+  const [lat, setLat] = useState<number>(propLat);
+  const [lon, setLon] = useState<number>(propLon);
+  const [displayName, setDisplayName] = useState<string>(propName);
+  const [isUsingGps, setIsUsingGps] = useState<boolean>(!!initialLat && !!initialLon);
   const [data, setData] = useState<WeatherSummaryResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +95,23 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
   const [isExplore, setIsExplore] = useState<boolean>(false);
   const [selectedDay, setSelectedDay] = useState<FusedDayDetail | null>(null);
   const [showAreaNotice, setShowAreaNotice] = useState<boolean>(false);
+
+  // Sync when parent provides updated GPS coordinates (e.g. after browser geolocation resolves)
+  const prevPropLat = React.useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (
+      initialLat != null &&
+      initialLon != null &&
+      (initialLat !== prevPropLat.current) &&
+      !isExplore  // don't override if user manually picked another location
+    ) {
+      prevPropLat.current = initialLat;
+      setLat(initialLat);
+      setLon(initialLon);
+      setDisplayName(initialName || `${initialLat.toFixed(2)}, ${initialLon.toFixed(2)}`);
+      setIsUsingGps(true);
+    }
+  }, [initialLat, initialLon]);
 
   const loadWeather = async (targetLat: number, targetLon: number) => {
     setLoading(true);
@@ -111,7 +144,8 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
     setLat(loc.lat);
     setLon(loc.lon);
     setDisplayName(`${loc.name}, ${loc.state}`);
-    setIsExplore(false);
+    setIsExplore(true);  // user has manually switched away from their GPS location
+    setIsUsingGps(false);
     setShowSearchResults(false);
   };
 
@@ -135,6 +169,7 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
     setLon(result.lon);
     setDisplayName(`${result.name}${result.district ? `, ${result.district}` : ""}, ${result.state}`);
     setIsExplore(true);
+    setIsUsingGps(false);
     setShowSearchResults(false);
     setSearchQuery("");
   };
@@ -185,9 +220,14 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
                 <h2 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-white">
                   Weather Intelligence & Agro Climatology
                 </h2>
+                {isUsingGps && !isExplore && (
+                  <span className="text-[11px] bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                    <MapPin className="w-3 h-3" /> Your Location
+                  </span>
+                )}
                 {isExplore && (
                   <span className="text-[11px] bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
-                    <Compass className="w-3 h-3" /> Explore Tier (India-wide)
+                    <Compass className="w-3 h-3" /> Explore Mode
                   </span>
                 )}
                 {data?.degraded && (
@@ -268,7 +308,7 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
             defaultValue=""
           >
             <option value="" disabled>
-              Preset Mandis...
+              Other Regions...
             </option>
             {POPULAR_LOCATIONS.map((loc, i) => (
               <option key={i} value={i}>
@@ -287,6 +327,18 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
           </button>
         </div>
       </div>
+
+      {isUsingGps && !isExplore && (
+        <div className="px-4 py-3 rounded-2xl bg-[#07503f]/20 border border-[#07503f]/40 text-[#f1efdf] text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <MapPin className="w-4 h-4 text-[#e8fe85] flex-shrink-0" />
+            <span>
+              <b className="text-white">Auto-Location:</b> Weather data is loaded for your detected GPS position.
+              Use the search or <b>Other Regions</b> dropdown to explore weather elsewhere in India.
+            </span>
+          </div>
+        </div>
+      )}
 
       {isExplore && (
         <div className="px-4 py-3 rounded-2xl bg-[#07503f]/20 border border-[#07503f]/40 text-[#f1efdf] text-xs flex items-center justify-between">
