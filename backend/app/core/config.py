@@ -33,8 +33,8 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     # Model ids live in config (Architecture_Advisory.md §20: models get deprecated on a
     # schedule). The first model is tried first; the rest are fallbacks on 404/429/5xx.
-    GEMINI_MODEL: str = "gemini-2.5-flash"
-    GEMINI_FALLBACK_MODELS: str = "gemini-2.5-flash-lite"
+    GEMINI_MODEL: str = "gemini-3.8-flash"
+    GEMINI_FALLBACK_MODELS: str = "gemini-3.5-flash,gemini-3.1-flash-lite,gemini-flash-latest,gemini-flash-lite-latest"
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
 
     # Bhashini (ULCA) — Architecture_Advisory.md §15
@@ -78,7 +78,7 @@ class Settings(BaseSettings):
             m = m.strip()
             if m and m not in models:
                 models.append(m)
-        return models or ["gemini-2.5-flash"]
+        return models or ["gemini-3.8-flash"]
 
 
 @lru_cache()

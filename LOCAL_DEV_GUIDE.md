@@ -215,7 +215,17 @@ curl -s -X POST "http://127.0.0.1:8000/api/advisory/ask" \
     "query": "What is the best investment portfolio in cryptocurrency?"
   }'
 
-# 3. Record farmer thumbs-up (+1) or thumbs-down (-1) feedback:
+# 3. Ask general crop advisory (fertilizer, disease identification, yellow leaves) with ICAR GAP synthesis:
+curl -s -X POST "http://127.0.0.1:8000/api/advisory/ask" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "crop": "Wheat",
+    "query": "My wheat crop leaves are turning yellow at the tips, what fertilizer or spray should I apply?",
+    "district": "Ludhiana",
+    "state": "Punjab"
+  }'
+
+# 4. Record farmer thumbs-up (+1) or thumbs-down (-1) feedback:
 curl -s -X POST "http://127.0.0.1:8000/api/advisory/queries/1001/feedback" \
   -H "Content-Type: application/json" \
   -d '{"feedback": 1}'
@@ -244,7 +254,14 @@ curl -s "http://127.0.0.1:8000/api/advisory/schemes/catalog"
 curl -s "http://127.0.0.1:8000/api/advisory/schemes/catalog?category=credit_finance"
 curl -s "http://127.0.0.1:8000/api/advisory/schemes/catalog?query=fertilizer%20organic"
 
-# 2. Ask scheme-specific question grounded in verified government scheme guidelines:
+# 2. Ask general welfare & subsidy query (e.g. drip irrigation under PMKSY or solar pump under PM-KUSUM):
+curl -s -X POST "http://127.0.0.1:8000/api/advisory/schemes/ask" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "How can I get a subsidy for drip irrigation or solar pump?"
+  }'
+
+# 3. Ask scheme-specific question grounded in verified government scheme guidelines:
 curl -s -X POST "http://127.0.0.1:8000/api/advisory/schemes/ask" \
   -H "Content-Type: application/json" \
   -d '{
@@ -252,7 +269,7 @@ curl -s -X POST "http://127.0.0.1:8000/api/advisory/schemes/ask" \
     "scheme_code": "PM-KISAN"
   }'
 
-# 3. KCC interest subvention grounded Q&A:
+# 4. KCC interest subvention grounded Q&A:
 curl -s -X POST "http://127.0.0.1:8000/api/advisory/schemes/ask" \
   -H "Content-Type: application/json" \
   -d '{
@@ -353,7 +370,7 @@ curl -s -X GET "http://127.0.0.1:8000/api/farmer/profile/00000000-0000-0000-0000
 | `JWT_SECRET` | **Production (Mandatory)** | HMAC secret for session authentication tokens. Express server refuses to start in production without it. |
 | `SUPABASE_JWT_SECRET` | Optional (Production recommended) | Supabase Project JWT secret. When set, `/api/farmer/*` routes enforce caller ownership on profile and farm resources. |
 | `GEMINI_API_KEY` | Development & Production | Google Gemini API key for grounded market insights and agronomic advisory. |
-| `GEMINI_MODEL` | Optional (default: `gemini-2.5-flash`) | Primary LLM model for generation; fallbacks to `gemini-2.5-flash-lite`. |
+| `GEMINI_MODEL` | Optional (default: `gemini-3.8-flash`) | Primary LLM model for generation; fallbacks automatically cascade through `gemini-3.5-flash`, `gemini-3.1-flash-lite`, and `gemini-flash-latest`. |
 | `BHASHINI_USER_ID` | Optional | MeitY Bhashini User ID for Indic language translations (hi, mr, gu, etc.). |
 | `BHASHINI_API_KEY` | Optional | MeitY Bhashini ULCA API key. |
 | `SUPABASE_URL` | Recommended | Supabase database instance URL. |

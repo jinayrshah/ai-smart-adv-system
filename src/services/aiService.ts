@@ -165,38 +165,45 @@ export const agricultureService = {
       return getFallbackCropRecommendation(input, 'Gemini is not configured.');
     }
 
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: { responseMimeType: "application/json" }
-      });
+    const candidateModels = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+    for (const model of candidateModels) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            thinkingConfig: { thinkingBudget: 0 }
+          }
+        });
 
-      const data = JSON.parse(response.text || '{}');
-      
-      // Confidence threshold check
-      if (data.confidence < 0.85) {
+        const data = JSON.parse(response.text || '{}');
+        
+        // Confidence threshold check
+        if (data.confidence < 0.85) {
+          return {
+            type: 'crop',
+            result: "Inconclusive Data",
+            confidence: data.confidence,
+            recommendations: ["Please provide more precise soil measurements.", "Consider testing soil at a certified lab."]
+          };
+        }
+
         return {
           type: 'crop',
-          result: "Inconclusive Data",
+          result: data.crop,
           confidence: data.confidence,
-          recommendations: ["Please provide more precise soil measurements.", "Consider testing soil at a certified lab."]
+          recommendations: [data.reasoning, ...data.recommendations]
         };
+      } catch (error: any) {
+        console.warn(`Crop recommendation error with model ${model}:`, error?.message || error);
+        if (isGeminiKeyError(error)) {
+          return getFallbackCropRecommendation(input, 'Gemini rejected the configured API key.');
+        }
       }
-
-      return {
-        type: 'crop',
-        result: data.crop,
-        confidence: data.confidence,
-        recommendations: [data.reasoning, ...data.recommendations]
-      };
-    } catch (error) {
-      console.error("Crop recommendation error:", error);
-      if (isGeminiKeyError(error)) {
-        return getFallbackCropRecommendation(input, 'Gemini rejected the configured API key.');
-      }
-      return getFallbackCropRecommendation(input, 'Gemini is temporarily unavailable.');
     }
+
+    return getFallbackCropRecommendation(input, 'Gemini is temporarily unavailable.');
   },
 
   async detectDisease(base64Image: string, cropHint?: string): Promise<PredictionResult> {
@@ -248,16 +255,40 @@ export const agricultureService = {
       }`;
 
       try {
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: [
-            { text: prompt },
-            { inlineData: { mimeType: 'image/jpeg', data: base64Image.split(',')[1] || base64Image } },
-          ],
-          config: { responseMimeType: 'application/json' },
-        });
+        const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash'];
+      let data: any = null;
 
-        const data = JSON.parse(response.text || '{}');
+      for (const model of candidateModels) {
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents: [
+              { text: prompt },
+              { inlineData: { mimeType: 'image/jpeg', data: base64Image.split(',')[1] || base64Image } },
+            ],
+            config: {
+              responseMimeType: 'application/json',
+              thinkingConfig: { thinkingBudget: 0 }
+            },
+          });
+
+          data = JSON.parse(response.text || '{}');
+          if (data && data.disease) {
+            break;
+          }
+        } catch (visionErr: any) {
+          console.warn(`Vision disease check error with model ${model}:`, visionErr?.message || visionErr);
+        }
+      }
+
+      if (!data || !data.disease) {
+        return {
+          type: 'disease',
+          result: 'Detection Error',
+          confidence: 0,
+          recommendations: ['Unable to analyze image. Please ensure good lighting and clear view of symptoms.'],
+        };
+      }
 
         // Confidence threshold check
         if (data.confidence < 0.8) {

@@ -96,7 +96,7 @@ export const initKnowledgeBase = async () => {
   try {
     // Batch embedding request
     const result = await ai.models.embedContent({
-      model: "gemini-embedding-2",
+      model: "gemini-embedding-001",
       contents: chunksToEmbed.map(chunk => chunk.content)
     });
 
@@ -127,7 +127,7 @@ export const initKnowledgeBase = async () => {
         while (retries > 0 && !success) {
           try {
             const result = await ai.models.embedContent({
-              model: "gemini-embedding-2",
+              model: "gemini-embedding-001",
               contents: [chunk.content]
             });
             chunk.embedding = result.embeddings[0].values;
@@ -195,7 +195,7 @@ const retrieveChunks = async (query: string, k: number = 2) => {
   while (retries > 0) {
     try {
       const result = await ai.models.embedContent({
-        model: "gemini-embedding-2",
+        model: "gemini-embedding-001",
         contents: [query]
       });
       const queryEmbedding = result.embeddings[0].values;
@@ -261,21 +261,34 @@ export const generateChatResponse = async (query: string, history: any[] = []) =
   If the context doesn't contain the answer, use your general agricultural knowledge but keep it practical and concise.
   Always be polite and encouraging to the farmer.`;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [
-        ...history.map(h => ({ role: h.role, parts: [{ text: h.content }] })),
-        { role: 'user', parts: [{ text: query }] }
-      ],
-      config: {
-        systemInstruction: systemInstruction
-      }
-    });
+  const candidateModels = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+  const contents = [
+    ...history.map(h => ({ role: h.role, parts: [{ text: h.content }] })),
+    { role: 'user', parts: [{ text: query }] }
+  ];
 
-    return response.text || "I'm sorry, I couldn't generate a response. Please try again.";
-  } catch (error) {
-    console.error("Chat generation error:", error);
-    return "I'm having trouble connecting to my knowledge base. Please try again later.";
+  for (const model of candidateModels) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents,
+        config: {
+          systemInstruction,
+          thinkingConfig: { thinkingBudget: 0 }
+        }
+      });
+
+      if (response.text) {
+        return response.text;
+      }
+    } catch (error: any) {
+      console.warn(`Chat generation error with model ${model}:`, error?.message || error);
+    }
   }
+
+  if (context) {
+    return `Based on our local agricultural knowledge base:\n\n${context}`;
+  }
+
+  return "I'm having trouble connecting to the AI advisory service right now. Please try again in a moment or consult your local Krishi Vigyan Kendra (KVK).";
 };

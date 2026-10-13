@@ -32,7 +32,7 @@ _RETRYABLE = {404, 429, 500, 502, 503, 504}
 
 
 def _thinking_config(model: str) -> dict[str, Any] | None:
-    if model.startswith("gemini-2.5"):
+    if model.startswith("gemini-2.5") or model.startswith("gemini-3") or "flash" in model:
         return {"thinkingBudget": 0}
     return None
 

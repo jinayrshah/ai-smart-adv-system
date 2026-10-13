@@ -1381,11 +1381,26 @@ Starting price: ₹${startPrice}/quintal, Current price: ₹${currentPrice}/quin
 Period high: ₹${highest}, Period low: ₹${lowest}.
 Summarize this trend factually in plain language for a farmer, and note any significant pattern. Do not give direct financial advice on whether to sell — describe the pattern factually and let the farmer decide.`;
 
-          const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt
-          });
-          ai_summary = response.text || "Market trend analysis currently unavailable.";
+          const candidateModels = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+          let generatedSummary: string | null = null;
+          for (const model of candidateModels) {
+            try {
+              const response = await ai.models.generateContent({
+                model,
+                contents: prompt,
+                config: {
+                  thinkingConfig: { thinkingBudget: 0 }
+                }
+              });
+              if (response.text) {
+                generatedSummary = response.text;
+                break;
+              }
+            } catch (modelErr: any) {
+              console.warn(`[API] Gemini insight with model ${model} failed: ${modelErr?.message || modelErr}`);
+            }
+          }
+          ai_summary = generatedSummary || "Market trend analysis currently unavailable.";
         } catch (err: any) {
           console.error('[API] Gemini insight generation failed', err.message);
           ai_summary = "AI insights could not be generated at this time.";
