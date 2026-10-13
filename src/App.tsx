@@ -79,6 +79,15 @@ export function AppContent() {
 
   const farmView = useMemo(() => normalizeFarmerProfile(farmerProfile), [farmerProfile]);
   const [marketSelection, setMarketSelection] = useState<MarketSelection | null>(null);
+  const [compareSlots, setCompareSlots] = useState<{ state: string; market: string }[]>([]);
+
+  const handleAddCompare = (sel: { state: string; market: string }) => {
+    setCompareSlots((prev) => {
+      if (prev.length >= 3) return prev;
+      if (prev.some((s) => s.state === sel.state && s.market === sel.market)) return prev;
+      return [...prev, sel];
+    });
+  };
 
   const { location, loading: locationLoading, error: locationError, denied: locationDenied, refresh: refreshLocation } = useLocation();
 
@@ -276,12 +285,14 @@ export function AppContent() {
             ? farmView.crop.name
             : undefined
         }
+        externalCompareSlots={compareSlots}
       />
 
-      {/* Mandi Explorer — clicking a card loads it in the view above */}
+      {/* Mandi Explorer — clicking a card loads it in the view above or adds to compare */}
       <div className="border-t border-zinc-800 pt-6 mt-8">
         <MandiExplore
           onSelect={(sel) => setMarketSelection({ ...sel, nonce: Date.now() })}
+          onCompare={handleAddCompare}
         />
       </div>
     </div>

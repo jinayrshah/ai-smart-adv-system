@@ -8,6 +8,7 @@ import { MandiRecentReportsTable } from "./MandiRecentReportsTable";
 import { MandiAutocomplete } from "./MandiAutocomplete";
 import { DataFooter } from "./DataFooter";
 import { ErrorBoundary } from "../common/ErrorBoundary";
+import { MandiCompareView, CompareSlot } from "./MandiCompareView";
 import { fetchMarketTrend, MarketTrendResponse } from "../../services/marketApi";
 import { RefreshCw, Download, Share2, Check } from "lucide-react";
 
@@ -27,6 +28,8 @@ interface MarketDataViewProps {
   selection?: MarketSelection | null;
   /** saved farm size, used to prefill the margin calculator */
   farmFieldSizeAcres?: number | null;
+  /** slots pushed from MandiExplore Compare buttons (lifted from App.tsx) */
+  externalCompareSlots?: { state: string; market: string }[];
 }
 
 export const MarketDataView: React.FC<MarketDataViewProps> = ({
@@ -35,6 +38,7 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
   initialMarket = "",
   selection,
   farmFieldSizeAcres,
+  externalCompareSlots = [],
 }) => {
   // Read initial query params from URL if present
   const getInitialParam = (key: string, fallback: string) => {
@@ -378,6 +382,17 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
             marketName={trendData.market}
           />
         </>
+      )}
+
+      {/* Multi-Mandi Compare — always visible once a crop is selected */}
+      {commodity && (
+        <ErrorBoundary fallbackTitle="Unable to load comparison view">
+          <MandiCompareView
+            commodity={commodity}
+            rangeDays={rangeDays}
+            externalSlots={externalCompareSlots}
+          />
+        </ErrorBoundary>
       )}
     </div>
   );

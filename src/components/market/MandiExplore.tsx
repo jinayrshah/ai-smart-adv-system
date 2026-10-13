@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { fetchMarketSearch, MarketSearchResponse, MarketSearchResult } from "../../services/marketApi";
-import { Search, MapPin, TrendingUp, Clock, Loader2, Star, Globe } from "lucide-react";
+import { Search, MapPin, TrendingUp, Clock, Loader2, Star, Globe, GitCompare } from "lucide-react";
 
 // The 6 deep-advisory crops (README §5 Q1) first, then popular explore-tier commodities
 const DEEP_CROPS = ["Wheat", "Tomato", "Cotton", "Soybean", "Rice", "Maize"];
@@ -34,9 +34,11 @@ const readFavs = (): string[] => {
 interface MandiExploreProps {
   /** Clicking a card opens it in the price-trend view above (one selection model). */
   onSelect?: (sel: { commodity: string; state: string; market: string }) => void;
+  /** Clicking Compare on a card adds it to the compare panel. */
+  onCompare?: (sel: { state: string; market: string }) => void;
 }
 
-export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
+export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect, onCompare }) => {
   const [favs, setFavs] = useState<string[]>(readFavs);
   const toggleFav = (k: string) => {
     setFavs((prev) => {
@@ -215,6 +217,11 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
                       ? () => onSelect({ commodity: result.commodity, state: m.state || result.state, market: m.market })
                       : undefined
                   }
+                  onCompare={
+                    onCompare
+                      ? () => onCompare({ state: m.state || result.state, market: m.market })
+                      : undefined
+                  }
                 />
               ))}
             </div>
@@ -250,8 +257,9 @@ const MarketCard: React.FC<{
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onOpen?: () => void;
+  onCompare?: () => void;
   index?: number;
-}> = ({ market: m, tier, isFavorite, onToggleFavorite, onOpen, index = 0 }) => {
+}> = ({ market: m, tier, isFavorite, onToggleFavorite, onOpen, onCompare, index = 0 }) => {
   const tintClass = PASTEL_TINTS[index % PASTEL_TINTS.length];
 
   return (
@@ -332,6 +340,21 @@ const MarketCard: React.FC<{
         <div className="mt-2 text-[10px] font-mono text-stone-500">
           {m.records_available} recent report{m.records_available === 1 ? "" : "s"} on file{tier === "advisory" ? " • tracked" : ""}
         </div>
+      )}
+
+      {/* Compare button */}
+      {onCompare && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onCompare();
+          }}
+          className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full border border-stone-700 hover:border-[#e8fe85]/50 hover:bg-[#07503f]/20 text-stone-400 hover:text-[#e8fe85] text-[11px] font-mono font-semibold transition-all"
+        >
+          <GitCompare className="w-3 h-3" />
+          Add to Compare
+        </button>
       )}
     </div>
   );
