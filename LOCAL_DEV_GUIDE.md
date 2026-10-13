@@ -298,20 +298,27 @@ curl -s -X GET "http://127.0.0.1:8000/api/farmer/profile/00000000-0000-0000-0000
 
 ---
 
-### 21. Frontend Architecture & Design System (Arva Tokens & MandiLens Trust)
-- **Design Tokens**: Forest Ink (`#07503f`), Bone Canvas (`#f1efdf`), Bone Surface (`#faf9f2`), Vivid Lime (`#e8fe85`), and Pastel Quilt cards (Sky `#d0e6f6`, Peach `#f8d4c8`, Sage `#d9e2d5`, Ash `#d5d8db`).
-- **Typography**: Cormorant Garamond display serif headers paired with Inter sans-serif and Noto Sans Devanagari / Gujarati scripts for Indic multilingual rendering.
-- **Shape Language**: 100px pill buttons (`rounded-full`), 24px-36px card radii (`rounded-3xl`), and 33px input fields.
-- **Cinematic Home Page (`src/components/home/CinematicHome.tsx`)**:
-  - Kinetic typography with staggered word/character reveal springs.
-  - Interactive 3D perspective stage with mouse parallax (`perspective(1000px)`, `rotateX`, `rotateY`).
-  - Seamless 3-perspective virtual camera sequence: `01 Subsurface` (Soil NPK & hydraulics), `02 Canopy` (Atmospheric vapor & ET₀), and `03 Phenology` (GDD trajectory).
-  - MandiLens-class live dataset health & integrity telemetry ticker (88.9K Agmarknet records, 121 agro-stations, 100% ICAR grounding).
-  - Task-first command launchpad linking directly to Crop Advisory, Weather, and Farmer settings.
-- **Sign-In & Farmer Portal (`src/components/auth/AuthPortal.tsx`)**:
-  - Direct Indian language switcher (EN, HI, MR, GU, KN, TE).
-  - Dedicated authentication tabs: Sign In (Phone/Email + Password), New Farmer Registration with full farm parameters (State, District, Village, Field Size in Acres, Primary Crop, Soil Type, Irrigation Method), and 1-Click Instant Demo Profiles (Rajesh Patel, Harpreet Singh, Anita Sharma).
-- **Streamlined Navigation**: Streamlined 5-tab pill shell: `Home`, `Advisor`, `Prices` (Mandi Price Trends & Intelligence), `Weather`, and `Profile`. Legacy non-core tabs (`fertilizer`, `marketplace` e-commerce, `disease` photo scanner, `learn` articles, `history` modal) have been cleanly removed from the active navigation.
+### 21. Frontend Architecture & Design System (Universal Arva Design System Rollout)
+- **Design Tokens**: Forest Ink (`#07503f`), Dark Card Canvas (`#111827`), Canvas Ground (`#0b0f19`), Vivid Lime (`#e8fe85`), and Pastel Quilt cards (Sky `#d0e6f6`, Peach `#f8d4c8`, Sage `#d9e2d5`, Ash `#d5d8db`).
+- **Typography**: Cormorant Garamond display serif headers (`font-serif`) paired with Inter sans-serif and monospace technical metadata (`font-mono`) plus Noto Sans Devanagari / Gujarati scripts for Indic multilingual rendering.
+- **Shape Language**: 100px pill action buttons (`rounded-full`), 24px-36px card radii (`rounded-3xl`), and 33px rounded input fields (`rounded-full px-4 py-2 bg-stone-900 border border-stone-800 text-stone-200 text-xs font-mono`).
+- **Universal View Rollout**:
+  - **Cinematic Home Page (`src/components/home/CinematicHome.tsx`)**: Kinetic typography with staggered word/character reveal springs, 3D perspective stage with mouse parallax, 3 virtual camera sequences (Subsurface, Canopy, Phenology), MandiLens live dataset integrity telemetry, and task-first command launchpad.
+  - **Mandi Price Trends & Intelligence (`src/components/market/`)**:
+    - `MandiAutocomplete.tsx`: 33px rounded search input, dark container popovers, and pill badge chips for tracked mandis.
+    - `MarketDataView.tsx`: `#111827` rounded-3xl control container, 33px select dropdowns, and Forest/Lime pill action buttons.
+    - `PriceTrendChart.tsx`: `#111827` card, Cormorant Garamond title, segmented pill range switcher, Vivid Lime `#e8fe85` SVG line, and `#07503f` gradient band.
+    - `MarketInsightCard.tsx`: `#111827` container, Cormorant Garamond header, Gemini 2.5 Flash pill chip, and verified confidence badge.
+    - `MarketContextCard.tsx`: Metric tiles with Cormorant Garamond serif numbers and pill strength badges.
+    - `MarketCalculators.tsx`: Crop Margin Calculator (DES benchmark), Storage Estimator (WDRA benchmark with non-storable refusal), and Mandi Logistics 7-day arrival weather disruption strip in rotating Pastel Quilt cards with 33px rounded inputs and Forest/Lime net profit displays.
+    - `MandiRecentReportsTable.tsx`: `#111827` rounded-3xl container, Cormorant Garamond header, font-mono dark table with `#e8fe85` verified badges.
+    - `MandiExplore.tsx`: Search controls container in `#111827`, 33px rounded input, Pastel Quilt rotating market cards with bold serif prices and Vivid Lime pill badges.
+  - **Weather Intelligence (`src/components/weather/WeatherStrip.tsx`)**: Rotating Pastel Quilt tiles (Sky, Peach, Sage, Ash), 33px search bar, multi-source weather fusion with confidence badges, and responsive layout.
+  - **Precision Agronomic Advisor (`src/components/farmer/`)**: `FarmDiagnosticCard` (GDD phenology & FAO-56 root-zone water balance in Pastel Quilt tiles), `AdvisoryChatCard` (ICAR grounded Q&A with 33px input and Forest/Lime pill submit button), and `GovernmentSchemesCard` (central welfare schemes with 33px search and category pills).
+  - **Sign-In & Farmer Portal (`src/components/auth/AuthPortal.tsx`)**: 6 Indic languages, credentials authentication, comprehensive farm parameter onboarding, and 1-click instant demo profiles.
+  - **Farmer Onboarding & Settings (`src/components/farmer/FarmerOnboardingModal.tsx`, `ProfileSettings.tsx`, `ProfileSetup.tsx`)**: Cormorant Garamond serif headers, 33px rounded inputs, Forest Ink pill save actions, and clean profile administration.
+  - **Farmer AI Assistant Widget (`src/components/ChatWidget.tsx`)**: Floating `#07503f` circular launcher button with `#e8fe85` accent icon, `#111827` rounded-3xl chat window, and 33px rounded chat input.
+  - **Streamlined Navigation**: 5-tab pill shell (`Home`, `Advisor`, `Prices`, `Weather`, and `Profile`). Legacy removed tabs (`fertilizer`, `marketplace`, `disease`, `learn`, `history`) remain completely omitted from active navigation.
 
 ---
 

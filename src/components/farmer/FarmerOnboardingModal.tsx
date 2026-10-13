@@ -131,46 +131,46 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        exit={{ opacity: 0, scale: 0.96 }}
+        className="w-full max-w-lg bg-[#111827] border border-stone-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
       >
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/60">
+        {/* Header (Forest banner styling) */}
+        <div className="px-6 py-5 border-b border-stone-800 flex items-center justify-between bg-[#07503f]/15">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-              Personalized Crop Advisory Setup
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#e8fe85] font-mono">
+              Precision Agronomy Setup
             </span>
-            <h2 className="text-lg font-bold text-zinc-100">
-              {step === 1 && 'Step 1: Farmer Profile & Language'}
-              {step === 2 && 'Step 2: Farm Location & Coordinates'}
-              {step === 3 && 'Step 3: Soil & Irrigation Details'}
+            <h2 className="font-serif text-xl font-bold text-white tracking-tight">
+              {step === 1 && 'Step 1: Farmer Identity & Language'}
+              {step === 2 && 'Step 2: Farm Location & Micro-Grid'}
+              {step === 3 && 'Step 3: Soil Health & Irrigation Type'}
               {step === 4 && 'Step 4: Active Crop & Sowing Date'}
             </h2>
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors"
+            className="p-2 rounded-full hover:bg-stone-800 text-stone-400 hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Progress Bar */}
-        <div className="h-1 bg-zinc-800 w-full">
+        {/* Progress Bar (Lime vivid fill) */}
+        <div className="h-1 bg-stone-800 w-full">
           <div 
-            className="h-full bg-emerald-500 transition-all duration-300"
+            className="h-full bg-[#e8fe85] transition-all duration-300"
             style={{ width: `${(step / 4) * 100}%` }}
           />
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-5 overflow-y-auto flex-1 text-sm text-zinc-200">
+        <div className="p-6 space-y-5 overflow-y-auto flex-1 text-sm text-stone-200">
           {error && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-300 rounded-xl text-xs">
+            <div className="p-3.5 bg-rose-950/40 border border-rose-500/30 text-rose-300 rounded-2xl text-xs">
               {error}
             </div>
           )}
@@ -178,21 +178,21 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Full Name (किसान का नाम)</label>
+                <label className="block text-xs font-semibold text-stone-300 mb-1.5 font-mono">Full Name (किसान का नाम)</label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <User className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Ramesh Patel"
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-xl py-2.5 pl-10 pr-3 text-zinc-100 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="w-full bg-stone-900 border border-stone-700/80 rounded-full py-2.5 pl-11 pr-4 text-stone-100 text-sm focus:border-[#e8fe85] focus:ring-1 focus:ring-[#e8fe85] focus:outline-none transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Preferred Advisory Language</label>
+                <label className="block text-xs font-semibold text-stone-300 mb-1.5 font-mono">Preferred Advisory Language</label>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
                     { id: 'hi', label: 'Hindi (हिन्दी)' },
@@ -204,10 +204,10 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                       key={l.id}
                       type="button"
                       onClick={() => setLanguage(l.id)}
-                      className={`p-2.5 rounded-xl border text-left font-medium transition-all ${
+                      className={`p-3 rounded-2xl border text-left font-bold transition-all ${
                         language === l.id 
-                          ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300' 
-                          : 'bg-zinc-800/50 border-zinc-700/60 text-zinc-400 hover:text-zinc-200'
+                          ? 'bg-[#07503f] border-[#e8fe85]/40 text-[#e8fe85] shadow-sm' 
+                          : 'bg-stone-900 border-stone-800 text-stone-400 hover:text-white hover:bg-stone-800'
                       }`}
                     >
                       {l.label}
@@ -217,13 +217,13 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Phone Number (Optional)</label>
+                <label className="block text-xs font-semibold text-stone-300 mb-1.5 font-mono">Phone Number (Optional)</label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 98765 43210"
-                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-xl py-2.5 px-3 text-zinc-100 text-sm focus:border-emerald-500 focus:outline-none"
+                  className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 px-4 text-stone-100 text-xs font-mono focus:border-[#e8fe85] focus:outline-none transition-all"
                 />
               </div>
             </div>
@@ -233,11 +233,11 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1">State</label>
+                  <label className="block text-xs font-mono font-semibold text-stone-400 mb-1">State</label>
                   <select
                     value={state}
                     onChange={(e) => setState(e.target.value)}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-xl py-2 px-3 text-zinc-100 text-xs focus:border-emerald-500 focus:outline-none"
+                    className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 px-4 text-stone-100 text-xs font-mono focus:border-[#e8fe85] focus:outline-none appearance-none"
                   >
                     <option value="Maharashtra">Maharashtra</option>
                     <option value="Gujarat">Gujarat</option>
@@ -249,64 +249,64 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1">District</label>
+                  <label className="block text-xs font-mono font-semibold text-stone-400 mb-1">District</label>
                   <input
                     type="text"
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
                     placeholder="e.g. Nashik"
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-xl py-2 px-3 text-zinc-100 text-xs focus:border-emerald-500 focus:outline-none"
+                    className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 px-4 text-stone-100 text-xs font-mono focus:border-[#e8fe85] focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1">Plot Name</label>
+                <label className="block text-xs font-mono font-semibold text-stone-400 mb-1">Plot Name</label>
                 <input
                   type="text"
                   value={farmName}
                   onChange={(e) => setFarmName(e.target.value)}
                   placeholder="e.g. Main Orchard"
-                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-xl py-2 px-3 text-zinc-100 text-xs focus:border-emerald-500 focus:outline-none"
+                  className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 px-4 text-stone-100 text-xs font-mono focus:border-[#e8fe85] focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-[10px] font-semibold text-zinc-500 mb-1">Latitude</label>
+                  <label className="block text-[10px] font-mono font-semibold text-stone-400 mb-1">Latitude</label>
                   <input
                     type="number"
                     step="0.001"
                     value={lat}
                     onChange={(e) => setLat(Number(e.target.value))}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg py-1.5 px-2 text-zinc-100 text-xs"
+                    className="w-full bg-stone-900 border border-stone-800 rounded-full py-2 px-3 text-stone-100 text-xs font-mono focus:border-[#e8fe85] focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-semibold text-zinc-500 mb-1">Longitude</label>
+                  <label className="block text-[10px] font-mono font-semibold text-stone-400 mb-1">Longitude</label>
                   <input
                     type="number"
                     step="0.001"
                     value={lon}
                     onChange={(e) => setLon(Number(e.target.value))}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg py-1.5 px-2 text-zinc-100 text-xs"
+                    className="w-full bg-stone-900 border border-stone-800 rounded-full py-2 px-3 text-stone-100 text-xs font-mono focus:border-[#e8fe85] focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-semibold text-zinc-500 mb-1">Field Size (Acres)</label>
+                  <label className="block text-[10px] font-mono font-semibold text-stone-400 mb-1">Field Size (Acres)</label>
                   <input
                     type="number"
                     step="0.1"
                     value={fieldSize}
                     onChange={(e) => setFieldSize(e.target.value)}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg py-1.5 px-2 text-zinc-100 text-xs"
+                    className="w-full bg-stone-900 border border-stone-800 rounded-full py-2 px-3 text-stone-100 text-xs font-mono focus:border-[#e8fe85] focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="p-3 bg-zinc-800/40 rounded-xl border border-zinc-700/50 text-xs text-zinc-400 flex items-center gap-2">
-                <Compass className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Weather Grid Snap: <strong>{Number(lat).toFixed(1)},{Number(lon).toFixed(1)}</strong> (Reuses 11km Agromet grid)</span>
+              <div className="p-3 bg-stone-900/60 rounded-2xl border border-stone-800 text-xs text-stone-400 flex items-center gap-2">
+                <Compass className="w-4 h-4 text-[#e8fe85] shrink-0" />
+                <span className="font-mono text-[11px]">Weather Grid Snap: <strong className="text-stone-200">{Number(lat).toFixed(1)},{Number(lon).toFixed(1)}</strong> (11km Agromet grid)</span>
               </div>
             </div>
           )}
@@ -314,11 +314,11 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Dominant Soil Type</label>
+                <label className="block text-xs font-mono font-semibold text-stone-400 mb-1.5">Dominant Soil Type</label>
                 <select
                   value={soilType}
                   onChange={(e) => setSoilType(e.target.value)}
-                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-xl py-2.5 px-3 text-zinc-100 text-xs focus:border-emerald-500 focus:outline-none"
+                  className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 px-4 text-stone-100 text-xs font-mono focus:border-[#e8fe85] focus:outline-none appearance-none"
                 >
                   {SOIL_TYPES.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -327,11 +327,11 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Primary Irrigation Source</label>
+                <label className="block text-xs font-mono font-semibold text-stone-400 mb-1.5">Primary Irrigation Source</label>
                 <select
                   value={irrigation}
                   onChange={(e) => setIrrigation(e.target.value)}
-                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-xl py-2 px-3 text-zinc-100 text-xs focus:border-emerald-500 focus:outline-none"
+                  className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 px-4 text-stone-100 text-xs font-mono focus:border-[#e8fe85] focus:outline-none appearance-none"
                 >
                   <option value="drip">Drip Irrigation (ड्रिप)</option>
                   <option value="sprinkler">Sprinkler (फव्वारा)</option>
@@ -341,57 +341,57 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                 </select>
               </div>
 
-              <div className="pt-2 border-t border-zinc-800">
+              <div className="pt-2 border-t border-stone-800">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={hasShc}
                     onChange={(e) => setHasShc(e.target.checked)}
-                    className="rounded border-zinc-700 text-emerald-500 focus:ring-0"
+                    className="rounded border-stone-700 text-[#07503f] focus:ring-0"
                   />
-                  <span className="text-xs font-medium text-emerald-400 flex items-center gap-1.5">
+                  <span className="text-xs font-mono font-medium text-[#e8fe85] flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5" />
                     I have a Soil Health Card (मृदा स्वास्थ्य कार्ड)
                   </span>
                 </label>
 
                 {hasShc && (
-                  <div className="grid grid-cols-4 gap-2 mt-3 p-3 bg-zinc-800/40 rounded-xl border border-zinc-700/50">
+                  <div className="grid grid-cols-4 gap-2 mt-3 p-3 bg-stone-900/60 rounded-2xl border border-stone-800">
                     <div>
-                      <label className="block text-[10px] text-zinc-400">N (kg/ha)</label>
+                      <label className="block text-[10px] font-mono text-stone-400">N (kg/ha)</label>
                       <input
                         type="number"
                         value={soilN}
                         onChange={(e) => setSoilN(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded p-1.5 text-xs"
+                        className="w-full bg-stone-900 border border-stone-800 rounded-full p-2 text-xs font-mono text-stone-100 focus:border-[#e8fe85] focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-zinc-400">P (kg/ha)</label>
+                      <label className="block text-[10px] font-mono text-stone-400">P (kg/ha)</label>
                       <input
                         type="number"
                         value={soilP}
                         onChange={(e) => setSoilP(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded p-1.5 text-xs"
+                        className="w-full bg-stone-900 border border-stone-800 rounded-full p-2 text-xs font-mono text-stone-100 focus:border-[#e8fe85] focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-zinc-400">K (kg/ha)</label>
+                      <label className="block text-[10px] font-mono text-stone-400">K (kg/ha)</label>
                       <input
                         type="number"
                         value={soilK}
                         onChange={(e) => setSoilK(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded p-1.5 text-xs"
+                        className="w-full bg-stone-900 border border-stone-800 rounded-full p-2 text-xs font-mono text-stone-100 focus:border-[#e8fe85] focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-zinc-400">pH</label>
+                      <label className="block text-[10px] font-mono text-stone-400">pH</label>
                       <input
                         type="number"
                         step="0.1"
                         value={soilPh}
                         onChange={(e) => setSoilPh(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded p-1.5 text-xs"
+                        className="w-full bg-stone-900 border border-stone-800 rounded-full p-2 text-xs font-mono text-stone-100 focus:border-[#e8fe85] focus:outline-none"
                       />
                     </div>
                   </div>
@@ -403,7 +403,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
           {step === 4 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                <label className="block text-xs font-mono font-semibold text-stone-400 mb-1.5">
                   Select Deep Advisory Crop (फसल)
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -415,14 +415,14 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                         setSelectedCrop(c.name);
                         setSeason(c.season);
                       }}
-                      className={`p-2.5 rounded-xl border text-center transition-all ${
+                      className={`p-2.5 rounded-2xl border text-center transition-all ${
                         selectedCrop === c.name
-                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 font-bold'
-                          : 'bg-zinc-800/40 border-zinc-700/60 text-zinc-300 hover:bg-zinc-800'
+                          ? 'bg-[#07503f] border-[#e8fe85]/40 text-[#e8fe85] font-bold shadow-sm'
+                          : 'bg-stone-900 border-stone-800 text-stone-300 hover:bg-stone-800'
                       }`}
                     >
-                      <span className="block text-xs">{c.name}</span>
-                      <span className="block text-[10px] text-zinc-400">{c.hindi}</span>
+                      <span className="block text-xs font-mono">{c.name}</span>
+                      <span className="block text-[10px] text-stone-400">{c.hindi}</span>
                     </button>
                   ))}
                 </div>
@@ -430,21 +430,21 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1">Variety / Hybrid (किस्म)</label>
+                  <label className="block text-xs font-mono font-semibold text-stone-400 mb-1">Variety / Hybrid (किस्म)</label>
                   <input
                     type="text"
                     value={variety}
                     onChange={(e) => setVariety(e.target.value)}
                     placeholder="e.g. HD-2967"
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-xl py-2 px-3 text-zinc-100 text-xs focus:border-emerald-500 focus:outline-none"
+                    className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 px-4 text-stone-100 text-xs font-mono focus:border-[#e8fe85] focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1">Season</label>
+                  <label className="block text-xs font-mono font-semibold text-stone-400 mb-1">Season</label>
                   <select
                     value={season}
                     onChange={(e) => setSeason(e.target.value)}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-xl py-2 px-3 text-zinc-100 text-xs focus:border-emerald-500 focus:outline-none"
+                    className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 px-4 text-stone-100 text-xs font-mono focus:border-[#e8fe85] focus:outline-none appearance-none"
                   >
                     <option value="kharif">Kharif (खरीफ - Monsoon)</option>
                     <option value="rabi">Rabi (रबी - Winter)</option>
@@ -454,14 +454,14 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1">
+                <label className="block text-xs font-mono font-semibold text-stone-400 mb-1">
                   Sowing Date (बुवाई की तारीख - Used for GDD Stage Tracking)
                 </label>
                 <input
                   type="date"
                   value={sowingDate}
                   onChange={(e) => setSowingDate(e.target.value)}
-                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-xl py-2 px-3 text-zinc-100 text-xs focus:border-emerald-500 focus:outline-none"
+                  className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 px-4 text-stone-100 text-xs font-mono focus:border-[#e8fe85] focus:outline-none"
                 />
               </div>
             </div>
@@ -469,12 +469,12 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-zinc-800 flex items-center justify-between bg-zinc-900/60">
+        <div className="px-6 py-4 border-t border-stone-800 flex items-center justify-between bg-stone-900/60">
           {step > 1 ? (
             <button
               type="button"
               onClick={() => setStep((s) => (s - 1) as any)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-stone-800 hover:bg-stone-700 text-stone-200 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back
             </button>
@@ -482,7 +482,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
             <button
               type="button"
               onClick={onClose}
-              className="text-xs text-zinc-500 hover:text-zinc-300 underline"
+              className="text-xs text-stone-400 hover:text-white underline font-mono"
             >
               Skip / Continue Anonymously
             </button>
@@ -492,7 +492,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
             <button
               type="button"
               onClick={() => setStep((s) => (s + 1) as any)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all shadow-lg shadow-emerald-500/20"
+              className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full text-xs font-bold bg-[#07503f] hover:bg-[#0d6e57] text-[#e8fe85] transition-all shadow-md"
             >
               Next <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -501,7 +501,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
               type="button"
               onClick={handleSubmit}
               disabled={loading}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white transition-all shadow-lg shadow-emerald-500/30 disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold bg-[#07503f] hover:bg-[#0d6e57] text-[#e8fe85] transition-all shadow-lg disabled:opacity-50"
             >
               {loading ? 'Saving...' : 'Finish Onboarding & Personalize'}
               <CheckCircle2 className="w-4 h-4" />

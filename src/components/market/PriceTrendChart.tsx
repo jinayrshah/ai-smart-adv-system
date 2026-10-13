@@ -27,40 +27,40 @@ const CustomTooltip = ({ active, payload, label, unit }: any) => {
     const data: TrendPoint = payload[0].payload;
     if (data.modal === null || data.modal === undefined) {
       return (
-        <div className="bg-white dark:bg-zinc-800 p-3 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-700 text-xs">
-          <p className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">{label}</p>
-          <p className="text-amber-600 dark:text-amber-400 font-medium">No mandi report filed on this date</p>
+        <div className="bg-[#111827] border border-stone-800 p-3 rounded-2xl shadow-xl text-xs font-mono">
+          <p className="font-semibold text-stone-200 mb-1">{label}</p>
+          <p className="text-amber-400 font-medium">No mandi report filed on this date</p>
         </div>
       );
     }
 
     return (
-      <div className="bg-white dark:bg-zinc-800 p-3.5 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-700 text-xs space-y-1.5 min-w-[160px]">
-        <p className="font-semibold text-zinc-900 dark:text-zinc-100 border-b border-zinc-100 dark:border-zinc-700 pb-1">
+      <div className="bg-[#111827] border border-stone-800 p-4 rounded-2xl shadow-2xl text-xs font-mono space-y-1.5 min-w-[170px]">
+        <p className="font-semibold text-stone-300 border-b border-stone-800 pb-1.5">
           {label}
         </p>
-        <div className="flex justify-between items-baseline gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+        <div className="flex justify-between items-baseline gap-2 text-[#e8fe85] font-bold text-sm">
           <span>Modal:</span>
           <div className="text-right">
             <span>₹{data.modal.toLocaleString("en-IN")}/qtl</span>
-            <span className="block text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+            <span className="block text-[11px] font-medium text-stone-400">
               ₹{(data.modal / 100).toFixed(1)}/kg
             </span>
           </div>
         </div>
         {data.min !== null && data.max !== null && (
-          <div className="flex justify-between items-baseline gap-2 text-zinc-500 dark:text-zinc-400">
+          <div className="flex justify-between items-baseline gap-2 text-stone-400">
             <span>Band:</span>
             <div className="text-right">
               <span>₹{data.min} – ₹{data.max}/qtl</span>
-              <span className="block text-[10px] text-zinc-400">
+              <span className="block text-[10px] text-stone-500">
                 ₹{(data.min / 100).toFixed(1)} – ₹{(data.max / 100).toFixed(1)}/kg
               </span>
             </div>
           </div>
         )}
         {data.n_varieties > 0 && (
-          <div className="flex justify-between items-center text-zinc-400 text-[11px]">
+          <div className="flex justify-between items-center text-stone-400 text-[11px] pt-1 border-t border-stone-800">
             <span>Varieties:</span>
             <span>{data.n_varieties}</span>
           </div>
@@ -96,26 +96,26 @@ export const PriceTrendChart: React.FC<PriceTrendChartProps> = ({
   const ranges: (7 | 30 | 90 | 180)[] = [7, 30, 90, 180];
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+    <div className="bg-[#111827] border border-stone-800 rounded-3xl p-6 shadow-xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          <h3 className="text-xl font-bold font-serif text-stone-100">
             Price Trend & Fluctuation
           </h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs text-stone-400 font-mono mt-0.5">
             Modal price line with daily min/max arrival band. Gaps indicate days with no APMC report.
           </p>
         </div>
 
-        <div className="inline-flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
+        <div className="inline-flex p-1 bg-stone-900 border border-stone-800 rounded-full">
           {ranges.map((r) => (
             <button
               key={r}
               onClick={() => onRangeChange(r)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              className={`px-3.5 py-1 text-xs font-mono uppercase tracking-wider rounded-full transition-all ${
                 rangeDays === r
-                  ? "bg-white dark:bg-zinc-700 text-emerald-600 dark:text-emerald-400 shadow-sm"
-                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                  ? "bg-[#07503f] text-[#e8fe85] font-bold shadow-sm"
+                  : "text-stone-400 hover:text-stone-200"
               }`}
             >
               {r}d
@@ -181,21 +181,21 @@ export const PriceTrendChart: React.FC<PriceTrendChartProps> = ({
             <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="priceBandGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.02} />
+                  <stop offset="5%" stopColor="#e8fe85" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#07503f" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" className="dark:stroke-zinc-800" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272a" />
               <XAxis
                 dataKey="displayDate"
-                tick={{ fontSize: 11 }}
-                stroke="#a1a1aa"
+                tick={{ fontSize: 11, fill: '#71717a' }}
+                stroke="#3f3f46"
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
-                tick={{ fontSize: 11 }}
-                stroke="#a1a1aa"
+                tick={{ fontSize: 11, fill: '#71717a' }}
+                stroke="#3f3f46"
                 tickLine={false}
                 axisLine={false}
                 domain={["auto", "auto"]}
@@ -215,10 +215,10 @@ export const PriceTrendChart: React.FC<PriceTrendChartProps> = ({
               <Line
                 type="monotone"
                 dataKey="modal"
-                stroke="#059669"
+                stroke="#e8fe85"
                 strokeWidth={2.5}
-                dot={{ r: 3, fill: "#059669" }}
-                activeDot={{ r: 6, fill: "#047857" }}
+                dot={{ r: 3.5, fill: "#e8fe85", stroke: "#07503f", strokeWidth: 1.5 }}
+                activeDot={{ r: 6, fill: "#e8fe85", stroke: "#ffffff", strokeWidth: 2 }}
                 connectNulls={false}
                 isAnimationActive={false}
               />

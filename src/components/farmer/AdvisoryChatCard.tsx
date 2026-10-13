@@ -107,57 +107,57 @@ export const AdvisoryChatCard: React.FC<Props> = ({
   const renderConfidenceBadge = (confidence: string) => {
     if (confidence === 'grounded') {
       return (
-        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-          <CheckCircle2 size={11} />
+        <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 shadow-sm">
+          <CheckCircle2 size={12} className="text-[#e8fe85]" />
           <span>ICAR Verified Grounded</span>
         </span>
       );
     }
     if (confidence === 'partial') {
       return (
-        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-          <HelpCircle size={11} />
+        <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-950/70 text-amber-300 border border-amber-500/30">
+          <HelpCircle size={12} className="text-amber-400" />
           <span>Partially Grounded</span>
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-500/20 text-stone-300 border border-stone-500/30">
-        <AlertTriangle size={11} />
+      <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-stone-800 text-stone-300 border border-stone-700">
+        <AlertTriangle size={12} className="text-stone-400" />
         <span>General Agronomy</span>
       </span>
     );
   };
 
   return (
-    <div className="bg-dark-card border border-dark-border rounded-3xl overflow-hidden shadow-xl">
+    <div className="bg-[#111827] border border-stone-800 rounded-3xl overflow-hidden shadow-2xl">
       {/* Header */}
-      <div className="p-6 border-b border-dark-border/80 flex items-center justify-between bg-white/[0.02]">
-        <div className="flex items-center space-x-3">
-          <div className="p-2.5 bg-brand-green/15 text-brand-green rounded-2xl border border-brand-green/30">
-            <Sparkles size={20} />
+      <div className="p-6 border-b border-stone-800 flex items-center justify-between bg-[#07503f]/10">
+        <div className="flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-[#07503f] text-[#e8fe85] flex items-center justify-center font-bold shadow-md shrink-0">
+            <Sparkles size={22} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-stone-100 flex items-center space-x-2">
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white flex items-center space-x-2 tracking-tight">
               <span>Personalized Agronomic Advisor</span>
               {crop && (
-                <span className="text-xs px-2 py-0.5 bg-stone-800 text-stone-300 rounded-full font-normal">
+                <span className="text-xs px-3 py-0.5 bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 rounded-full font-bold">
                   {crop}
                 </span>
               )}
             </h2>
-            <p className="text-xs text-stone-400 mt-0.5">
+            <p className="text-xs text-stone-400 mt-1">
               Strictly grounded in ICAR Packages of Practice, FAO-56 thermal stages, and real-time agromet weather.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="p-6 space-y-5">
+      <div className="p-6 space-y-6">
         {/* Quick prompt suggestions */}
-        <div className="space-y-2">
-          <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">
-            Suggested Agronomic Questions
+        <div className="space-y-2.5">
+          <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider font-mono">
+            Suggested Agronomic Inquiries
           </p>
           <div className="flex flex-wrap gap-2">
             {quickPrompts.map((promptText, idx) => (
@@ -166,7 +166,7 @@ export const AdvisoryChatCard: React.FC<Props> = ({
                 type="button"
                 onClick={() => handleAsk(promptText)}
                 disabled={loading}
-                className="text-xs text-stone-300 hover:text-white bg-dark-bg/60 hover:bg-stone-800/80 border border-dark-border hover:border-emerald-500/40 rounded-xl px-3 py-2 text-left transition-all disabled:opacity-50"
+                className="text-xs text-stone-300 hover:text-white bg-stone-900 hover:bg-[#07503f]/20 border border-stone-700/80 hover:border-[#e8fe85]/60 rounded-full px-4 py-2 text-left transition-all duration-200 disabled:opacity-50"
               >
                 {promptText}
               </button>
@@ -174,7 +174,7 @@ export const AdvisoryChatCard: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Query Input */}
+        {/* Query Input (33px rounded with pill submit button) */}
         <form
           onSubmit={e => {
             e.preventDefault();
@@ -188,15 +188,15 @@ export const AdvisoryChatCard: React.FC<Props> = ({
             onChange={e => setQuery(e.target.value)}
             placeholder={`Ask anything about ${crop || 'your crop'}, irrigation, fertilizers, or diseases...`}
             disabled={loading}
-            className="w-full bg-dark-bg/80 border border-dark-border rounded-2xl pl-4 pr-24 py-3.5 text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-brand-green transition-colors"
+            className="w-full bg-stone-900 border border-stone-700/80 rounded-full pl-5 pr-28 py-3.5 text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-[#e8fe85] focus:border-[#e8fe85] transition-all shadow-inner"
           />
           <button
             type="submit"
             disabled={loading || !query.trim()}
-            className="absolute right-2 top-2 bottom-2 px-4 bg-brand-green hover:bg-brand-green-dark text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 flex items-center space-x-1.5"
+            className="absolute right-2 top-2 bottom-2 px-5 bg-[#07503f] hover:bg-[#0d6e57] text-[#e8fe85] rounded-full text-xs font-bold transition-all disabled:opacity-40 flex items-center space-x-2 shadow-md"
           >
             {loading ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={14} className="animate-spin text-[#e8fe85]" />
             ) : (
               <>
                 <span>Ask</span>
@@ -207,7 +207,7 @@ export const AdvisoryChatCard: React.FC<Props> = ({
         </form>
 
         {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400">
+          <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-400">
             {error}
           </div>
         )}
@@ -215,17 +215,17 @@ export const AdvisoryChatCard: React.FC<Props> = ({
         {/* Responses stream / history */}
         {history.length > 0 && (
           <div className="space-y-4 pt-2">
-            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider font-mono">
               Recent Consultations
             </h3>
             {history.map(item => (
               <div
                 key={item.id}
-                className="bg-dark-bg/50 border border-dark-border/80 rounded-2xl p-5 space-y-3.5"
+                className="bg-stone-900/60 border border-stone-800 rounded-3xl p-6 space-y-4 shadow-md"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center space-x-2 text-xs font-bold text-stone-200">
-                    <MessageSquare size={14} className="text-brand-green shrink-0" />
+                  <div className="flex items-center space-x-2.5 text-xs font-bold text-white">
+                    <MessageSquare size={15} className="text-[#e8fe85] shrink-0" />
                     <span>{item.query}</span>
                   </div>
                   {renderConfidenceBadge(item.response.confidence)}
@@ -233,13 +233,13 @@ export const AdvisoryChatCard: React.FC<Props> = ({
 
                 {/* Computed context summary chip if present */}
                 {item.response.computed?.growth_stage && (
-                  <div className="flex flex-wrap items-center gap-2 p-2.5 bg-emerald-950/20 border border-emerald-500/20 rounded-xl text-[11px] text-emerald-300">
-                    <span className="font-semibold flex items-center space-x-1">
-                      <Sprout size={12} />
+                  <div className="flex flex-wrap items-center gap-2 p-3 bg-[#07503f]/20 border border-[#07503f]/40 rounded-2xl text-[11px] text-[#f1efdf]">
+                    <span className="font-bold flex items-center space-x-1.5 text-[#e8fe85]">
+                      <Sprout size={14} />
                       <span>Stage: {item.response.computed.growth_stage.stage_name}</span>
                     </span>
                     {item.response.computed.irrigation && (
-                      <span className="text-stone-400">
+                      <span className="text-stone-300">
                         • Water:{' '}
                         {{
                           irrigate_now: 'irrigate now',
@@ -254,9 +254,9 @@ export const AdvisoryChatCard: React.FC<Props> = ({
                 )}
 
                 {item.response.computed?.assumptions && item.response.computed.assumptions.length > 0 && (
-                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-200">
-                    <span className="font-semibold block mb-0.5">This answer is approximate because:</span>
-                    <ul className="list-disc pl-4 space-y-0.5">
+                  <div className="p-3 bg-amber-950/40 border border-amber-500/30 rounded-2xl text-[11px] text-amber-200">
+                    <span className="font-bold block mb-1">This answer is approximate because:</span>
+                    <ul className="list-disc pl-4 space-y-0.5 text-stone-300">
                       {item.response.computed.assumptions.map((a, i) => (
                         <li key={i}>{a}</li>
                       ))}
@@ -265,22 +265,22 @@ export const AdvisoryChatCard: React.FC<Props> = ({
                 )}
 
                 {/* Advisory response body */}
-                <div className="text-sm text-stone-300 leading-relaxed whitespace-pre-line">
+                <div className="text-sm text-stone-200 leading-relaxed whitespace-pre-line">
                   {item.response.response}
                 </div>
 
-                {/* Grounding Sources */}
+                {/* Grounding Sources (Forest Section style) */}
                 {item.response.sources && item.response.sources.length > 0 && (
-                  <div className="pt-2 border-t border-dark-border/50">
-                    <div className="text-[11px] font-bold text-stone-400 mb-1.5 flex items-center space-x-1">
-                      <BookOpen size={12} className="text-emerald-400" />
-                      <span>Grounded References & Package of Practice</span>
+                  <div className="pt-3 border-t border-stone-800">
+                    <div className="text-[11px] font-bold text-stone-400 mb-2 flex items-center space-x-1.5 font-mono">
+                      <BookOpen size={13} className="text-[#e8fe85]" />
+                      <span>Grounded References & ICAR Package of Practice</span>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-2">
                       {item.response.sources.map((src, sIdx) => (
                         <span
                           key={sIdx}
-                          className="text-[10px] bg-stone-800/80 text-stone-300 px-2 py-0.5 rounded-lg border border-dark-border"
+                          className="text-[11px] bg-stone-800 text-stone-300 px-3 py-1 rounded-full border border-stone-700/80"
                         >
                           {src.title} {src.page ? `(p. ${src.page})` : ''}
                         </span>
@@ -290,17 +290,17 @@ export const AdvisoryChatCard: React.FC<Props> = ({
                 )}
 
                 {/* Feedback buttons */}
-                <div className="pt-2 flex items-center justify-between text-xs text-stone-400 border-t border-dark-border/40">
+                <div className="pt-3 flex items-center justify-between text-xs text-stone-400 border-t border-stone-800">
                   <span className="text-[11px]">Was this agronomic guidance helpful?</span>
-                  <div className="flex items-center space-x-1.5">
+                  <div className="flex items-center space-x-2">
                     <button
                       type="button"
                       onClick={() => handleFeedback(item.id, 1)}
                       disabled={item.feedbackGiven !== null && item.feedbackGiven !== undefined}
-                      className={`p-1.5 rounded-lg border transition-all ${
+                      className={`p-2 rounded-full border transition-all ${
                         item.feedbackGiven === 1
-                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                          : 'hover:bg-stone-800 text-stone-400 border-dark-border'
+                          ? 'bg-[#07503f] text-[#e8fe85] border-[#e8fe85]/40'
+                          : 'hover:bg-stone-800 text-stone-400 border-stone-700'
                       }`}
                       title="Helpful"
                     >
@@ -310,17 +310,17 @@ export const AdvisoryChatCard: React.FC<Props> = ({
                       type="button"
                       onClick={() => handleFeedback(item.id, -1)}
                       disabled={item.feedbackGiven !== null && item.feedbackGiven !== undefined}
-                      className={`p-1.5 rounded-lg border transition-all ${
+                      className={`p-2 rounded-full border transition-all ${
                         item.feedbackGiven === -1
-                          ? 'bg-red-500/20 text-red-400 border-red-500/40'
-                          : 'hover:bg-stone-800 text-stone-400 border-dark-border'
+                          ? 'bg-rose-950/60 text-rose-400 border-rose-500/40'
+                          : 'hover:bg-stone-800 text-stone-400 border-stone-700'
                       }`}
                       title="Not helpful"
                     >
                       <ThumbsDown size={13} />
                     </button>
                     {item.feedbackGiven && (
-                      <span className="text-[10px] text-emerald-400 ml-1">
+                      <span className="text-[11px] text-[#e8fe85] font-bold ml-1">
                         Feedback recorded
                       </span>
                     )}

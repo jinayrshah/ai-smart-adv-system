@@ -189,38 +189,38 @@ ${result.recommendations.join('\n')}`;
               opacity: 1, 
               scale: 1, 
               y: 0,
-              height: isMinimized ? '64px' : '500px',
+              height: isMinimized ? '64px' : '520px',
               width: '380px'
             }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="bg-stone-900 border border-dark-border rounded-2xl shadow-2xl overflow-hidden flex flex-col mb-4"
+            className="bg-[#111827] border border-stone-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col mb-4"
           >
             {/* Header */}
-            <div className="p-4 bg-brand-green/10 border-b border-dark-border flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-brand-green rounded-lg flex items-center justify-center">
-                  <Bot size={18} className="text-white" />
+            <div className="p-4 bg-[#07503f]/30 border-b border-stone-800 flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 rounded-full flex items-center justify-center shadow">
+                  <Bot size={17} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-white">Farmer Assistant</h3>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] text-stone-400 uppercase tracking-wider">Online</span>
+                  <h3 className="font-serif font-bold text-sm text-stone-100">Farmer Assistant</h3>
+                  <div className="flex items-center space-x-1.5">
+                    <div className="w-1.5 h-1.5 bg-[#e8fe85] rounded-full animate-pulse" />
+                    <span className="text-[9px] font-mono text-[#e8fe85] uppercase tracking-wider">Active Agro AI</span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center space-x-1">
                 <button 
                   onClick={() => setIsMinimized(!isMinimized)}
-                  className="p-1.5 text-stone-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                  className="p-1.5 text-stone-400 hover:text-stone-100 hover:bg-stone-800 rounded-full transition-colors cursor-pointer"
                 >
-                  {isMinimized ? <Maximize2 size={16} /> : <Minus size={16} />}
+                  {isMinimized ? <Maximize2 size={15} /> : <Minus size={15} />}
                 </button>
                 <button 
                   onClick={() => setIsOpen(false)}
-                  className="p-1.5 text-stone-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                  className="p-1.5 text-stone-400 hover:text-stone-100 hover:bg-stone-800 rounded-full transition-colors cursor-pointer"
                 >
-                  <X size={16} />
+                  <X size={15} />
                 </button>
               </div>
             </div>
@@ -228,7 +228,7 @@ ${result.recommendations.join('\n')}`;
             {!isMinimized && (
               <>
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-stone-700">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-stone-800 text-xs">
                   {messages.map((msg) => (
                     <div 
                       key={msg.id}
@@ -243,25 +243,25 @@ ${result.recommendations.join('\n')}`;
                       )}>
                         <div className={cn(
                           "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-1",
-                          msg.role === 'user' ? "bg-brand-green/20" : "bg-stone-800 border border-dark-border"
+                          msg.role === 'user' ? "bg-[#07503f] text-[#e8fe85]" : "bg-stone-900 border border-stone-800 text-stone-400"
                         )}>
-                          {msg.role === 'user' ? <User size={14} className="text-brand-green" /> : <Bot size={14} className="text-stone-400" />}
+                          {msg.role === 'user' ? <User size={13} /> : <Bot size={13} />}
                         </div>
                         <div className={cn(
-                          "p-3 rounded-2xl text-sm",
+                          "p-3 rounded-2xl text-xs",
                           msg.role === 'user' 
-                            ? "bg-brand-green text-white rounded-tr-none" 
-                            : "bg-stone-800/50 text-stone-200 border border-dark-border rounded-tl-none"
+                            ? "bg-[#07503f] text-[#f1efdf] border border-[#e8fe85]/20 rounded-tr-none shadow" 
+                            : "bg-stone-900 text-stone-200 border border-stone-800 rounded-tl-none"
                         )}>
                           {msg.image && (
-                            <img src={msg.image} alt="Uploaded" className="max-w-full rounded-lg mb-2 border border-white/10" referrerPolicy="no-referrer" />
+                            <img src={msg.image} alt="Uploaded" className="max-w-full rounded-xl mb-2 border border-stone-700" referrerPolicy="no-referrer" />
                           )}
-                          <div className="prose prose-invert prose-sm max-w-none">
+                          <div className="prose prose-invert prose-xs max-w-none text-stone-200 leading-relaxed">
                             <ReactMarkdown>{msg.content}</ReactMarkdown>
                           </div>
                           <div className={cn(
-                            "text-[10px] mt-1 opacity-50",
-                            msg.role === 'user' ? "text-right" : "text-left"
+                            "text-[9px] font-mono mt-1 opacity-60",
+                            msg.role === 'user' ? "text-right text-[#e8fe85]/80" : "text-left text-stone-400"
                           )}>
                             {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
@@ -272,12 +272,12 @@ ${result.recommendations.join('\n')}`;
                   {isLoading && (
                     <div className="flex justify-start">
                       <div className="flex space-x-2">
-                        <div className="w-7 h-7 rounded-full bg-stone-800 border border-dark-border flex items-center justify-center flex-shrink-0">
-                          <Bot size={14} className="text-stone-400" />
+                        <div className="w-7 h-7 rounded-full bg-stone-900 border border-stone-800 flex items-center justify-center flex-shrink-0">
+                          <Bot size={13} className="text-stone-400" />
                         </div>
-                        <div className="bg-stone-800/50 p-3 rounded-2xl rounded-tl-none border border-dark-border flex items-center space-x-2">
-                          <Loader2 size={14} className="animate-spin text-brand-green" />
-                          <span className="text-xs text-stone-400">Assistant is thinking...</span>
+                        <div className="bg-stone-900 p-3 rounded-2xl rounded-tl-none border border-stone-800 flex items-center space-x-2">
+                          <Loader2 size={13} className="animate-spin text-[#e8fe85]" />
+                          <span className="text-xs font-mono text-stone-400">Synthesizing agronomic advice...</span>
                         </div>
                       </div>
                     </div>
@@ -286,20 +286,20 @@ ${result.recommendations.join('\n')}`;
                 </div>
 
                 {/* Input */}
-                <div className="p-4 border-t border-dark-border bg-stone-900/50">
+                <div className="p-3.5 border-t border-stone-800 bg-[#0b0f19]">
                   {location && (
-                    <div className="flex items-center space-x-1 mb-2 px-1">
-                      <MapPin size={10} className="text-brand-green" />
-                      <span className="text-[10px] text-stone-500 uppercase tracking-wider">Location: {location}</span>
+                    <div className="flex items-center space-x-1.5 mb-2 px-1">
+                      <MapPin size={10} className="text-[#e8fe85]" />
+                      <span className="text-[9px] font-mono text-stone-400 uppercase tracking-wider">Region: {location}</span>
                     </div>
                   )}
                   <div className="flex items-center space-x-2">
                     <button 
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-2 text-stone-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                      className="p-2 text-stone-400 hover:text-[#e8fe85] hover:bg-stone-800 rounded-full transition-colors cursor-pointer"
                       title="Upload plant image"
                     >
-                      <ImageIcon size={20} />
+                      <ImageIcon size={18} />
                     </button>
                     <input 
                       type="file" 
@@ -314,16 +314,16 @@ ${result.recommendations.join('\n')}`;
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                        placeholder="Ask anything about farming..."
-                        className="w-full bg-stone-800 border border-dark-border rounded-xl py-2 px-4 text-sm text-white placeholder:text-stone-500 focus:outline-none focus:border-brand-green/50 transition-colors"
+                        placeholder="Ask anything about farming & crops..."
+                        className="w-full bg-stone-900 border border-stone-800 rounded-full py-2 px-4 text-xs font-mono text-stone-200 placeholder:text-stone-500 focus:outline-none focus:border-[#e8fe85] transition-colors"
                       />
                     </div>
                     <button 
                       onClick={() => handleSend()}
                       disabled={isLoading || !input.trim()}
-                      className="p-2 bg-brand-green text-white rounded-xl hover:bg-brand-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                      className="p-2.5 bg-[#07503f] hover:bg-[#0c6b54] text-[#e8fe85] border border-[#e8fe85]/30 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 cursor-pointer shadow"
                     >
-                      <Send size={20} />
+                      <Send size={15} />
                     </button>
                   </div>
                 </div>
@@ -338,11 +338,13 @@ ${result.recommendations.join('\n')}`;
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-300",
-          isOpen ? "bg-stone-800 text-white rotate-90" : "bg-brand-green text-white"
+          "w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 border cursor-pointer",
+          isOpen 
+            ? "bg-stone-900 text-stone-200 border-stone-700 rotate-90" 
+            : "bg-[#07503f] text-[#e8fe85] border-[#e8fe85]/30 shadow-[#07503f]/50"
         )}
       >
-        {isOpen ? <X size={28} /> : <MessageSquare size={28} />}
+        {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
       </motion.button>
     </div>
   );

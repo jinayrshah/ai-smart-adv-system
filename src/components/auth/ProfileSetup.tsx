@@ -31,77 +31,77 @@ export const ProfileSetup: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center p-4">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md bg-dark-card border border-dark-border rounded-3xl p-8 shadow-2xl"
+        className="w-full max-w-md bg-[#111827] border border-stone-800 rounded-3xl p-8 shadow-2xl"
       >
-        <div className="text-center mb-8">
+        <div className="text-left mb-8">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-bold text-stone-100">{t('profile.completeProfile')}</h1>
+            <h1 className="text-2xl font-serif font-bold text-stone-100">{t('profile.completeProfile')}</h1>
             {useAuth().user?.id?.startsWith('demo-user') && (
-              <span className="text-[8px] font-bold bg-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded-md uppercase tracking-wider border border-amber-500/30">
+              <span className="text-[9px] font-mono font-bold bg-[#07503f] text-[#e8fe85] px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-[#e8fe85]/30">
                 {t('auth.demoMode')}
               </span>
             )}
           </div>
-          <p className="text-stone-400 text-sm text-left">
+          <p className="text-stone-400 text-xs font-mono">
             {t('profile.profileDesc')}
           </p>
         </div>
 
         <div className="space-y-6">
           <div>
-            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-stone-400 mb-2">
               {t('profile.fullName')}
             </label>
             <div className="relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-500">
-                <User size={18} />
+                <User size={16} />
               </div>
               <input 
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full bg-stone-900/50 border border-dark-border rounded-xl py-3 pl-12 pr-4 text-stone-200 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 pl-12 pr-4 text-stone-200 text-xs font-mono focus:outline-none focus:border-[#e8fe85] transition-colors"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-stone-400 mb-2">
               {t('profile.location')}
             </label>
             <div className="relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-500">
-                <MapPin size={18} />
+                <MapPin size={16} />
               </div>
               <input 
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="Enter your region"
-                className="w-full bg-stone-900/50 border border-dark-border rounded-xl py-3 pl-12 pr-4 text-stone-200 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 pl-12 pr-4 text-stone-200 text-xs font-mono focus:outline-none focus:border-[#e8fe85] transition-colors"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-stone-400 mb-2">
               {t('profile.farmType')}
             </label>
             <div className="relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-500">
-                <Sprout size={18} />
+                <Sprout size={16} />
               </div>
               <select 
                 value={farmType}
                 onChange={(e) => setFarmType(e.target.value)}
-                className="w-full bg-stone-900/50 border border-dark-border rounded-xl py-3 pl-12 pr-4 text-stone-200 focus:outline-none focus:border-emerald-500/50 transition-colors appearance-none"
+                className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 pl-12 pr-4 text-stone-200 text-xs font-mono focus:outline-none focus:border-[#e8fe85] transition-colors appearance-none"
               >
                 <option value="Vegetable">Vegetable Farming</option>
                 <option value="Fruit">Fruit Orchard</option>
@@ -113,7 +113,7 @@ export const ProfileSetup: React.FC = () => {
           </div>
 
           {error && (
-            <p className="text-red-400 text-xs bg-red-400/10 p-3 rounded-lg border border-red-400/20">
+            <p className="text-red-400 text-xs bg-red-400/10 p-3 rounded-2xl border border-red-400/20 font-mono">
               {error}
             </p>
           )}
@@ -122,12 +122,12 @@ export const ProfileSetup: React.FC = () => {
             type="button"
             onClick={handleSubmit}
             disabled={loading || !name || !location}
-            className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center space-x-2 transition-all shadow-lg shadow-emerald-500/20"
+            className="w-full bg-[#07503f] hover:bg-[#0c6b54] disabled:opacity-50 text-[#f1efdf] text-xs font-mono font-bold uppercase tracking-wider py-3.5 rounded-full flex items-center justify-center space-x-2 transition-all shadow-lg border border-[#e8fe85]/30 cursor-pointer"
           >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : (
+            {loading ? <Loader2 className="animate-spin text-[#e8fe85]" size={18} /> : (
               <>
                 <span>{t('profile.saveContinue')}</span>
-                <ArrowRight size={18} />
+                <ArrowRight size={16} className="text-[#e8fe85]" />
               </>
             )}
           </button>

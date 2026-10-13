@@ -162,7 +162,7 @@ export const MandiAutocomplete: React.FC<MandiAutocompleteProps> = ({
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+      <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
         Market (Mandi)
       </label>
       <div className="relative">
@@ -176,25 +176,26 @@ export const MandiAutocomplete: React.FC<MandiAutocompleteProps> = ({
           }}
           onFocus={() => setIsOpen(true)}
           placeholder="Search mandi..."
-          className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-8 pr-7 py-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 w-44"
+          className="bg-stone-900 border border-stone-800 rounded-full pl-8 pr-7 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85] w-48 shadow-inner"
         />
-        <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+        <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-[#e8fe85]"
         >
           <ChevronDown className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 w-60 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto py-1">
-          <div className="px-3 py-1 text-[10px] font-bold text-zinc-400 uppercase tracking-wider border-b border-zinc-100 dark:border-zinc-800">
-            {state} Mandis {loading && "(Searching...)"}
+        <div className="absolute left-0 top-full mt-2 w-64 bg-[#111827] border border-stone-800 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto py-1 backdrop-blur-md">
+          <div className="px-3.5 py-1.5 text-[10px] font-mono font-bold text-stone-400 uppercase tracking-wider border-b border-stone-800 flex items-center justify-between">
+            <span>{state} Mandis</span>
+            {loading && <span className="text-[#e8fe85] text-[9px] animate-pulse">Searching...</span>}
           </div>
           {filtered.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-zinc-500">
+            <div className="px-3.5 py-2.5 text-xs text-stone-400 font-mono">
               No matching mandi found. Press Enter to use "{searchTerm}".
             </div>
           ) : (
@@ -203,18 +204,18 @@ export const MandiAutocomplete: React.FC<MandiAutocompleteProps> = ({
                 key={m}
                 type="button"
                 onClick={() => handleSelect(m)}
-                className={`w-full text-left px-3 py-2 text-xs font-medium flex items-center justify-between hover:bg-emerald-50 dark:hover:bg-zinc-800 transition-colors ${
+                className={`w-full text-left px-3.5 py-2 text-xs font-mono flex items-center justify-between hover:bg-stone-800/80 transition-colors ${
                   m.toLowerCase() === value.toLowerCase()
-                    ? "bg-emerald-50 text-emerald-700 dark:bg-zinc-800/80 dark:text-emerald-400 font-bold"
-                    : "text-zinc-700 dark:text-zinc-300"
+                    ? "bg-[#07503f]/40 text-[#e8fe85] font-bold border-l-2 border-[#e8fe85]"
+                    : "text-stone-300"
                 }`}
               >
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="w-3 h-3 text-emerald-500" />
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-3.5 h-3.5 text-stone-400" />
                   <span>{m}</span>
                 </div>
                 {presetList.includes(m) && (
-                  <span className="text-[10px] text-zinc-400">Tracked</span>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 border border-stone-700">Tracked</span>
                 )}
               </button>
             ))

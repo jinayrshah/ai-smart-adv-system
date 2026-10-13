@@ -161,18 +161,20 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
   return (
     <div className="space-y-6">
       {/* Calculators Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-200 dark:border-zinc-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-4">
         <div>
-          <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          <h3 className="text-2xl font-bold font-serif text-stone-100 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-2xl bg-[#07503f] text-[#e8fe85] flex items-center justify-center font-bold">
+              <Calculator className="w-4 h-4" />
+            </div>
             Decision Calculators & Mandi Logistics
           </h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Estimates derived from official benchmark datasets (DES Cost of Cultivation & WDRA manuals). Not farmer's actual costs.
+          <p className="text-xs text-stone-400 font-mono mt-1">
+            Estimates derived from official benchmark datasets (DES Cost of Cultivation & WDRA manuals).
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-full">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 px-3.5 py-1 rounded-full shadow-sm">
             Official DES & WDRA References
           </span>
         </div>
@@ -180,23 +182,23 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Card 1: Crop Margin Calculator */}
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl">
+        <div className="bg-[#111827] border border-stone-800 rounded-3xl p-6 shadow-xl space-y-5 relative overflow-hidden">
+          <div className="flex items-center justify-between border-b border-stone-800 pb-3">
+            <div className="flex items-center gap-3">
+              <span className="p-2.5 bg-[#07503f] text-[#e8fe85] rounded-2xl shadow-sm">
                 <Coins className="w-4 h-4" />
               </span>
               <div>
-                <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                <h4 className="text-base font-bold font-serif text-stone-100">
                   Crop Margin Calculator
                 </h4>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                <p className="text-[11px] text-stone-400 font-mono">
                   DES Cost of Cultivation benchmark vs current price
                 </p>
               </div>
             </div>
             {marginData && (
-              <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-0.5 rounded font-medium">
+              <span className="text-[10px] font-mono bg-stone-900 border border-stone-800 text-stone-300 px-2.5 py-1 rounded-full">
                 Survey: {marginData.cost_year}
               </span>
             )}
@@ -205,7 +207,7 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
           {/* Form inputs */}
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+              <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
                 Field Size (Acres)
               </label>
               <input
@@ -214,11 +216,11 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
                 step="0.5"
                 value={fieldSize}
                 onChange={(e) => setFieldSize(parseFloat(e.target.value) || 1)}
-                className="w-full bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full bg-stone-900 border border-stone-800 rounded-full px-4 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85] shadow-inner"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+              <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
                 Selling Price (₹/qtl)
               </label>
               <div className="relative">
@@ -227,16 +229,16 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
                   placeholder={currentPrice ? `Market: ₹${currentPrice}` : "Enter price"}
                   value={marginPriceOverride}
                   onChange={(e) => setMarginPriceOverride(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-stone-900 border border-stone-800 rounded-full px-4 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85] shadow-inner"
                 />
               </div>
             </div>
           </div>
 
-          <div className="h-4 text-[11px] text-zinc-400 flex items-center gap-1.5" aria-live="polite">
+          <div className="h-4 text-[11px] font-mono text-stone-400 flex items-center gap-1.5" aria-live="polite">
             {marginLoading && (
               <>
-                <RefreshCw className="w-3 h-3 animate-spin" /> Updating…
+                <RefreshCw className="w-3 h-3 animate-spin text-[#e8fe85]" /> Updating…
               </>
             )}
           </div>
@@ -244,53 +246,53 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
           {/* Result calculation */}
           {marginData ? (
             <div className="space-y-3 pt-1">
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800">
-                  <span className="text-[10px] text-zinc-400 block">Comprehensive Cost (C2)</span>
-                  <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              <div className="grid grid-cols-2 gap-2.5 text-xs">
+                <div className="bg-stone-900 p-3.5 rounded-2xl border border-stone-800 space-y-1">
+                  <span className="text-[10px] font-mono text-stone-400 block uppercase tracking-wider">Comprehensive Cost (C2)</span>
+                  <span className="text-base font-bold font-serif text-stone-100">
                     ₹{marginData.cost_c2_per_qtl} / qtl
                   </span>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium block">
+                  <span className="text-[10px] font-mono text-[#e8fe85] block">
                     ₹{(marginData.cost_c2_per_qtl / 100).toFixed(1)} / kg
                   </span>
-                  <span className="text-[9px] text-zinc-400 block mt-0.5">Includes land rent & interest</span>
+                  <span className="text-[9px] text-stone-500 block">Includes land rent & interest</span>
                 </div>
-                <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800">
-                  <span className="text-[10px] text-zinc-400 block">Net Margin / Quintal</span>
+                <div className="bg-stone-900 p-3.5 rounded-2xl border border-stone-800 space-y-1">
+                  <span className="text-[10px] font-mono text-stone-400 block uppercase tracking-wider">Net Margin / Quintal</span>
                   <span
-                    className={`text-sm font-bold ${
+                    className={`text-base font-bold font-serif ${
                       marginData.margin_per_qtl >= 0
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-rose-600 dark:text-rose-400"
+                        ? "text-[#e8fe85]"
+                        : "text-rose-400"
                     }`}
                   >
                     {marginData.margin_per_qtl >= 0 ? "+" : ""}₹{marginData.margin_per_qtl} / qtl
                   </span>
-                  <span className="text-[10px] font-medium block">
+                  <span className="text-[10px] font-mono text-stone-300 block">
                     {marginData.margin_per_qtl >= 0 ? "+" : ""}₹{(marginData.margin_per_qtl / 100).toFixed(1)} / kg
                   </span>
-                  <span className="text-[9px] text-zinc-400 block mt-0.5">Price − C2 Cost</span>
+                  <span className="text-[9px] text-stone-500 block">Price − C2 Cost</span>
                 </div>
               </div>
 
-              <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl space-y-1">
+              <div className="bg-[#07503f]/25 border border-[#07503f]/50 p-4 rounded-2xl space-y-1.5">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-zinc-600 dark:text-zinc-300">
-                    Est. Field Harvest ({fieldSize} acres @ {marginData.reference_yield_qtl_per_hectare} qtl/ha):
+                  <span className="text-stone-300 font-mono">
+                    Est. Harvest ({fieldSize} ac @ {marginData.reference_yield_qtl_per_hectare} qtl/ha):
                   </span>
-                  <span className="font-bold text-zinc-800 dark:text-zinc-100">
-                    {marginData.est_total_yield_qtl} quintals
+                  <span className="font-bold font-mono text-stone-100">
+                    {marginData.est_total_yield_qtl} qtl
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-sm pt-1 border-t border-emerald-200/60 dark:border-emerald-800/60">
-                  <span className="font-semibold text-emerald-900 dark:text-emerald-200">
+                <div className="flex justify-between items-center text-sm pt-2 border-t border-[#07503f]/40">
+                  <span className="font-serif font-bold text-stone-200">
                     Estimated Net Field Profit:
                   </span>
                   <span
-                    className={`text-base font-extrabold ${
+                    className={`text-lg font-bold font-serif ${
                       marginData.est_total_margin >= 0
-                        ? "text-emerald-700 dark:text-emerald-300"
-                        : "text-rose-600 dark:text-rose-400"
+                        ? "text-[#e8fe85]"
+                        : "text-rose-400"
                     }`}
                   >
                     ₹{marginData.est_total_margin.toLocaleString("en-IN")}
@@ -298,48 +300,48 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
                 </div>
               </div>
 
-              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-relaxed italic">
+              <p className="text-[10px] text-stone-400 leading-relaxed italic font-mono">
                 {marginData.notice}
               </p>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-relaxed pt-1 border-t border-zinc-100 dark:border-zinc-800">
-                <strong>Assumptions notice:</strong> Transport, commission, handling, quality, grade, taxes, and spoilage are not included unless entered above.
+              <p className="text-[10px] text-stone-500 leading-relaxed pt-1.5 border-t border-stone-800 font-mono">
+                <strong>Assumptions:</strong> Transport, handling, quality grade, and storage fees not included unless entered.
               </p>
             </div>
           ) : marginSearched ? (
-            <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-200 space-y-1">
+            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-amber-200 space-y-1">
               <div className="flex items-center gap-1.5 font-semibold">
-                <Info className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <Info className="w-4 h-4 text-amber-400" />
                 No Cost Benchmark Available
               </div>
-              <p className="text-[11px] leading-relaxed">
-                No official DES Cost of Cultivation survey record on file for <strong>{commodity}</strong> in <strong>{state}</strong>. Per project policy, we do not guess or fabricate financial estimates.
+              <p className="text-[11px] leading-relaxed font-mono">
+                No official DES survey record on file for <strong>{commodity}</strong> in <strong>{state}</strong>. Per project policy, estimates are never fabricated.
               </p>
             </div>
           ) : null}
         </div>
 
         {/* Card 2: Storage Estimator (Hold vs Sell) */}
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-xl">
+        <div className="bg-[#111827] border border-stone-800 rounded-3xl p-6 shadow-xl space-y-5 relative overflow-hidden">
+          <div className="flex items-center justify-between border-b border-stone-800 pb-3">
+            <div className="flex items-center gap-3">
+              <span className="p-2.5 bg-blue-950/60 border border-blue-800/40 text-blue-300 rounded-2xl shadow-sm">
                 <Warehouse className="w-4 h-4" />
               </span>
               <div>
-                <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                <h4 className="text-base font-bold font-serif text-stone-100">
                   Storage Estimator (Hold vs Sell)
                 </h4>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                <p className="text-[11px] text-stone-400 font-mono">
                   Breakeven math accounting for storage fees and shrinkage
                 </p>
               </div>
             </div>
             {storageData && (
               <span
-                className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                className={`text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${
                   storageData.storable
-                    ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
-                    : "bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300"
+                    ? "bg-[#07503f] text-[#e8fe85] border-[#e8fe85]/30"
+                    : "bg-rose-950/60 text-rose-300 border-rose-800/50"
                 }`}
               >
                 {storageData.storable ? "Storable" : "Non-Storable"}
@@ -350,13 +352,13 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
           {/* Form controls */}
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+              <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
                 Holding Duration
               </label>
               <select
                 value={storageMonths}
                 onChange={(e) => setStorageMonths(parseInt(e.target.value) || 1)}
-                className="w-full bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-stone-900 border border-stone-800 rounded-full px-4 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85] shadow-inner"
               >
                 <option value={1}>1 Month</option>
                 <option value={2}>2 Months</option>
@@ -366,7 +368,7 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+              <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
                 Storage Fee (₹/qtl/mo)
               </label>
               <input
@@ -375,15 +377,15 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
                 step="5"
                 value={storageCostMonthly}
                 onChange={(e) => setStorageCostMonthly(parseFloat(e.target.value) || 0)}
-                className="w-full bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-stone-900 border border-stone-800 rounded-full px-4 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85] shadow-inner"
               />
             </div>
           </div>
 
-          <div className="h-4 text-[11px] text-zinc-400 flex items-center gap-1.5" aria-live="polite">
+          <div className="h-4 text-[11px] font-mono text-stone-400 flex items-center gap-1.5" aria-live="polite">
             {storageLoading && (
               <>
-                <RefreshCw className="w-3 h-3 animate-spin" /> Updating…
+                <RefreshCw className="w-3 h-3 animate-spin text-[#e8fe85]" /> Updating…
               </>
             )}
           </div>
@@ -393,60 +395,61 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
             <div className="space-y-3 pt-1">
               {!storageData.storable ? (
                 /* Non-storable crop banner */
-                <div className="p-3.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-xl text-xs space-y-2">
-                  <div className="flex items-center gap-1.5 font-bold text-rose-700 dark:text-rose-300">
-                    <Ban className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                <div className="p-4 bg-rose-950/30 border border-rose-800/60 rounded-2xl text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-rose-300 font-serif text-sm">
+                    <Ban className="w-4 h-4 text-rose-400" />
                     Storage Not Recommended for {commodity}
                   </div>
-                  <p className="text-[11px] text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                  <p className="text-[11px] text-stone-300 leading-relaxed font-sans">
                     {storageData.reason}
                   </p>
-                  <span className="text-[10px] text-zinc-400 block">
+                  <span className="text-[10px] font-mono text-stone-400 block">
                     Source: {storageData.source}
                   </span>
                 </div>
               ) : (
                 /* Storable economics */
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800">
-                      <span className="text-[10px] text-zinc-400 block">Holding Fee ({storageMonths} mo)</span>
-                      <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200 block">
+                  <div className="grid grid-cols-2 gap-2.5 text-xs">
+                    <div className="bg-stone-900 p-3.5 rounded-2xl border border-stone-800 space-y-1">
+                      <span className="text-[10px] font-mono text-stone-400 block uppercase tracking-wider">Holding Fee ({storageMonths} mo)</span>
+                      <span className="text-base font-bold font-serif text-stone-100 block">
                         ₹{(storageCostMonthly * storageMonths).toFixed(2)} / qtl
                       </span>
-                      <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium block">
+                      <span className="text-[10px] font-mono text-sky-400 block">
                         ₹{((storageCostMonthly * storageMonths) / 100).toFixed(2)} / kg
                       </span>
                     </div>
-                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800">
-                      <span className="text-[10px] text-zinc-400 block">
+                    <div className="bg-stone-900 p-3.5 rounded-2xl border border-stone-800 space-y-1">
+                      <span className="text-[10px] font-mono text-stone-400 block uppercase tracking-wider">
                         Shrinkage Loss ({storageData.typical_loss_pct_per_month}%/mo)
                       </span>
-                      <span className="text-sm font-bold text-amber-600 dark:text-amber-400 block">
-                        {((storageData.typical_loss_pct_per_month || 0) * storageMonths).toFixed(1)}% wt loss
+                      <span className="text-base font-bold font-serif text-amber-400 block">
+                        {((storageData.typical_loss_pct_per_month || 0) * storageMonths).toFixed(1)}% loss
                       </span>
+                      <span className="text-[9px] font-mono text-stone-500 block">weight loss</span>
                     </div>
                   </div>
 
-                  <div className="bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 p-3 rounded-xl space-y-1">
+                  <div className="bg-blue-950/25 border border-blue-800/50 p-4 rounded-2xl space-y-1.5">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-600 dark:text-zinc-300">Total Storage Burden:</span>
-                      <span className="font-bold text-zinc-800 dark:text-zinc-100">
+                      <span className="text-stone-300 font-mono">Total Storage Burden:</span>
+                      <span className="font-bold font-mono text-stone-100">
                         +₹{storageData.net_cost_per_qtl} / qtl (+₹{(storageData.net_cost_per_qtl / 100).toFixed(2)} / kg)
                       </span>
                     </div>
-                    <div className="flex justify-between items-center text-sm pt-1 border-t border-blue-200/60 dark:border-blue-800/60">
-                      <span className="font-semibold text-blue-900 dark:text-blue-200">
+                    <div className="flex justify-between items-center text-sm pt-2 border-t border-blue-800/40">
+                      <span className="font-serif font-bold text-stone-200">
                         Required Breakeven Price:
                       </span>
                       <div className="text-right">
-                        <span className="text-base font-extrabold text-blue-700 dark:text-blue-300 block">
+                        <span className="text-lg font-bold font-serif text-[#e8fe85] block">
                           {storageData.breakeven_price_per_qtl
                             ? `₹${storageData.breakeven_price_per_qtl.toLocaleString("en-IN")} / qtl`
                             : "—"}
                         </span>
                         {storageData.breakeven_price_per_qtl && (
-                          <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 block">
+                          <span className="text-xs font-mono text-stone-400 block">
                             ₹{(storageData.breakeven_price_per_qtl / 100).toFixed(1)} / kg
                           </span>
                         )}
@@ -455,23 +458,22 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
                   </div>
 
                   {storageData.historical_price_change_pct !== null && (
-                    <div className="flex items-center gap-2 p-2.5 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 rounded-xl text-[11px] text-zinc-600 dark:text-zinc-400">
-                      <TrendingUp className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <div className="flex items-center gap-2 p-3 bg-stone-900 border border-stone-800 rounded-2xl text-[11px] text-stone-300 font-mono">
+                      <TrendingUp className="w-4 h-4 text-[#e8fe85] shrink-0" />
                       <span>
-                        In past years, prices for {commodity} in the following {storageMonths} month(s) were typically{" "}
-                        <strong className="text-zinc-800 dark:text-zinc-200">
+                        Historical reference: prices for {commodity} in next {storageMonths} mo were typically{" "}
+                        <strong className="text-[#e8fe85]">
                           +{storageData.historical_price_change_pct}%
-                        </strong>{" "}
-                        at this time. (Historical reference, not a forecast).
+                        </strong>.
                       </span>
                     </div>
                   )}
 
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-relaxed italic">
+                  <p className="text-[10px] text-stone-400 leading-relaxed italic font-mono">
                     {storageData.notice}
                   </p>
-                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-relaxed pt-1 border-t border-zinc-100 dark:border-zinc-800">
-                    <strong>Assumptions notice:</strong> Transport, commission, handling, quality, grade, taxes, and spoilage are not included unless entered above.
+                  <p className="text-[10px] text-stone-500 leading-relaxed pt-1.5 border-t border-stone-800 font-mono">
+                    <strong>Assumptions:</strong> Transport, commission, quality grade, and taxes are not included unless entered.
                   </p>
                 </div>
               )}
@@ -481,23 +483,23 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
       </div>
 
       {/* Market-level Weather Panel (Architecture §9b.3) */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="p-2 bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 rounded-xl">
+      <div className="bg-[#111827] border border-stone-800 rounded-3xl p-6 shadow-xl space-y-5 relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
+          <div className="flex items-center gap-3">
+            <span className="p-2.5 bg-sky-950/60 border border-sky-800/40 text-sky-300 rounded-2xl shadow-sm">
               <Truck className="w-5 h-5" />
             </span>
             <div>
-              <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <h4 className="text-base font-bold font-serif text-stone-100 flex items-center gap-2">
                 Mandi Logistics & Arrival Weather: {market} Mandi
               </h4>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Weather conditions specifically at this market hub — assessing rainfall disruption to arrivals, loading, and transit
+              <p className="text-xs text-stone-400 font-mono">
+                Weather conditions at this market hub — assessing rainfall disruption to arrivals, loading, and transit
               </p>
             </div>
           </div>
           {marketWeather?.location?.grid_key && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-500 border border-sky-500/20">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30">
               <CheckCircle2 className="w-3.5 h-3.5" />
               Grid: {marketWeather.location.grid_key}
             </span>
@@ -505,38 +507,38 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
         </div>
 
         {weatherLoading ? (
-          <div className="p-6 flex items-center justify-center space-x-2 text-zinc-400 text-xs">
-            <RefreshCw className="w-4 h-4 animate-spin text-sky-500" />
+          <div className="p-8 flex items-center justify-center space-x-2 text-stone-400 text-xs font-mono">
+            <RefreshCw className="w-4 h-4 animate-spin text-[#e8fe85]" />
             <span>Loading weather conditions for {market} mandi...</span>
           </div>
         ) : marketWeather && marketWeather.location && Array.isArray(marketWeather.days) && marketWeather.metrics ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {/* Snapshot */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div className="bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-xl border border-zinc-100 dark:border-zinc-800">
-                <span className="text-[10px] text-zinc-400 block">Current Temp</span>
-                <span className="text-base font-bold text-zinc-800 dark:text-zinc-200">
+              <div className="bg-stone-900 border border-stone-800 p-4 rounded-2xl space-y-1">
+                <span className="text-[10px] font-mono text-stone-400 block uppercase tracking-wider">Current Temp</span>
+                <span className="text-lg font-bold font-serif text-stone-100">
                   {marketWeather.current?.temp_c != null ? `${marketWeather.current.temp_c}°C` : "—"}
                 </span>
-                <span className="text-[9px] text-zinc-400 block">At market site</span>
+                <span className="text-[9px] font-mono text-stone-500 block">At market site</span>
               </div>
-              <div className="bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-xl border border-zinc-100 dark:border-zinc-800">
-                <span className="text-[10px] text-zinc-400 block">Relative Humidity</span>
-                <span className="text-base font-bold text-zinc-800 dark:text-zinc-200">
+              <div className="bg-stone-900 border border-stone-800 p-4 rounded-2xl space-y-1">
+                <span className="text-[10px] font-mono text-stone-400 block uppercase tracking-wider">Relative Humidity</span>
+                <span className="text-lg font-bold font-serif text-stone-100">
                   {marketWeather.current?.rh_pct != null ? `${marketWeather.current.rh_pct}%` : "—"}
                 </span>
-                <span className="text-[9px] text-zinc-400 block">Storage moisture risk</span>
+                <span className="text-[9px] font-mono text-stone-500 block">Storage moisture risk</span>
               </div>
-              <div className="bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-xl border border-zinc-100 dark:border-zinc-800">
-                <span className="text-[10px] text-zinc-400 block">Recent Rain (7d)</span>
-                <span className="text-base font-bold text-zinc-800 dark:text-zinc-200">
+              <div className="bg-stone-900 border border-stone-800 p-4 rounded-2xl space-y-1">
+                <span className="text-[10px] font-mono text-stone-400 block uppercase tracking-wider">Recent Rain (7d)</span>
+                <span className="text-lg font-bold font-serif text-stone-100">
                   {marketWeather.metrics.rain_7d_mm} mm
                 </span>
-                <span className="text-[9px] text-zinc-400 block">Local mandi yard ground</span>
+                <span className="text-[9px] font-mono text-stone-500 block">Local mandi yard ground</span>
               </div>
-              <div className="bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-xl border border-zinc-100 dark:border-zinc-800">
-                <span className="text-[10px] text-zinc-400 block">Upcoming Rain Forecast</span>
-                <span className="text-base font-bold text-sky-600 dark:text-sky-400">
+              <div className="bg-stone-900 border border-stone-800 p-4 rounded-2xl space-y-1">
+                <span className="text-[10px] font-mono text-stone-400 block uppercase tracking-wider">Upcoming Rain Forecast</span>
+                <span className="text-lg font-bold font-serif text-sky-400">
                   {(marketWeather.days || [])
                     .filter((d) => d.phase === "future")
                     .slice(0, 3)
@@ -544,16 +546,16 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
                     .toFixed(1)}{" "}
                   mm
                 </span>
-                <span className="text-[9px] text-zinc-400 block">Next 3 days combined</span>
+                <span className="text-[9px] font-mono text-stone-500 block">Next 3 days combined</span>
               </div>
             </div>
 
             {/* 7-Day Arrival Disruption Forecast Strip */}
             <div>
-              <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-2">
+              <span className="text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest block mb-2.5">
                 7-Day Arrival Weather Forecast (Rain & Transit Window)
               </span>
-              <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center text-xs">
+              <div className="grid grid-cols-7 gap-2 text-center text-xs">
                 {(marketWeather.days || [])
                   .filter((d) => d.phase === "today" || d.phase === "future")
                   .slice(0, 7)
@@ -563,26 +565,26 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
                     return (
                       <div
                         key={idx}
-                        className={`p-2 rounded-xl border ${
+                        className={`p-3 rounded-2xl border transition-all ${
                           hasRainRisk
-                            ? "bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200"
-                            : "bg-zinc-50 dark:bg-zinc-800/40 border-zinc-200/60 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200"
+                            ? "bg-amber-500/10 border-amber-500/40 text-amber-200"
+                            : "bg-stone-900 border-stone-800 text-stone-200 hover:border-stone-700"
                         }`}
                       >
-                        <span className="block text-[10px] font-medium text-zinc-400 mb-0.5">
+                        <span className="block text-[10px] font-mono font-medium text-stone-400 mb-1">
                           {idx === 0 ? "Today" : dateFormatted}
                         </span>
-                        <div className="flex justify-center my-1">
+                        <div className="flex justify-center my-1.5">
                           <CloudRain
                             className={`w-4 h-4 ${
-                              hasRainRisk ? "text-amber-500" : "text-zinc-400"
+                              hasRainRisk ? "text-amber-400" : "text-stone-400"
                             }`}
                           />
                         </div>
-                        <span className="block font-bold text-[11px]">
+                        <span className="block font-bold font-mono text-xs">
                           {day.precip_mm != null ? `${day.precip_mm} mm` : "0 mm"}
                         </span>
-                        <span className="block text-[9px] text-zinc-400">
+                        <span className="block text-[9px] font-mono text-stone-500 mt-0.5">
                           {day.precip_prob_pct != null ? `${day.precip_prob_pct}%` : ""}
                         </span>
                       </div>
@@ -592,15 +594,15 @@ export const MarketCalculators: React.FC<MarketCalculatorsProps> = ({
             </div>
 
             {/* Practical takeaway */}
-            <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/60 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-300 flex items-start gap-2">
-              <Info className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
+            <div className="p-4 bg-stone-900 rounded-2xl border border-stone-800 text-xs text-stone-300 font-sans flex items-start gap-3">
+              <Info className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
               <span>
-                <strong>Mandi Logistics Insight:</strong> If heavy rainfall (&gt;10mm) is forecasted on your planned sale date, expect slower unloading and transit delays on approach roads to {market}. Consider tarpaulin covers for open trolley transport.
+                <strong className="text-stone-100">Mandi Logistics Insight:</strong> If heavy rainfall (&gt;10mm) is forecasted on your planned sale date, expect slower unloading and transit delays on approach roads to {market}. Consider tarpaulin covers for open trolley transport.
               </span>
             </div>
           </div>
         ) : (
-          <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-400">
+          <div className="p-4 bg-stone-900 rounded-2xl border border-stone-800 text-xs font-mono text-stone-400">
             Mandi-level weather observation is resolving for {market}, {state}.
           </div>
         )}

@@ -77,24 +77,24 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-2">
-        <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl text-white shadow-md">
+        <div className="w-10 h-10 rounded-2xl bg-[#07503f] text-[#e8fe85] flex items-center justify-center font-bold shadow-md">
           <Globe className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+          <h2 className="text-2xl font-bold font-serif text-stone-100">
             Mandi Explorer
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs text-stone-400 font-mono mt-0.5">
             Search any crop at any market across India — live prices from APMC mandis
           </p>
         </div>
       </div>
 
       {/* Search Bar */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-end gap-3">
+      <div className="bg-[#111827] border border-stone-800 rounded-3xl p-6 shadow-xl space-y-4">
+        <div className="flex flex-wrap items-end gap-3.5">
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+            <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
               Crop / Commodity
             </label>
             <div className="relative">
@@ -104,7 +104,7 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
                 value={commodity}
                 onChange={(e) => setCommodity(e.target.value)}
                 placeholder="Type or select a crop..."
-                className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-stone-900 border border-stone-800 rounded-full px-4 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85] shadow-inner"
               />
               <datalist id="crop-suggestions">
                 {ALL_CROPS.map((c) => (
@@ -115,13 +115,13 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
           </div>
 
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+            <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
               State
             </label>
             <select
               value={state}
               onChange={(e) => setState(e.target.value)}
-              className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-stone-900 border border-stone-800 rounded-full px-4 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85] shadow-inner"
             >
               <option value="">Select state...</option>
               {ALL_STATES.map((s) => (
@@ -131,7 +131,7 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
           </div>
 
           <div className="flex-1 min-w-[140px]">
-            <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+            <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
               Market (optional)
             </label>
             <input
@@ -139,14 +139,14 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
               value={market}
               onChange={(e) => setMarket(e.target.value)}
               placeholder="e.g. Vashi, Azadpur"
-              className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-stone-900 border border-stone-800 rounded-full px-4 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85] shadow-inner"
             />
           </div>
 
           <button
             onClick={handleSearch}
             disabled={loading}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#07503f] hover:bg-[#0c6b54] text-[#f1efdf] rounded-full text-xs font-mono font-bold uppercase tracking-wider border border-[#e8fe85]/30 transition-all shadow-lg shadow-[#07503f]/40 disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -158,7 +158,7 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
         </div>
 
         {error && (
-          <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-sm text-rose-700 dark:text-rose-300">
+          <div className="p-3.5 bg-rose-950/40 border border-rose-800 rounded-2xl text-xs font-mono text-rose-300">
             {error}
           </div>
         )}
@@ -169,34 +169,34 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
         <div className="space-y-4">
           {/* Result Header */}
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <div className="flex items-center gap-2.5">
+              <h3 className="text-xl font-bold font-serif text-stone-100">
                 {result.commodity} in {result.state}
                 {result.market_filter && ` — ${result.market_filter}`}
               </h3>
               <span
-                className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full uppercase tracking-wider ${
+                className={`px-3 py-0.5 text-[10px] font-mono font-bold rounded-full uppercase tracking-wider border ${
                   result.tier === "advisory"
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
-                    : "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+                    ? "bg-[#07503f] text-[#e8fe85] border-[#e8fe85]/30"
+                    : "bg-stone-800 text-stone-300 border-stone-700"
                 }`}
               >
                 {result.tier === "advisory" ? "Advisory Crop" : "Explore"}
               </span>
             </div>
-            <div className="text-xs text-zinc-400 dark:text-zinc-500">
+            <div className="text-xs font-mono text-stone-400">
               {result.total_records} records available
             </div>
           </div>
 
           {/* Market Cards */}
           {result.markets.length === 0 ? (
-            <div className="bg-zinc-50 dark:bg-zinc-800/40 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl p-8 text-center">
-              <MapPin className="w-8 h-8 text-zinc-400 mx-auto mb-3" />
-              <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
+            <div className="bg-[#111827] border border-dashed border-stone-800 rounded-3xl p-10 text-center">
+              <MapPin className="w-8 h-8 text-stone-500 mx-auto mb-3" />
+              <p className="text-sm font-medium text-stone-300 font-mono">
                 No price reports found for this search
               </p>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+              <p className="text-xs text-stone-500 font-mono mt-1">
                 This may mean no APMC has filed a report yet today, or the commodity name doesn't match data.gov.in's listing.
               </p>
             </div>
@@ -205,6 +205,7 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
               {result.markets.map((m, idx) => (
                 <MarketCard
                   key={`${m.market}-${idx}`}
+                  index={idx}
                   market={m}
                   tier={result.tier}
                   isFavorite={favs.includes(favKey(m, result.commodity))}
@@ -221,7 +222,7 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
 
           {/* Tier B disclaimer */}
           {result.tier === "explore" && (
-            <div className="text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-3">
+            <div className="text-[11px] leading-relaxed text-stone-500 font-mono mt-4 border-t border-stone-800 pt-3">
               <strong>Explore tier:</strong> Shows today's price as reported to APMCs. 
               For the 6 deep-advisory crops ({DEEP_CROPS.join(", ")}), open a market card to see its
               30/90/180-day trend above.
@@ -234,7 +235,14 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect }) => {
   );
 };
 
-// ===== Market Card Sub-Component =====
+// ===== Market Card Sub-Component (Pastel Quilt Rotating Surfaces) =====
+
+const PASTEL_TINTS = [
+  "hover:border-[#d0e6f6]/60 hover:bg-[#d0e6f6]/5", // Sky
+  "hover:border-[#f8d4c8]/60 hover:bg-[#f8d4c8]/5", // Peach
+  "hover:border-[#d9e2d5]/60 hover:bg-[#d9e2d5]/5", // Sage
+  "hover:border-[#d5d8db]/60 hover:bg-[#d5d8db]/5", // Ash
+];
 
 const MarketCard: React.FC<{
   market: MarketSearchResult;
@@ -242,11 +250,14 @@ const MarketCard: React.FC<{
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onOpen?: () => void;
-}> = ({ market: m, tier, isFavorite, onToggleFavorite, onOpen }) => {
+  index?: number;
+}> = ({ market: m, tier, isFavorite, onToggleFavorite, onOpen, index = 0 }) => {
+  const tintClass = PASTEL_TINTS[index % PASTEL_TINTS.length];
+
   return (
     <div
-      className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow ${
-        onOpen ? "cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-600" : ""
+      className={`bg-[#111827] border border-stone-800 rounded-3xl p-5 shadow-lg transition-all duration-300 ${tintClass} ${
+        onOpen ? "cursor-pointer group hover:-translate-y-0.5" : ""
       }`}
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
@@ -261,11 +272,13 @@ const MarketCard: React.FC<{
     >
       <div className="flex items-start justify-between mb-3">
         <div>
-          <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">
-            <MapPin className="w-3 h-3" />
+          <div className="flex items-center gap-1.5 text-xs text-stone-400 font-mono mb-1">
+            <MapPin className="w-3 h-3 text-[#e8fe85]" />
             <span>{m.district || m.state}</span>
           </div>
-          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">{m.market}</h4>
+          <h4 className="font-serif font-bold text-lg text-stone-100 group-hover:text-[#e8fe85] transition-colors">
+            {m.market}
+          </h4>
         </div>
         <button
           type="button"
@@ -276,48 +289,48 @@ const MarketCard: React.FC<{
           aria-pressed={isFavorite}
           aria-label={isFavorite ? "Remove from favourites" : "Add to favourites"}
           title={isFavorite ? "Remove from favourites" : "Add to favourites"}
-          className="p-1 -m-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          className="p-1.5 -m-1 rounded-full hover:bg-stone-800 transition-colors"
         >
-          <Star className={`w-4 h-4 ${isFavorite ? "text-amber-500 fill-amber-500" : "text-zinc-400"}`} />
+          <Star className={`w-4 h-4 ${isFavorite ? "text-[#e8fe85] fill-[#e8fe85]" : "text-stone-500"}`} />
         </button>
       </div>
 
       {m.latest_modal !== null && m.latest_modal !== undefined ? (
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-baseline gap-1.5">
-            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+        <div className="space-y-2.5">
+          <div className="flex flex-wrap items-baseline gap-2">
+            <span className="text-2xl font-bold font-serif text-stone-100">
               ₹{Number(m.latest_modal).toLocaleString("en-IN")}
             </span>
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">/qtl</span>
-            <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+            <span className="text-xs font-mono text-stone-400">/qtl</span>
+            <span className="text-[11px] font-mono font-bold text-[#e8fe85] bg-[#07503f] px-2.5 py-0.5 rounded-full border border-[#e8fe85]/30">
               ₹{(Number(m.latest_modal) / 100).toFixed(1)} / kg
             </span>
           </div>
 
           {m.latest_min !== null && m.latest_max !== null && (
-            <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-              <TrendingUp className="w-3 h-3" />
-              <span>Range: ₹{Number(m.latest_min).toLocaleString("en-IN")} – ₹{Number(m.latest_max).toLocaleString("en-IN")}</span>
+            <div className="flex items-center gap-1.5 text-xs font-mono text-stone-400">
+              <TrendingUp className="w-3.5 h-3.5 text-[#e8fe85]" />
+              <span>Band: ₹{Number(m.latest_min).toLocaleString("en-IN")} – ₹{Number(m.latest_max).toLocaleString("en-IN")}</span>
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs text-zinc-400 dark:text-zinc-500 pt-1 border-t border-zinc-100 dark:border-zinc-800">
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+          <div className="flex items-center justify-between text-xs text-stone-400 pt-2 border-t border-stone-800 font-mono">
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3 h-3 text-stone-500" />
               <span>{m.latest_date}</span>
             </div>
-            <span className="font-mono text-[10px]">{m.source}</span>
+            <span className="text-[10px] text-stone-500">{m.source}</span>
           </div>
         </div>
       ) : (
-        <div className="text-xs text-zinc-400 dark:text-zinc-500 py-2">
+        <div className="text-xs font-mono text-stone-500 py-2">
           No price data available
         </div>
       )}
 
       {m.records_available > 1 && (
-        <div className="mt-2 text-[10px] text-zinc-400">
-          {m.records_available} recent report{m.records_available === 1 ? "" : "s"} on file{tier === "advisory" ? " • tracked market" : ""}
+        <div className="mt-2 text-[10px] font-mono text-stone-500">
+          {m.records_available} recent report{m.records_available === 1 ? "" : "s"} on file{tier === "advisory" ? " • tracked" : ""}
         </div>
       )}
     </div>

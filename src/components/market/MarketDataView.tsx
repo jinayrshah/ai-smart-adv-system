@@ -156,17 +156,17 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
-      {/* Controls Bar */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
+      {/* Arva Controls Bar */}
+      <div className="bg-[#111827] border border-stone-800 rounded-3xl p-5 shadow-xl flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <div>
-            <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+            <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
               Crop
             </label>
             <select
               value={commodity}
               onChange={(e) => setCommodity(e.target.value)}
-              className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="bg-stone-900 border border-stone-800 rounded-full px-4 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85] shadow-inner"
             >
               <option value="Wheat">Wheat</option>
               <option value="Rice">Rice</option>
@@ -178,13 +178,13 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+            <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
               State
             </label>
             <select
               value={state}
               onChange={(e) => setState(e.target.value)}
-              className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="bg-stone-900 border border-stone-800 rounded-full px-4 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85] shadow-inner"
             >
               <option value="Maharashtra">Maharashtra</option>
               <option value="Gujarat">Gujarat</option>
@@ -204,12 +204,12 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {trendData && trendData.points.length > 0 && (
             <button
               onClick={downloadCsv}
               title="Export trend series to CSV"
-              className="flex items-center gap-1.5 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-xl text-xs font-semibold transition-all shadow-sm"
+              className="flex items-center gap-1.5 px-4 py-2 bg-stone-900 hover:bg-stone-800 text-stone-300 border border-stone-700/60 rounded-full text-xs font-mono uppercase tracking-wider transition-all shadow-sm"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export CSV</span>
@@ -219,12 +219,12 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
           <button
             onClick={copyShareLink}
             title="Share view URL"
-            className="flex items-center gap-1.5 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-xl text-xs font-semibold transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-2 bg-stone-900 hover:bg-stone-800 text-stone-300 border border-stone-700/60 rounded-full text-xs font-mono uppercase tracking-wider transition-all shadow-sm"
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-emerald-600 font-bold">Link Copied!</span>
+                <Check className="w-3.5 h-3.5 text-[#e8fe85]" />
+                <span className="text-[#e8fe85] font-bold">Link Copied!</span>
               </>
             ) : (
               <>
@@ -237,9 +237,9 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
           <button
             onClick={loadTrend}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2 bg-[#07503f] hover:bg-[#0c6b54] text-[#f1efdf] border border-[#e8fe85]/30 rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-all shadow-lg shadow-[#07503f]/40 disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             <span>Refresh</span>
           </button>
         </div>

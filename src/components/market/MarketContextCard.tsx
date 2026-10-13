@@ -83,30 +83,30 @@ export const MarketContextCard: React.FC<MarketContextCardProps> = ({
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-sky-500/10 text-sky-300 border border-sky-500/30">
         <Info className="w-3 h-3" /> Factual Context
       </span>
     );
   };
 
   return (
-    <div className="w-full bg-zinc-900/90 border border-zinc-800 rounded-2xl p-5 shadow-lg space-y-4 text-zinc-100">
+    <div className="w-full bg-[#111827] border border-stone-800 rounded-3xl p-6 shadow-xl space-y-5 text-stone-200">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3">
-        <div className="flex items-center gap-2.5">
-          <span className="p-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-2xl bg-[#07503f] text-[#e8fe85] flex items-center justify-center font-bold">
             <Layers className="w-5 h-5" />
-          </span>
+          </div>
           <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <h3 className="text-lg font-bold font-serif text-stone-100 flex items-center gap-2">
               Context Layer: Market Arrivals & Local Weather
               {data.degraded && (
-                <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-normal">
-                  Degraded / Low Data
+                <span className="text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-normal">
+                  Degraded
                 </span>
               )}
             </h3>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-stone-400 font-mono mt-0.5">
               Joint observations for {price.commodity} at {price.market} mandi ({weather.district || price.state}, Grid: {weather.grid_key})
             </p>
           </div>
@@ -115,17 +115,17 @@ export const MarketContextCard: React.FC<MarketContextCardProps> = ({
         {/* Confidence & Freshness badges */}
         <div className="flex items-center gap-2">
           <span
-            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border ${
               weather.confidence === "high"
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                ? "bg-[#07503f] text-[#e8fe85] border-[#e8fe85]/30"
                 : weather.confidence === "medium"
                 ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                 : "bg-rose-500/10 text-rose-400 border-rose-500/20"
             }`}
           >
-            {weather.confidence === "high" && <CheckCircle2 className="w-3 h-3" />}
-            {weather.confidence === "medium" && <HelpCircle className="w-3 h-3" />}
-            {weather.confidence === "low" && <ShieldAlert className="w-3 h-3" />}
+            {weather.confidence === "high" && <CheckCircle2 className="w-3.5 h-3.5" />}
+            {weather.confidence === "medium" && <HelpCircle className="w-3.5 h-3.5" />}
+            {weather.confidence === "low" && <ShieldAlert className="w-3.5 h-3.5" />}
             Weather: {weather.confidence} confidence
           </span>
         </div>
@@ -133,37 +133,37 @@ export const MarketContextCard: React.FC<MarketContextCardProps> = ({
 
       {/* Snapshot metrics grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-        <div className="bg-zinc-800/40 border border-zinc-700/60 p-3 rounded-xl space-y-1">
-          <span className="text-zinc-400 block text-[11px]">Latest Modal Price</span>
-          <span className="text-lg font-bold text-white block">
+        <div className="bg-stone-900 border border-stone-800 p-4 rounded-2xl space-y-1">
+          <span className="text-stone-400 block text-[10px] font-mono uppercase tracking-wider">Latest Modal Price</span>
+          <span className="text-xl font-bold font-serif text-stone-100 block">
             {price.latest_modal_price != null ? `₹${price.latest_modal_price}` : "—"}
           </span>
-          <span className="text-[10px] text-zinc-500">
+          <span className="text-[10px] font-mono text-stone-400">
             {price.change_7d_pct != null ? `${price.change_7d_pct > 0 ? "+" : ""}${price.change_7d_pct}% (7d)` : "7d trend N/A"}
           </span>
         </div>
 
-        <div className="bg-zinc-800/40 border border-zinc-700/60 p-3 rounded-xl space-y-1">
-          <span className="text-zinc-400 block text-[11px]">Price Volatility (30d)</span>
-          <span className="text-lg font-bold text-white block">
+        <div className="bg-stone-900 border border-stone-800 p-4 rounded-2xl space-y-1">
+          <span className="text-stone-400 block text-[10px] font-mono uppercase tracking-wider">Price Volatility (30d)</span>
+          <span className="text-xl font-bold font-serif text-stone-100 block">
             {price.volatility_pct != null ? `${price.volatility_pct}%` : "—"}
           </span>
-          <span className="text-[10px] text-zinc-500">
+          <span className="text-[10px] font-mono text-stone-400">
             Coverage: {Math.round(price.coverage_ratio * 100)}% of days
           </span>
         </div>
 
-        <div className="bg-zinc-800/40 border border-zinc-700/60 p-3 rounded-xl space-y-1">
-          <span className="text-zinc-400 block text-[11px]">Recent Rainfall (7d / 30d)</span>
-          <span className="text-lg font-bold text-white block">
+        <div className="bg-stone-900 border border-stone-800 p-4 rounded-2xl space-y-1">
+          <span className="text-stone-400 block text-[10px] font-mono uppercase tracking-wider">Recent Rainfall (7d / 30d)</span>
+          <span className="text-xl font-bold font-serif text-stone-100 block">
             {weather.rain_7d_mm} mm / {weather.rain_30d_mm} mm
           </span>
           <span
-            className={`text-[10px] ${
+            className={`text-[10px] font-mono ${
               weather.rain_30d_vs_normal_pct == null
-                ? "text-zinc-500"
+                ? "text-stone-500"
                 : weather.rain_30d_vs_normal_pct >= 0
-                ? "text-emerald-400"
+                ? "text-[#e8fe85]"
                 : "text-amber-400"
             }`}
           >
@@ -173,12 +173,12 @@ export const MarketContextCard: React.FC<MarketContextCardProps> = ({
           </span>
         </div>
 
-        <div className="bg-zinc-800/40 border border-zinc-700/60 p-3 rounded-xl space-y-1">
-          <span className="text-zinc-400 block text-[11px]">Dry Spell / Heat</span>
-          <span className="text-lg font-bold text-white block">
+        <div className="bg-stone-900 border border-stone-800 p-4 rounded-2xl space-y-1">
+          <span className="text-stone-400 block text-[10px] font-mono uppercase tracking-wider">Dry Spell / Heat</span>
+          <span className="text-xl font-bold font-serif text-stone-100 block">
             {weather.dry_spell_days} dry days
           </span>
-          <span className="text-[10px] text-zinc-500">
+          <span className="text-[10px] font-mono text-stone-400">
             {weather.tmax_7d_anomaly_c != null
               ? `${weather.tmax_7d_anomaly_c > 0 ? "+" : ""}${weather.tmax_7d_anomaly_c}°C temp anomaly`
               : "Temp anomaly: normal"}
@@ -188,18 +188,18 @@ export const MarketContextCard: React.FC<MarketContextCardProps> = ({
 
       {/* Descriptive Signals */}
       {signals && signals.length > 0 ? (
-        <div className="space-y-2 pt-1">
-          <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
+        <div className="space-y-2.5 pt-2">
+          <span className="text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest block">
             Rule-Based Context Signals (Max 3)
           </span>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {signals.map((sig, idx) => (
               <div
                 key={idx}
-                className="p-3 rounded-xl bg-zinc-800/50 border border-zinc-700/70 space-y-1.5"
+                className="p-4 rounded-2xl bg-stone-900 border border-stone-800 space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-stone-200 flex items-center gap-2">
                     {renderStrengthBadge(sig.strength)}
                     {sig.name}
                   </span>

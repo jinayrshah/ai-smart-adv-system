@@ -45,12 +45,12 @@ export const LanguageSelector: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 p-2 text-stone-400 hover:text-white transition-colors rounded-xl hover:bg-white/5"
+        className="flex items-center space-x-1.5 px-3 py-1.5 text-stone-300 hover:text-[#e8fe85] hover:bg-stone-800/80 transition-colors rounded-full border border-stone-800 cursor-pointer font-mono text-xs"
         aria-label="Select Language"
       >
-        <Languages size={20} />
-        <span className="text-xs font-bold uppercase hidden sm:inline-block">{currentLanguage.code}</span>
-        <ChevronDown size={14} className={cn("transition-transform duration-200", isOpen && "rotate-180")} />
+        <Languages size={15} />
+        <span className="text-[11px] font-bold uppercase">{currentLanguage.code}</span>
+        <ChevronDown size={12} className={cn("transition-transform duration-200", isOpen && "rotate-180")} />
       </button>
 
       <AnimatePresence>
@@ -59,8 +59,8 @@ export const LanguageSelector: React.FC = () => {
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-48 bg-dark-card border border-dark-border rounded-2xl shadow-2xl z-50 overflow-hidden"
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 mt-2 w-52 bg-[#111827] border border-stone-800 rounded-2xl shadow-2xl z-50 overflow-hidden"
           >
             <div className="p-2 space-y-1">
               {languages.map((lang) => (
@@ -68,18 +68,18 @@ export const LanguageSelector: React.FC = () => {
                   key={lang.code}
                   onClick={() => handleLanguageChange(lang.code)}
                   className={cn(
-                    "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all",
+                    "w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all cursor-pointer font-mono",
                     i18n.language.split('-')[0] === lang.code
-                      ? "bg-emerald-500/10 text-emerald-500 font-bold"
-                      : "text-stone-400 hover:bg-white/5 hover:text-stone-200"
+                      ? "bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 font-bold"
+                      : "text-stone-400 hover:bg-stone-800/60 hover:text-stone-200"
                   )}
                 >
                   <div className="flex flex-col items-start">
                     <span className="text-xs font-bold">{lang.name}</span>
-                    <span className="text-[10px] opacity-60">{lang.nativeName}</span>
+                    <span className="text-[10px] opacity-75">{lang.nativeName}</span>
                   </div>
                   {i18n.language.split('-')[0] === lang.code && (
-                    <Check size={16} />
+                    <Check size={14} className="text-[#e8fe85]" />
                   )}
                 </button>
               ))}
