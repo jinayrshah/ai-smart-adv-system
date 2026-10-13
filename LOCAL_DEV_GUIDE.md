@@ -11,6 +11,7 @@ Keep this file handy to quickly launch and test the application without searchin
 | **Web UI (Frontend App)** | **[http://localhost:3000](http://localhost:3000)** | Full Web Application (Vite + React + Express proxy) |
 | **FastAPI Backend Root** | **[http://localhost:8000](http://localhost:8000)** | Backend API root / health check |
 | **Data Layer Health & Ops** | **[http://localhost:8000/api/health/data](http://localhost:8000/api/health/data)** | Live pipeline job statuses, age, and 400 MB storage telemetry |
+| **Market Coverage Reference** | **[`MARKET_COVERAGE.md`](file:///Users/jinayshah/Downloads/smart%20adv%20system%20repo/AI-Smart-Agriculture-System/MARKET_COVERAGE.md)** | Verified directory of working crops, states & mandis with multi-report history |
 | **Interactive API Docs (Swagger)** | **[http://localhost:8000/docs](http://localhost:8000/docs)** | Test all endpoints directly in the browser |
 | **API Reference (ReDoc)** | **[http://localhost:8000/redoc](http://localhost:8000/redoc)** | Clean technical schema documentation |
 
@@ -38,6 +39,13 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser!
 
 ### 1. Market Price Trend (7d / 30d / 90d)
 ```bash
+# 3-report mandi (Gorakhpur MP — renders active 3-point trend):
+curl -s "http://127.0.0.1:8000/api/market/trend?commodity=Wheat&market=Gorakhpur&state=Madhya%20Pradesh&days=30"
+
+# 3-report mandi (Sidhi MP):
+curl -s "http://127.0.0.1:8000/api/market/trend?commodity=Wheat&market=Sidhi&state=Madhya%20Pradesh&days=30"
+
+# 2-report mandi (Malegaon MH):
 curl -s "http://127.0.0.1:8000/api/market/trend?commodity=Wheat&market=Malegaon&state=Maharashtra&days=30"
 ```
 
