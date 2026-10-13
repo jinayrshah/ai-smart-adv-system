@@ -309,11 +309,12 @@ class FarmerRepository:
 
     # --- Farm Crop Operations ---
     def add_crop(self, data: FarmCropCreate) -> FarmCropResponse:
+        sowing_str = data.sowing_date.isoformat() if data.sowing_date else None
         payload = {
             "farm_id": data.farm_id,
             "crop": data.crop,
             "variety": data.variety,
-            "sowing_date": data.sowing_date.isoformat(),
+            "sowing_date": sowing_str,
             "season": data.season,
             "status": data.status or "active",
         }
@@ -321,12 +322,14 @@ class FarmerRepository:
             res = self.client.table("farm_crops").insert(payload).execute()
             if res.data and len(res.data) > 0:
                 row = res.data[0]
+                raw_sd = row.get("sowing_date")
+                sowing_date_val = datetime.fromisoformat(raw_sd).date() if raw_sd else None
                 return FarmCropResponse(
                     id=row["id"],
                     farm_id=row["farm_id"],
                     crop=row["crop"],
                     variety=row.get("variety"),
-                    sowing_date=datetime.fromisoformat(row["sowing_date"]).date(),
+                    sowing_date=sowing_date_val,
                     season=row.get("season"),
                     status=row.get("status", "active"),
                 )
@@ -360,7 +363,7 @@ class FarmerRepository:
                         farm_id=row["farm_id"],
                         crop=row["crop"],
                         variety=row.get("variety"),
-                        sowing_date=datetime.fromisoformat(row["sowing_date"]).date(),
+                        sowing_date=datetime.fromisoformat(row["sowing_date"]).date() if row.get("sowing_date") else None,
                         season=row.get("season"),
                         status=row.get("status", "active"),
                     )
@@ -372,8 +375,13 @@ class FarmerRepository:
         results: list[FarmCropResponse] = []
         for row in self._crops.values():
             if row["farm_id"] == farm_id and (status is None or row.get("status") == status):
-                sowing_val = row["sowing_date"]
-                s_date = sowing_val if isinstance(sowing_val, type(datetime.now().date())) else datetime.fromisoformat(sowing_val).date()
+                sowing_val = row.get("sowing_date")
+                if sowing_val is None:
+                    s_date = None
+                elif isinstance(sowing_val, type(datetime.now().date())):
+                    s_date = sowing_val
+                else:
+                    s_date = datetime.fromisoformat(sowing_val).date()
                 results.append(
                     FarmCropResponse(
                         id=row["id"],
@@ -455,8 +463,8 @@ class FarmerRepository:
             name=req.farm_name,
             lat=req.lat,
             lon=req.lon,
-            state=req.state,
-            district=req.district,
+            state=req.state or "",
+            district=req.district or "",
             soil_type=req.soil_type,
             soil_npk=req.soil_npk,
             irrigation_type=req.irrigation_type,

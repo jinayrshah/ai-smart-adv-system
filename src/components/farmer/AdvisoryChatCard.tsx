@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
 import {
   MessageSquare,
   Send,
@@ -11,8 +12,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   HelpCircle,
-  Droplets,
-  Sprout
+  Sprout,
+  ChevronDown,
 } from 'lucide-react';
 import {
   askAdvisory,
@@ -49,11 +50,15 @@ export const AdvisoryChatCard: React.FC<Props> = ({
   >([]);
 
   const quickPrompts = [
-    `How much irrigation does my ${crop || 'crop'} need right now?`,
-    `What fertilizer should I apply at the current growth stage?`,
-    `What are the major pest & disease risks to watch out for?`,
-    `Are there government schemes available for this crop?`
+    `How much water does my ${crop || 'crop'} need right now?`,
+    `What fertilizer should I apply at the current stage?`,
+    `What pests & diseases should I watch out for now?`,
+    `Are there government schemes for ${crop || 'this crop'}?`,
+    `When should I harvest based on current weather?`,
   ];
+
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [history, loading]);
 
   const handleAsk = async (textToAsk: string) => {
     const q = textToAsk.trim();
@@ -264,9 +269,9 @@ export const AdvisoryChatCard: React.FC<Props> = ({
                   </div>
                 )}
 
-                {/* Advisory response body */}
-                <div className="text-sm text-stone-200 leading-relaxed whitespace-pre-line">
-                  {item.response.response}
+                {/* Advisory response body — rendered as Markdown */}
+                <div className="text-sm text-stone-200 leading-relaxed prose prose-invert prose-sm max-w-none prose-p:text-stone-200 prose-headings:text-white prose-headings:font-bold prose-li:text-stone-300 prose-strong:text-white">
+                  <ReactMarkdown>{item.response.response}</ReactMarkdown>
                 </div>
 
                 {/* Grounding Sources (Forest Section style) */}

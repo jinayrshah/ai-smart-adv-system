@@ -219,7 +219,11 @@ def get_farm_diagnostic(
 
     today = today_ist()
     s_date = selected.sowing_date
-    if s_date > today:
+    if s_date is None:
+        # Planning stage: assume sown 35 days ago as a working estimate
+        from datetime import timedelta
+        s_date = today - timedelta(days=35)
+    elif s_date > today:
         raise HTTPException(status_code=400, detail="Sowing date is in the future.")
     crop_name = selected.crop
     if not agronomy_repo.has_crop(crop_name):

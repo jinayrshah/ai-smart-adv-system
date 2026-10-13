@@ -44,8 +44,8 @@ class FarmCreate(BaseModel):
     name: str = "My farm"
     lat: float = Field(..., ge=-90.0, le=90.0)
     lon: float = Field(..., ge=-180.0, le=180.0)
-    state: str
-    district: str
+    state: str = ""   # empty = not specified
+    district: str = ""  # empty = not specified
     soil_type: str | None = Field(None, description="e.g. loamy, sandy, clay, black cotton")
     soil_source: SoilSource = "farmer_input"
     soil_npk: SoilNpk | dict[str, Any] | None = None
@@ -73,8 +73,8 @@ class FarmResponse(BaseModel):
     lat: float
     lon: float
     grid_key: str
-    state: str
-    district: str
+    state: str | None = None
+    district: str | None = None
     soil_type: str | None = None
     soil_source: SoilSource = "farmer_input"
     soil_npk: dict[str, Any] | None = None
@@ -88,7 +88,7 @@ class FarmCropCreate(BaseModel):
     farm_id: int
     crop: str
     variety: str | None = None
-    sowing_date: date
+    sowing_date: date | None = None  # None = planning stage, not yet sown
     season: str | None = Field(None, description="kharif, rabi, zaid")
     status: CropStatus = "active"
 
@@ -106,7 +106,7 @@ class FarmCropResponse(BaseModel):
     farm_id: int
     crop: str
     variety: str | None = None
-    sowing_date: date
+    sowing_date: date | None = None
     season: str | None = None
     status: CropStatus = "active"
 
@@ -115,7 +115,8 @@ class FarmCropResponse(BaseModel):
 class OnboardingCropInput(BaseModel):
     crop: str
     variety: str | None = None
-    sowing_date: date
+    # None means the farmer is in a planning stage and hasn't sown yet
+    sowing_date: date | None = None
     season: str | None = None
 
 
@@ -127,8 +128,8 @@ class OnboardingRequest(BaseModel):
     farm_name: str = "My farm"
     lat: float = Field(..., ge=-90.0, le=90.0)
     lon: float = Field(..., ge=-180.0, le=180.0)
-    state: str
-    district: str
+    state: str | None = None
+    district: str | None = None
     soil_type: str | None = None
     soil_npk: SoilNpk | dict[str, Any] | None = None
     irrigation_type: IrrigationType | None = None

@@ -46,8 +46,8 @@ export interface OnboardingPayload {
   farm_name?: string;
   lat: number;
   lon: number;
-  state: string;
-  district: string;
+  state?: string;
+  district?: string;
   soil_type?: string;
   soil_npk?: {
     n?: number;
@@ -60,7 +60,7 @@ export interface OnboardingPayload {
   crops: Array<{
     crop: string;
     variety?: string;
-    sowing_date: string;
+    sowing_date?: string | null;
     season?: string;
   }>;
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import {
   Landmark,
   Search,
@@ -292,9 +293,9 @@ export const GovernmentSchemesCard: React.FC = () => {
                         {askResponse.confidence}
                       </span>
                     </div>
-                    <p className="text-xs text-stone-200 leading-relaxed">
-                      {askResponse.answer}
-                    </p>
+                    <div className="text-xs text-stone-200 leading-relaxed prose prose-invert prose-xs max-w-none prose-p:text-stone-200 prose-headings:text-white prose-headings:text-sm prose-li:text-stone-300 prose-strong:text-white">
+                      <ReactMarkdown>{askResponse.answer}</ReactMarkdown>
+                    </div>
                     {askResponse.sources.length > 0 && (
                       <div className="pt-2 border-t border-stone-800 flex flex-wrap gap-1.5">
                         {askResponse.sources.map((s, idx) => (
