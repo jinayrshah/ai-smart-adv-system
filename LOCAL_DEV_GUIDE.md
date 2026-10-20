@@ -496,5 +496,7 @@ Verified that the multi-mandi comparison chart already had `connectNulls={true}`
 - **Purged Dead Services & Stores**: Removed unused `src/data/articles.ts`, `src/services/marketService.ts`, and `src/stores/historyStore.ts`.
 - **Decoupled AuthContext**: Removed obsolete `useHistoryStore` subscription and user sync hook from `src/context/AuthContext.tsx`.
 - **Stripped Obsolete Express Endpoints**: Removed unused multer image upload handling, legacy fertilizer recommendation routes (`/api/fertilizer/*`), deprecated marketplace CRUD endpoints (`/api/products*`), static `/uploads` route, legacy disease history endpoints (`/api/history*`), and dead `/api/chat` + `/api/chat/image` stubs from `server.ts`.
-- **Removed Orphan Static Data & Configs**: Deleted root `products.json`, `fertilizer_history.json`, `history.json`, `firebase-blueprint.json`, `firebase-applet-config.json`, `metadata.json`, `screenshots/`, and `uploads/`. Cleaned up `server.watch.ignored` in `vite.config.ts`.
+- **Removed Orphan Static Data & Configs**: Deleted root `products.json`, `fertilizer_history.json`, `history.json`, `firebase-blueprint.json`, `firebase-applet-config.json`, `metadata.json`, `screenshots/`, `uploads/`, and `firestore.rules`. Cleaned up `server.watch.ignored` in `vite.config.ts`.
+- **TypeScript Boundary Optimization**: Updated `tsconfig.json` with explicit `include` (`src`, `server.ts`, `vite.config.ts`), `exclude` (`node_modules`, `dist`, `backend`), and added `"node"` to `compilerOptions.types` to keep typechecking isolated to TS source files.
+
 
