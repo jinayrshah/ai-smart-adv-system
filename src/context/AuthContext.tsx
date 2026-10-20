@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthResponse } from '../types/auth';
 import { authService } from '../services/authService';
-import { useHistoryStore } from '../stores/historyStore';
 
 interface AuthContextType {
   user: User | null;
@@ -20,7 +19,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const setCurrentHistoryUser = useHistoryStore((state) => state.setCurrentUser);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -44,14 +42,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     checkAuth();
   }, []);
-
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
-
-    setCurrentHistoryUser(user?.id ?? null);
-  }, [loading, setCurrentHistoryUser, user?.id]);
 
   const login = async (identifier: string, password: string): Promise<AuthResponse> => {
     const response = await authService.login(identifier, password);

@@ -490,3 +490,11 @@ Verified that the multi-mandi comparison chart already had `connectNulls={true}`
 - Added dual storage persistence (`sessionStorage` and `localStorage`) for `AdvisoryChatCard` query/response history keyed by farmer/farm ID.
 - Added a "Clear History" action button in the card header for resetting the session at will.
 - Stopped event bubbling on all inquiry prompt buttons and Enter keystrokes to ensure clean execution.
+
+### 11. Legacy Prototype Cleanup & Route Stripping (`server.ts`, `AuthContext.tsx`, `vite.config.ts`)
+- **Purged Dead Frontend Components**: Removed legacy unmounted marketplace and prototype fertilizer UI (`src/components/marketplace/`, `src/components/fertilizer/`, `src/components/HistoryModal.tsx`).
+- **Purged Dead Services & Stores**: Removed unused `src/data/articles.ts`, `src/services/marketService.ts`, and `src/stores/historyStore.ts`.
+- **Decoupled AuthContext**: Removed obsolete `useHistoryStore` subscription and user sync hook from `src/context/AuthContext.tsx`.
+- **Stripped Obsolete Express Endpoints**: Removed unused multer image upload handling, legacy fertilizer recommendation routes (`/api/fertilizer/*`), deprecated marketplace CRUD endpoints (`/api/products*`), static `/uploads` route, legacy disease history endpoints (`/api/history*`), and dead `/api/chat` + `/api/chat/image` stubs from `server.ts`.
+- **Removed Orphan Static Data & Configs**: Deleted root `products.json`, `fertilizer_history.json`, `history.json`, `firebase-blueprint.json`, `firebase-applet-config.json`, `metadata.json`, `screenshots/`, and `uploads/`. Cleaned up `server.watch.ignored` in `vite.config.ts`.
+

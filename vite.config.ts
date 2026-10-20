@@ -30,8 +30,6 @@ export default defineConfig(({mode}) => {
           '**/users.json',
           '**/market_price_history.json',
           '**/disease_history.json',
-          '**/products.json',
-          '**/fertilizer_history.json',
         ],
       },
     },

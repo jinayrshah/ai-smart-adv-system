@@ -202,10 +202,10 @@ def test_diagnostic_reports_logged_irrigation():
 
 
 # ------------------------------------------------------------------ advisory robustness
-def test_unsupported_crop_is_rejected_not_swapped():
+def test_unsupported_crop_uses_calendar_fallback_and_reports_assumption():
     res = client.post("/api/advisory/ask", json={"crop": "Onion", "query": "When to irrigate?", "lat": 20.0, "lon": 73.8})
-    assert res.status_code == 422
-    assert "Onion" in res.json()["detail"]
+    assert res.status_code == 200, res.text
+    assert any("Onion" in a for a in res.json()["computed"]["assumptions"])
 
 
 def test_ask_reports_assumptions_when_profile_is_missing():
