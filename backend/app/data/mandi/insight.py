@@ -108,7 +108,7 @@ If there are fewer than 3 reports or coverage is low, say plainly that the data 
 DATA:
 {context_text}
 """
-    text, model = generate_text(prompt, temperature=0.2, max_output_tokens=300, timeout=8.0)
+    text, model = generate_text(prompt, temperature=0.2, max_output_tokens=400, timeout=15.0)
     text = re.sub(r"\s+", " ", text or "").strip()
     if text:
         audit = audit_number_grounding(text, {"ctx": ctx, "context_text": context_text})

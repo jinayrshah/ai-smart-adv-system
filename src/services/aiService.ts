@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { checkCropDisease } from '../lib/api/advisory';
+import { geminiKeyPool } from './geminiKeyPool';
 
 function dataUrlToFile(dataUrl: string, filename = 'leaf.jpg'): File {
   try {
@@ -165,45 +166,50 @@ export const agricultureService = {
       return getFallbackCropRecommendation(input, 'Gemini is not configured.');
     }
 
-    const candidateModels = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
-    for (const model of candidateModels) {
-      try {
-        const response = await ai.models.generateContent({
-          model,
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            thinkingConfig: { thinkingBudget: 0 }
+    const candidateModels = ["gemini-flash-lite-latest", "gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-2.5-flash"];
+    try {
+      return await geminiKeyPool.executeWithRotation(async (ai) => {
+        for (const model of candidateModels) {
+          try {
+            const config: any = { responseMimeType: "application/json" };
+            if (model.startsWith("gemini-2.5") && !model.includes("lite")) {
+              config.thinkingConfig = { thinkingBudget: 0 };
+            }
+            const response = await ai.models.generateContent({
+              model,
+              contents: prompt,
+              config,
+            });
+
+            const data = JSON.parse(response.text || '{}');
+            if (data.confidence < 0.85) {
+              return {
+                type: 'crop',
+                result: "Inconclusive Data",
+                confidence: data.confidence,
+                recommendations: ["Please provide more precise soil measurements.", "Consider testing soil at a certified lab."]
+              };
+            }
+
+            return {
+              type: 'crop',
+              result: data.crop,
+              confidence: data.confidence,
+              recommendations: [data.reasoning, ...data.recommendations]
+            };
+          } catch (error: any) {
+            console.warn(`Crop recommendation error with model ${model}:`, error?.message || error);
+            if (String(error?.message || error).includes("429")) {
+              throw error; // Let key pool rotate!
+            }
           }
-        });
-
-        const data = JSON.parse(response.text || '{}');
-        
-        // Confidence threshold check
-        if (data.confidence < 0.85) {
-          return {
-            type: 'crop',
-            result: "Inconclusive Data",
-            confidence: data.confidence,
-            recommendations: ["Please provide more precise soil measurements.", "Consider testing soil at a certified lab."]
-          };
         }
-
-        return {
-          type: 'crop',
-          result: data.crop,
-          confidence: data.confidence,
-          recommendations: [data.reasoning, ...data.recommendations]
-        };
-      } catch (error: any) {
-        console.warn(`Crop recommendation error with model ${model}:`, error?.message || error);
-        if (isGeminiKeyError(error)) {
-          return getFallbackCropRecommendation(input, 'Gemini rejected the configured API key.');
-        }
-      }
+        return getFallbackCropRecommendation(input, 'Gemini is temporarily unavailable.');
+      });
+    } catch (poolErr) {
+      console.warn("Key pool crop recommendation failed:", poolErr);
+      return getFallbackCropRecommendation(input, 'Gemini key pool exhausted.');
     }
-
-    return getFallbackCropRecommendation(input, 'Gemini is temporarily unavailable.');
   },
 
   async detectDisease(base64Image: string, cropHint?: string): Promise<PredictionResult> {
@@ -241,10 +247,8 @@ export const agricultureService = {
       console.warn('Backend /api/advisory/disease-check unavailable, falling back:', backendErr);
     }
 
-    // 2. Second attempt: Gemini Vision + RAG Grounding
-    const ai = getGeminiClient();
-    if (ai) {
-      const prompt = `As a plant pathologist, analyze this image of a plant leaf and identify any crop and diseases.
+    // 2. Second attempt: Gemini Vision + RAG Grounding using Multi-Key Pool
+    const prompt = `As a plant pathologist, analyze this image of a plant leaf and identify any crop and diseases.
       Provide your response strictly in JSON format:
       {
         "crop": "Crop name (e.g. Tomato, Wheat, Rice, Cotton, Soybean, Maize, or Other)",
@@ -254,32 +258,39 @@ export const agricultureService = {
         "treatment": ["Treatment step 1", "Treatment step 2"]
       }`;
 
-      try {
-        const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash'];
+    try {
+      const candidateModels = ['gemini-flash-lite-latest', 'gemini-3-flash-preview', 'gemini-3.5-flash-lite'];
       let data: any = null;
 
-      for (const model of candidateModels) {
-        try {
-          const response = await ai.models.generateContent({
-            model,
-            contents: [
-              { text: prompt },
-              { inlineData: { mimeType: 'image/jpeg', data: base64Image.split(',')[1] || base64Image } },
-            ],
-            config: {
-              responseMimeType: 'application/json',
-              thinkingConfig: { thinkingBudget: 0 }
-            },
-          });
+      data = await geminiKeyPool.executeWithRotation(async (ai) => {
+        for (const model of candidateModels) {
+          try {
+            const config: any = { responseMimeType: 'application/json' };
+            if (model.startsWith('gemini-2.5') && !model.includes('lite')) {
+              config.thinkingConfig = { thinkingBudget: 0 };
+            }
+            const response = await ai.models.generateContent({
+              model,
+              contents: [
+                { text: prompt },
+                { inlineData: { mimeType: 'image/jpeg', data: base64Image.split(',')[1] || base64Image } },
+              ],
+              config,
+            });
 
-          data = JSON.parse(response.text || '{}');
-          if (data && data.disease) {
-            break;
+            const parsed = JSON.parse(response.text || '{}');
+            if (parsed && (parsed.disease || parsed.crop !== undefined)) {
+              return parsed;
+            }
+          } catch (visionErr: any) {
+            console.warn(`Vision disease check error with model ${model}:`, visionErr?.message || visionErr);
+            if (String(visionErr?.message || visionErr).includes("429")) {
+              throw visionErr; // Let key pool rotate!
+            }
           }
-        } catch (visionErr: any) {
-          console.warn(`Vision disease check error with model ${model}:`, visionErr?.message || visionErr);
         }
-      }
+        return null;
+      });
 
       if (!data || !data.disease) {
         return {
@@ -362,7 +373,6 @@ export const agricultureService = {
           };
         }
       }
-    }
 
     // 3. Honest Offline Refusal (README §9 / AGENTS.md Data Integrity)
     return {

@@ -163,6 +163,7 @@ export const authService = {
   logout() {
     localStorage.removeItem('agri_auth_token');
     localStorage.removeItem(APP_STORAGE_KEY);
+    localStorage.removeItem('farmer_onboarding_profile');
   },
 
   getToken() {

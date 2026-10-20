@@ -22,6 +22,8 @@ interface Props {
   onComplete?: (result: OnboardingResult) => void;
   initialFarmerId?: string;
   initialName?: string;
+  initialFarmView?: any;
+  initialProfile?: any;
 }
 
 const DEEP_CROPS = [
@@ -44,8 +46,8 @@ const SOIL_TYPES = [
 
 const FIELD_SIZE_OPTIONS = ['0.5', '1', '1.5', '2', '2.5', '3', '4', '5', '7', '10', '15', '20'];
 
-const labelClass = 'block text-xs font-semibold text-stone-300 mb-1.5 font-mono tracking-wide';
-const inputClass = 'w-full bg-stone-900 border border-stone-700/80 rounded-xl py-2.5 px-4 text-stone-100 text-sm focus:border-[#e8fe85] focus:ring-1 focus:ring-[#e8fe85] focus:outline-none transition-all';
+const labelClass = 'block text-xs font-semibold text-[#555e4a] mb-1.5 font-mono tracking-wide';
+const inputClass = 'w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-4 text-[#212529] text-sm focus:border-[#07503f] focus:bg-white focus:outline-none transition-all shadow-xs';
 const selectClass = `${inputClass} appearance-none cursor-pointer`;
 
 export const FarmerOnboardingModal: React.FC<Props> = ({
@@ -54,6 +56,8 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
   onComplete,
   initialFarmerId,
   initialName = '',
+  initialFarmView,
+  initialProfile,
 }) => {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [loading, setLoading] = useState(false);
@@ -87,6 +91,67 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
   const [notSownYet, setNotSownYet] = useState(false);
   const [sowingDate, setSowingDate] = useState('');
   const [season, setSeason] = useState('kharif');
+
+  // Pre-populate fields when opened or when initial data changes
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    if (initialName) setFullName(initialName);
+    if (initialProfile?.profile?.full_name) {
+      setFullName(initialProfile.profile.full_name);
+    } else if (initialFarmView?.fullName) {
+      setFullName(initialFarmView.fullName);
+    }
+
+    if (initialProfile?.profile?.preferred_language) {
+      setLanguage(initialProfile.profile.preferred_language);
+    }
+    if (initialProfile?.profile?.phone) {
+      setPhone(initialProfile.profile.phone);
+    }
+
+    const farm = initialFarmView?.farm || initialProfile?.farm;
+    if (farm) {
+      if (farm.name) setFarmName(farm.name);
+      if (farm.state) setState(farm.state);
+      if (farm.district) setDistrict(farm.district);
+      if (farm.lat != null) setLat(farm.lat);
+      if (farm.lon != null) setLon(farm.lon);
+      if (farm.fieldSizeAcres != null) setFieldSize(String(farm.fieldSizeAcres));
+      else if (farm.field_size_acres != null) setFieldSize(String(farm.field_size_acres));
+      if (farm.soilType) setSoilType(farm.soilType);
+      else if (farm.soil_type) setSoilType(farm.soil_type);
+      if (farm.irrigationType) setIrrigation(farm.irrigationType);
+      else if (farm.irrigation_type) setIrrigation(farm.irrigation_type);
+
+      const npk = farm.npk || farm.soil_npk;
+      if (npk && typeof npk === 'object') {
+        const hasValues = npk.n != null || npk.p != null || npk.k != null || npk.ph != null;
+        if (hasValues) {
+          setHasShc(true);
+          setSoilN(npk.n != null ? String(npk.n) : '');
+          setSoilP(npk.p != null ? String(npk.p) : '');
+          setSoilK(npk.k != null ? String(npk.k) : '');
+          setSoilPh(npk.ph != null ? String(npk.ph) : '');
+        }
+      }
+    }
+
+    const cropObj = initialFarmView?.crop || initialProfile?.crops?.[0];
+    if (cropObj) {
+      const cropName = cropObj.name || cropObj.crop;
+      if (cropName) setSelectedCrop(cropName);
+      if (cropObj.variety) setVariety(cropObj.variety);
+      if (cropObj.season) setSeason(cropObj.season);
+      const sDate = cropObj.sowingDate || cropObj.sowing_date;
+      if (sDate) {
+        setSowingDate(sDate);
+        setNotSownYet(false);
+      } else {
+        setNotSownYet(true);
+      }
+    }
+  }, [isOpen, initialFarmView, initialProfile, initialName]);
 
   const districts = useMemo(() => getDistrictsByState(state), [state]);
 
@@ -159,27 +224,40 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 20, scale: 0.97 }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-lg bg-[#0f172a] border border-stone-700/60 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+        className="w-full max-w-lg bg-white border border-[#c3cda7] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-stone-800 flex items-center justify-between bg-[#07503f]/10">
+        <div className="px-6 py-4 border-b border-[#c3cda7] flex items-center justify-between bg-[#f1efdf]">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#e8fe85]/70 font-mono mb-0.5">
-              Step {step} of 4
-            </p>
-            <h2 className="font-bold text-lg text-white tracking-tight">
+            <div className="flex items-center space-x-1.5 mb-1.5">
+              {[1, 2, 3, 4].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStep(s as 1 | 2 | 3 | 4)}
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono transition-all ${
+                    step === s
+                      ? 'bg-[#07503f] text-[#e8fe85] shadow-xs'
+                      : 'bg-white border border-[#c3cda7] text-[#555e4a] hover:text-[#212529] hover:bg-[#e6ecd5]'
+                  }`}
+                >
+                  Step {s}
+                </button>
+              ))}
+            </div>
+            <h2 className="font-bold font-serif text-xl text-[#07503f] tracking-tight">
               {STEP_TITLES[step]}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-stone-800 text-stone-400 hover:text-white transition-colors"
+            className="p-2 rounded-full hover:bg-[#e6ecd5] text-[#555e4a] hover:text-[#212529] transition-colors cursor-pointer"
             title="Close"
           >
             <X className="w-4 h-4" />
@@ -187,17 +265,17 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
         </div>
 
         {/* Progress Bar */}
-        <div className="h-1 bg-stone-800 w-full">
+        <div className="h-1 bg-[#e6ecd5] w-full">
           <div
-            className="h-full bg-[#e8fe85] transition-all duration-400 ease-out"
+            className="h-full bg-[#07503f] transition-all duration-400 ease-out"
             style={{ width: `${(step / 4) * 100}%` }}
           />
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-5 overflow-y-auto flex-1 text-sm text-stone-200">
+        <div className="p-6 space-y-5 overflow-y-auto flex-1 text-sm text-[#212529] bg-white">
           {error && (
-            <div className="p-3.5 bg-rose-950/40 border border-rose-500/30 text-rose-300 rounded-xl text-xs">
+            <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs font-mono">
               ⚠ {error}
             </div>
           )}
@@ -208,7 +286,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
               <div>
                 <label className={labelClass}>Your Name</label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                  <User className="w-4 h-4 text-[#555e4a] absolute left-4 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={fullName}
@@ -234,10 +312,10 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                       key={l.id}
                       type="button"
                       onClick={() => setLanguage(l.id)}
-                      className={`p-3 rounded-xl border text-left font-medium transition-all ${
+                      className={`p-3 rounded-2xl border text-left font-medium transition-all ${
                         language === l.id
-                          ? 'bg-[#07503f] border-[#e8fe85]/50 text-[#e8fe85] shadow-sm'
-                          : 'bg-stone-900 border-stone-800 text-stone-400 hover:text-white hover:border-stone-600'
+                          ? 'bg-[#07503f] border-[#07503f] text-[#e8fe85] font-bold shadow-xs'
+                          : 'bg-[#f1efdf] border-[#c3cda7] text-[#212529] hover:bg-[#e6ecd5]'
                       }`}
                     >
                       {l.label}
@@ -304,10 +382,10 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
               </div>
 
               {(lat !== '' || lon !== '') && (
-                <div className="p-3 bg-[#07503f]/10 rounded-xl border border-[#07503f]/30 text-xs flex items-center gap-2">
-                  <Compass className="w-4 h-4 text-[#e8fe85] shrink-0" />
-                  <span className="text-stone-300 font-mono">
-                    Auto-set: <strong className="text-white">{Number(lat).toFixed(4)}, {Number(lon).toFixed(4)}</strong>
+                <div className="p-3 bg-[#e6ecd5]/50 rounded-2xl border border-[#c3cda7] text-xs flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-[#07503f] shrink-0" />
+                  <span className="text-[#555e4a] font-mono">
+                    Auto-set: <strong className="text-[#07503f] font-bold">{Number(lat).toFixed(4)}, {Number(lon).toFixed(4)}</strong>
                     {' '}— adjust if your exact plot differs
                   </span>
                 </div>
@@ -315,7 +393,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
 
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-[11px] font-mono font-semibold text-stone-400 mb-1">Latitude</label>
+                  <label className="block text-[11px] font-mono font-semibold text-[#555e4a] mb-1">Latitude</label>
                   <input
                     type="number"
                     step="0.001"
@@ -326,7 +404,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-mono font-semibold text-stone-400 mb-1">Longitude</label>
+                  <label className="block text-[11px] font-mono font-semibold text-[#555e4a] mb-1">Longitude</label>
                   <input
                     type="number"
                     step="0.001"
@@ -337,7 +415,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-mono font-semibold text-stone-400 mb-1">Field Size (Acres)</label>
+                  <label className="block text-[11px] font-mono font-semibold text-[#555e4a] mb-1">Field Size (Acres)</label>
                   <select
                     value={fieldSize}
                     onChange={(e) => setFieldSize(e.target.value)}
@@ -385,22 +463,22 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                 </select>
               </div>
 
-              <div className="pt-2 border-t border-stone-800/60">
+              <div className="pt-2 border-t border-[#c3cda7]">
                 <label className="flex items-center gap-2.5 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={hasShc}
                     onChange={(e) => setHasShc(e.target.checked)}
-                    className="w-4 h-4 rounded border-stone-600 text-[#07503f] focus:ring-0 cursor-pointer"
+                    className="w-4 h-4 rounded border-[#c3cda7] text-[#07503f] focus:ring-0 cursor-pointer"
                   />
-                  <span className="text-sm text-stone-200 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-[#e8fe85]" />
-                    I have a <strong className="text-[#e8fe85]">Soil Health Card</strong> (मृदा स्वास्थ्य कार्ड)
+                  <span className="text-sm text-[#212529] flex items-center gap-1.5 font-medium">
+                    <FileText className="w-3.5 h-3.5 text-[#07503f]" />
+                    I have a <strong className="text-[#07503f]">Soil Health Card</strong> (मृदा स्वास्थ्य कार्ड)
                   </span>
                 </label>
 
                 {hasShc && (
-                  <div className="mt-3 grid grid-cols-4 gap-2 p-4 bg-stone-900/60 rounded-xl border border-stone-700/60">
+                  <div className="mt-3 grid grid-cols-4 gap-2 p-4 bg-[#f1efdf] rounded-2xl border border-[#c3cda7]">
                     {[
                       { label: 'N (kg/ha)', val: soilN, set: setSoilN, ph: false },
                       { label: 'P (kg/ha)', val: soilP, set: setSoilP, ph: false },
@@ -408,14 +486,14 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                       { label: 'pH', val: soilPh, set: setSoilPh, ph: true },
                     ].map(f => (
                       <div key={f.label}>
-                        <label className="block text-[10px] font-mono text-stone-400 mb-1">{f.label}</label>
+                        <label className="block text-[10px] font-mono text-[#555e4a] mb-1 font-semibold">{f.label}</label>
                         <input
                           type="number"
                           step={f.ph ? '0.1' : '1'}
                           value={f.val}
                           onChange={(e) => f.set(e.target.value)}
                           placeholder={f.ph ? '6.8' : '—'}
-                          className="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-xs font-mono text-stone-100 focus:border-[#e8fe85] focus:outline-none"
+                          className="w-full bg-white border border-[#c3cda7] rounded-xl p-2 text-xs font-mono text-[#212529] focus:border-[#07503f] focus:outline-none shadow-2xs"
                         />
                       </div>
                     ))}
@@ -436,17 +514,29 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                       key={c.name}
                       type="button"
                       onClick={() => { setSelectedCrop(c.name); setSeason(c.season); }}
-                      className={`p-3 rounded-xl border text-center transition-all ${
+                      className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${
                         selectedCrop === c.name
-                          ? 'bg-[#07503f] border-[#e8fe85]/50 text-[#e8fe85] font-bold shadow-md'
-                          : 'bg-stone-900 border-stone-800 text-stone-300 hover:bg-stone-800 hover:border-stone-600'
+                          ? 'bg-[#07503f] border-[#07503f] text-[#e8fe85] font-bold shadow-sm'
+                          : 'bg-[#f1efdf] border-[#c3cda7] text-[#212529] hover:bg-[#e6ecd5]'
                       }`}
                     >
                       <span className="block text-xl mb-0.5">{c.emoji}</span>
                       <span className="block text-xs font-semibold">{c.name}</span>
-                      <span className="block text-[10px] text-stone-400">{c.hindi}</span>
+                      <span className={`block text-[10px] ${selectedCrop === c.name ? 'text-[#e8fe85]/80' : 'text-[#555e4a]'}`}>{c.hindi}</span>
                     </button>
                   ))}
+                </div>
+                <div className="mt-3">
+                  <label className="block text-[11px] font-semibold text-[#555e4a] mb-1 font-mono">
+                    Crop Name (फसल का नाम — select above or type any crop):
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedCrop}
+                    onChange={(e) => setSelectedCrop(e.target.value)}
+                    placeholder="e.g. Wheat, Groundnut, Mustard, Potato, Onion..."
+                    className={inputClass}
+                  />
                 </div>
               </div>
 
@@ -460,7 +550,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                     placeholder="e.g. HD-2967 (optional)"
                     className={inputClass}
                   />
-                  <p className="text-[10px] text-stone-500 mt-1 font-mono pl-1">Leave blank if you don't know</p>
+                  <p className="text-[10px] text-[#555e4a] mt-1 font-mono pl-1">Leave blank if you don't know</p>
                 </div>
                 <div>
                   <label className={labelClass}>Season (मौसम)</label>
@@ -478,7 +568,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
 
               <div>
                 <label className={labelClass}>
-                  <Calendar className="w-3.5 h-3.5 inline mr-1.5 text-[#e8fe85]" />
+                  <Calendar className="w-3.5 h-3.5 inline mr-1.5 text-[#07503f]" />
                   Sowing Date (बुवाई की तारीख)
                 </label>
                 <label className="flex items-center gap-2 mb-3 cursor-pointer select-none">
@@ -486,10 +576,10 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                     type="checkbox"
                     checked={notSownYet}
                     onChange={(e) => setNotSownYet(e.target.checked)}
-                    className="w-4 h-4 rounded border-stone-600 text-[#07503f] focus:ring-0 cursor-pointer"
+                    className="w-4 h-4 rounded border-[#c3cda7] text-[#07503f] focus:ring-0 cursor-pointer"
                   />
-                  <span className="text-sm text-stone-300">
-                    I haven't sown yet — <span className="text-stone-500">planning stage</span>
+                  <span className="text-sm text-[#212529]">
+                    I haven't sown yet — <span className="text-[#555e4a] font-medium">planning stage</span>
                   </span>
                 </label>
                 {!notSownYet && (
@@ -502,7 +592,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                   />
                 )}
                 {notSownYet && (
-                  <div className="p-3 bg-amber-950/30 border border-amber-700/40 rounded-xl text-xs text-amber-300">
+                  <div className="p-3 bg-[#fceace] border border-[#f5cba7] rounded-2xl text-xs text-[#93521e]">
                     ℹ You'll still get general crop advisory. Add sowing date later for precise GDD-based stage tracking.
                   </div>
                 )}
@@ -512,12 +602,12 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-stone-800 flex items-center justify-between bg-stone-900/40">
+        <div className="px-6 py-4 border-t border-[#c3cda7] flex items-center justify-between bg-[#f1efdf]">
           {step > 1 ? (
             <button
               type="button"
               onClick={() => setStep((s) => (s - 1) as any)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-stone-800 hover:bg-stone-700 text-stone-200 transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-white border border-[#c3cda7] text-[#212529] hover:bg-[#e6ecd5] transition-colors cursor-pointer shadow-xs"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back
             </button>
@@ -525,7 +615,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
             <button
               type="button"
               onClick={onClose}
-              className="text-xs text-stone-500 hover:text-stone-300 font-mono underline"
+              className="text-xs text-[#555e4a] hover:text-[#07503f] font-mono underline cursor-pointer"
             >
               Skip for now
             </button>
@@ -535,7 +625,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
             <button
               type="button"
               onClick={() => { setError(null); setStep((s) => (s + 1) as any); }}
-              className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full text-xs font-bold bg-[#07503f] hover:bg-[#0d6e57] text-[#e8fe85] transition-all shadow-md"
+              className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full text-xs font-bold bg-[#07503f] hover:bg-[#064234] text-[#e8fe85] transition-all shadow-sm cursor-pointer"
             >
               Continue <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -544,7 +634,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
               type="button"
               onClick={handleSubmit}
               disabled={loading || !selectedCrop}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold bg-[#e8fe85] hover:bg-[#d8f070] text-[#07503f] transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold bg-[#07503f] hover:bg-[#064234] text-[#e8fe85] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? 'Saving…' : 'Save Farm Profile'}
               <CheckCircle2 className="w-4 h-4" />

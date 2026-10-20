@@ -175,51 +175,61 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Arva Controls Bar */}
-      <div className="bg-[#111827] border border-stone-800 rounded-3xl p-5 shadow-xl flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white border border-[#c3cda7] rounded-3xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <div>
-            <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
+            <label className="block text-[10px] font-mono font-bold text-[#555e4a] uppercase tracking-widest mb-1.5">
               Crop
             </label>
             <select
               value={commodity}
               onChange={(e) => setCommodity(e.target.value)}
-              className="bg-stone-900 border border-stone-800 rounded-full px-4 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85] shadow-inner"
+              className="bg-[#f1efdf] border border-[#c3cda7] rounded-full px-4 py-2 text-xs font-mono text-[#212529] focus:outline-none focus:ring-2 focus:ring-[#07503f]"
             >
               <option value="">— Select crop —</option>
-              <option value="Wheat">Wheat</option>
-              <option value="Rice">Rice</option>
-              <option value="Maize">Maize</option>
+              <option value="Arecanut">Arecanut</option>
               <option value="Bajra">Bajra (Pearl Millet)</option>
-              <option value="Jowar">Jowar (Sorghum)</option>
-              <option value="Soyabean">Soyabean</option>
+              <option value="Banana">Banana</option>
+              <option value="Brinjal">Brinjal</option>
+              <option value="Chilli">Chilli / Green Chilli</option>
+              <option value="Coconut">Coconut</option>
               <option value="Cotton">Cotton</option>
               <option value="Groundnut">Groundnut</option>
-              <option value="Potato">Potato</option>
+              <option value="Jowar">Jowar (Sorghum)</option>
+              <option value="Maize">Maize</option>
               <option value="Onion">Onion</option>
-              <option value="Tomato">Tomato</option>
+              <option value="Potato">Potato</option>
+              <option value="Ragi">Ragi (Finger Millet)</option>
+              <option value="Rice">Rice / Paddy</option>
+              <option value="Soyabean">Soyabean</option>
               <option value="Sugarcane">Sugarcane</option>
+              <option value="Tomato">Tomato</option>
               <option value="Turmeric">Turmeric</option>
-              <option value="Chilli">Chilli</option>
+              <option value="Wheat">Wheat</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
+            <label className="block text-[10px] font-mono font-bold text-[#555e4a] uppercase tracking-widest mb-1.5">
               State
             </label>
             <select
               value={state}
-              onChange={(e) => setState(e.target.value)}
-              className="bg-stone-900 border border-stone-800 rounded-full px-4 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85] shadow-inner"
+              onChange={(e) => {
+                setState(e.target.value);
+                setMarket("");
+              }}
+              className="bg-[#f1efdf] border border-[#c3cda7] rounded-full px-4 py-2 text-xs font-mono text-[#212529] focus:outline-none focus:ring-2 focus:ring-[#07503f]"
             >
               <option value="">— Select state —</option>
               <option value="Andhra Pradesh">Andhra Pradesh</option>
+              <option value="Assam">Assam</option>
               <option value="Bihar">Bihar</option>
               <option value="Chhattisgarh">Chhattisgarh</option>
               <option value="Gujarat">Gujarat</option>
               <option value="Haryana">Haryana</option>
               <option value="Karnataka">Karnataka</option>
+              <option value="Keralam">Kerala (Keralam)</option>
               <option value="Madhya Pradesh">Madhya Pradesh</option>
               <option value="Maharashtra">Maharashtra</option>
               <option value="Odisha">Odisha</option>
@@ -227,7 +237,9 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
               <option value="Rajasthan">Rajasthan</option>
               <option value="Tamil Nadu">Tamil Nadu</option>
               <option value="Telangana">Telangana</option>
+              <option value="Tripura">Tripura</option>
               <option value="Uttar Pradesh">Uttar Pradesh</option>
+              <option value="Uttarakhand">Uttarakhand</option>
               <option value="West Bengal">West Bengal</option>
             </select>
           </div>
@@ -245,9 +257,9 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
             <button
               onClick={downloadCsv}
               title="Export trend series to CSV"
-              className="flex items-center gap-1.5 px-4 py-2 bg-stone-900 hover:bg-stone-800 text-stone-300 border border-stone-700/60 rounded-full text-xs font-mono uppercase tracking-wider transition-all shadow-sm"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#f1efdf] hover:bg-[#e6ecd5] text-[#212529] border border-[#c3cda7] rounded-full text-xs font-mono uppercase tracking-wider transition-all cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5 text-[#07503f]" />
               <span>Export CSV</span>
             </button>
           )}
@@ -255,16 +267,16 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
           <button
             onClick={copyShareLink}
             title="Share view URL"
-            className="flex items-center gap-1.5 px-4 py-2 bg-stone-900 hover:bg-stone-800 text-stone-300 border border-stone-700/60 rounded-full text-xs font-mono uppercase tracking-wider transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#f1efdf] hover:bg-[#e6ecd5] text-[#212529] border border-[#c3cda7] rounded-full text-xs font-mono uppercase tracking-wider transition-all cursor-pointer"
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-[#e8fe85]" />
-                <span className="text-[#e8fe85] font-bold">Link Copied!</span>
+                <Check className="w-3.5 h-3.5 text-[#07503f]" />
+                <span className="text-[#07503f] font-bold">Link Copied!</span>
               </>
             ) : (
               <>
-                <Share2 className="w-3.5 h-3.5" />
+                <Share2 className="w-3.5 h-3.5 text-[#07503f]" />
                 <span>Share View</span>
               </>
             )}
@@ -274,39 +286,41 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
             onClick={loadTrend}
             disabled={loading || !commodity || !market}
             title={!commodity || !market ? "Select a crop and market first" : "Refresh data"}
-            className="flex items-center gap-2 px-5 py-2 bg-[#07503f] hover:bg-[#0c6b54] text-[#f1efdf] border border-[#e8fe85]/30 rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-all shadow-lg shadow-[#07503f]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-5 py-2 bg-[#07503f] hover:bg-[#0a624d] text-[#e8fe85] rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-[#e8fe85]" : ""}`} />
             <span>Refresh</span>
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800 rounded-2xl text-sm text-rose-300">
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-sm text-rose-800">
           ⚠️ {error}
           {error.toLowerCase().includes('0 report') || error.toLowerCase().includes('no data') || error.toLowerCase().includes('not found') ? (
-            <p className="mt-1 text-xs text-stone-400">Try a different market in the same state, or switch to a nearby state where this crop is commonly traded.</p>
+            <p className="mt-1 text-xs text-rose-600">Try a different market in the same state, or switch to a nearby state where this crop is commonly traded.</p>
           ) : null}
         </div>
       )}
 
       {/* Empty state guide — shown when no trend data loaded yet */}
       {!trendData && !loading && !error && (
-        <div className="bg-[#111827] border border-stone-800 rounded-3xl p-10 text-center space-y-4">
-          <div className="text-4xl">📊</div>
-          <h3 className="text-white font-bold text-lg font-serif">Live Mandi Price Intelligence</h3>
-          <p className="text-stone-400 text-sm max-w-md mx-auto">
-            Select your <span className="text-[#e8fe85] font-bold">crop</span>, then your <span className="text-[#e8fe85] font-bold">state</span>, then pick a <span className="text-[#e8fe85] font-bold">mandi market</span> to see live price trends, 30-day charts, and profit calculators.
+        <div className="bg-white border border-[#c3cda7] rounded-3xl p-10 text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-[#e6ecd5] text-[#07503f] flex items-center justify-center mx-auto text-2xl font-bold">
+            📈
+          </div>
+          <h3 className="text-[#07503f] font-bold text-2xl font-serif">Live Mandi Price Intelligence</h3>
+          <p className="text-[#555e4a] text-sm max-w-md mx-auto">
+            Select your <span className="text-[#07503f] font-bold">crop</span>, then your <span className="text-[#07503f] font-bold">state</span>, and choose a <span className="text-[#07503f] font-bold">mandi market</span> to see live price trends, multi-source charts, and net profit calculators.
           </p>
-          <div className="flex justify-center gap-6 text-xs text-stone-500 font-mono pt-2">
-            <span>1 · Pick Crop</span>
-            <span className="text-stone-700">→</span>
-            <span>2 · Select State</span>
-            <span className="text-stone-700">→</span>
-            <span>3 · Choose Mandi</span>
-            <span className="text-stone-700">→</span>
-            <span className="text-[#e8fe85]">Prices Load Automatically</span>
+          <div className="flex flex-wrap justify-center items-center gap-3 text-xs text-[#555e4a] font-mono pt-3">
+            <span className="px-3 py-1 bg-[#f1efdf] rounded-full border border-[#c3cda7]">1 · Pick Crop</span>
+            <span className="text-[#a1ab89]">→</span>
+            <span className="px-3 py-1 bg-[#f1efdf] rounded-full border border-[#c3cda7]">2 · Select State</span>
+            <span className="text-[#a1ab89]">→</span>
+            <span className="px-3 py-1 bg-[#f1efdf] rounded-full border border-[#c3cda7]">3 · Choose Mandi</span>
+            <span className="text-[#a1ab89]">→</span>
+            <span className="px-3 py-1 bg-[#07503f] text-[#e8fe85] rounded-full font-bold">Live Prices Load</span>
           </div>
         </div>
       )}

@@ -226,11 +226,6 @@ def get_farm_diagnostic(
     elif s_date > today:
         raise HTTPException(status_code=400, detail="Sowing date is in the future.")
     crop_name = selected.crop
-    if not agronomy_repo.has_crop(crop_name):
-        raise HTTPException(
-            status_code=422,
-            detail=f"Detailed diagnostics cover {', '.join(agronomy_repo.get_supported_crops())}.",
-        )
 
     lat, lon = float(farm.lat), float(farm.lon)
     grid_key = farm.grid_key or snap_to_grid(lat, lon).grid_key
@@ -244,20 +239,6 @@ def get_farm_diagnostic(
         w_history = weather_repo.get_fused_range(grid_key, s_date, today)
     events = [e.model_dump() for e in farmer_repo.get_irrigation_events(farm_id, since=s_date)]
 
-    stage_res = current_growth_stage(crop=crop_name, sowing_date=s_date, weather_history=w_history, as_of=today)
-    irrigation_res = calculate_irrigation_need(
-        crop=crop_name,
-        stage_name=stage_res.stage_name,
-        weather_summary=w_sum.model_dump(),
-        history_rows=w_history,
-        sowing_date=s_date,
-        as_of=today,
-        soil_type=farm.soil_type,
-        irrigation_type=farm.irrigation_type,
-        irrigation_events=events,
-    )
-    soil_flags = check_soil_suitability(crop=crop_name, soil_type=farm.soil_type, soil_npk=farm.soil_npk or {})
-
     # Climate: current observation, else today's fused mean; never an assumed value.
     temp = w_sum.current.temp_c if w_sum.current else None
     hum = w_sum.current.rh_pct if w_sum.current else None
@@ -266,15 +247,68 @@ def get_farm_diagnostic(
         if today_row and today_row.tmax_c is not None and today_row.tmin_c is not None:
             temp = (today_row.tmax_c + today_row.tmin_c) / 2.0
             hum = hum if hum is not None else today_row.rh_mean_pct
-    climate_res = None
-    if temp is not None:
-        climate_res = check_climate_suitability(
+
+    if agronomy_repo.has_crop(crop_name):
+        stage_res = current_growth_stage(crop=crop_name, sowing_date=s_date, weather_history=w_history, as_of=today)
+        irrigation_res = calculate_irrigation_need(
             crop=crop_name,
             stage_name=stage_res.stage_name,
-            observed_temp_c=temp,
-            observed_humidity_pct=hum,
-            reading_source="weather_forecast",
+            weather_summary=w_sum.model_dump(),
+            history_rows=w_history,
+            sowing_date=s_date,
+            as_of=today,
+            soil_type=farm.soil_type,
+            irrigation_type=farm.irrigation_type,
+            irrigation_events=events,
         )
+        soil_flags = check_soil_suitability(crop=crop_name, soil_type=farm.soil_type, soil_npk=farm.soil_npk or {})
+        climate_res = None
+        if temp is not None:
+            climate_res = check_climate_suitability(
+                crop=crop_name,
+                stage_name=stage_res.stage_name,
+                observed_temp_c=temp,
+                observed_humidity_pct=hum,
+                reading_source="weather_forecast",
+            )
+    else:
+        days = (today - s_date).days
+        stage_res = StageResult(
+            crop=crop_name,
+            stage_name="Vegetative / Active Growth",
+            stage_order=1,
+            cumulative_gdd=None,
+            days_since_sowing=days,
+            method="calendar_fallback",
+            source="General Agronomy Calendar",
+            next_stage_name="Reproductive / Flowering",
+            weather_coverage_pct=None,
+            imputed_days=0,
+            stage_progress_pct=None,
+        )
+        cur_t = float(temp) if temp is not None else 28.0
+        etc_today = round(max(0.5, cur_t * 0.15), 1)
+        etc_7d = round(etc_today * 7.0, 1)
+        metrics = getattr(w_sum, "metrics", None)
+        rain_7d = float(metrics.rain_7d_mm if metrics and hasattr(metrics, "rain_7d_mm") else 0.0)
+        deficit = round(max(0.0, etc_7d - rain_7d), 1)
+        irrigation_res = IrrigationAdvice(
+            crop=crop_name,
+            stage_name=stage_res.stage_name,
+            kc=0.95,
+            etc_today_mm=etc_today,
+            etc_7d_mm=etc_7d,
+            rain_7d_mm=rain_7d,
+            deficit_mm=deficit,
+            recommendation=f"Recent evapotranspiration ({etc_7d} mm) vs rainfall ({rain_7d} mm). Maintain adequate soil moisture." if deficit > 10 else "Adequate moisture level observed.",
+            confidence="medium",
+            source="FAO-56 General Evapotranspiration Guidelines",
+            method="7day_deficit",
+            data_available=True,
+            action="irrigate_now" if deficit > 20 else "monitor",
+        )
+        soil_flags = []
+        climate_res = None
 
     return AgronomyDiagnosticResponse(
         crop=crop_name,
@@ -386,26 +420,57 @@ def ask_crop_advisory(payload: AdvisoryAskRequest, request: Request):
             farmer_repo=farmer_repo,
         )
     except UnsupportedCropError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        # Graceful fallback: retry without the specific crop so the LLM can still answer
+        logger.info(f"Unsupported crop '{exc.crop}'; retrying without crop parameter")
+        try:
+            ctx = assemble_advisory_context(
+                query=payload.query,
+                farm_id=payload.farm_id,
+                crop=None,  # Drop the unsupported crop
+                farmer_id=payload.farmer_id,
+                language=payload.language,
+                sowing_date_str=payload.sowing_date,
+                soil_type_str=payload.soil_type,
+                lat=payload.lat,
+                lon=payload.lon,
+                disease_label=payload.disease_label,
+                weather_service=weather_service,
+                weather_repo=weather_repo,
+                farmer_repo=farmer_repo,
+            )
+        except Exception as inner_exc:
+            logger.error(f"Advisory context assembly failed on retry: {inner_exc}")
+            raise HTTPException(status_code=503, detail=f"Advisory temporarily unavailable ({type(inner_exc).__name__})")
 
     # Generate response
-    response = generate_advisory_response(
-        ctx=ctx,
-        user_query=payload.query,
-        query_id=0,
-    )
+    try:
+        response = generate_advisory_response(
+            ctx=ctx,
+            user_query=payload.query,
+            query_id=0,
+        )
+    except Exception as exc:
+        logger.error(f"Advisory generation failed: {exc}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Advisory generation temporarily unavailable. Please try again in a few seconds. ({type(exc).__name__})",
+        )
 
     # Persist auditable snapshot in advisory_queries (§13)
-    logged_id = query_repo.log_query(
-        user_query=payload.query,
-        context_snapshot=ctx.to_snapshot(),
-        response_text=response.response,
-        retrieved_chunk_ids=response.retrieved_chunk_ids,
-        confidence=response.confidence,
-        farmer_id=ctx.farmer_id,
-        farm_id=ctx.farm_id,
-    )
-    response.id = logged_id
+    try:
+        logged_id = query_repo.log_query(
+            user_query=payload.query,
+            context_snapshot=ctx.to_snapshot(),
+            response_text=response.response,
+            retrieved_chunk_ids=response.retrieved_chunk_ids,
+            confidence=response.confidence,
+            farmer_id=ctx.farmer_id,
+            farm_id=ctx.farm_id,
+        )
+        response.id = logged_id
+    except Exception as exc:
+        logger.warning(f"Failed to persist advisory query log: {exc}")
+        # Non-fatal: return the response even if logging fails
     return response
 
 

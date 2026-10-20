@@ -63,7 +63,7 @@ class FarmerRepository:
             "created_at": now.isoformat(),
         }
         try:
-            res = self.client.table("farmer_profile").insert(payload).execute()
+            res = self.client.table("farmer_profile").upsert(payload).execute()
             if res.data and len(res.data) > 0:
                 row = res.data[0]
                 return FarmerProfileResponse(
@@ -74,7 +74,7 @@ class FarmerRepository:
                     created_at=datetime.fromisoformat(row["created_at"]),
                 )
         except Exception as exc:
-            logger.warning(f"Supabase profile insert fallback to memory: {exc}")
+            logger.warning(f"Supabase profile upsert fallback to memory: {exc}")
 
         # In-memory store
         self._profiles[farmer_id] = payload
@@ -307,6 +307,84 @@ class FarmerRepository:
             )
         return None
 
+    def update_farm(self, farm_id: int, updates: FarmUpdate) -> FarmResponse | None:
+        existing = self.get_farm(farm_id)
+        if not existing:
+            return None
+
+        update_data: dict[str, Any] = {}
+        if updates.name is not None:
+            update_data["name"] = updates.name
+        if updates.lat is not None:
+            update_data["lat"] = float(updates.lat)
+        if updates.lon is not None:
+            update_data["lon"] = float(updates.lon)
+        if updates.lat is not None or updates.lon is not None:
+            new_lat = float(updates.lat if updates.lat is not None else existing.lat)
+            new_lon = float(updates.lon if updates.lon is not None else existing.lon)
+            update_data["grid_key"] = snap_to_grid(new_lat, new_lon).grid_key
+        if updates.state is not None:
+            update_data["state"] = updates.state
+        if updates.district is not None:
+            update_data["district"] = updates.district
+        if updates.soil_type is not None:
+            update_data["soil_type"] = updates.soil_type
+        if updates.soil_source is not None:
+            update_data["soil_source"] = updates.soil_source
+        if updates.soil_npk is not None:
+            update_data["soil_npk"] = updates.soil_npk.model_dump() if hasattr(updates.soil_npk, "model_dump") else updates.soil_npk
+        if updates.irrigation_type is not None:
+            update_data["irrigation_type"] = updates.irrigation_type
+        if updates.field_size_acres is not None:
+            update_data["field_size_acres"] = float(updates.field_size_acres)
+
+        if not update_data:
+            return existing
+
+        try:
+            res = self.client.table("farms").update(update_data).eq("id", farm_id).execute()
+            if res.data and len(res.data) > 0:
+                row = res.data[0]
+                return FarmResponse(
+                    id=row["id"],
+                    farmer_id=UUID(row["farmer_id"]),
+                    name=row["name"],
+                    lat=row["lat"],
+                    lon=row["lon"],
+                    grid_key=row["grid_key"],
+                    state=row["state"],
+                    district=row["district"],
+                    soil_type=row.get("soil_type"),
+                    soil_source=row.get("soil_source", "farmer_input"),
+                    soil_npk=row.get("soil_npk"),
+                    irrigation_type=row.get("irrigation_type"),
+                    field_size_acres=row.get("field_size_acres"),
+                    created_at=datetime.fromisoformat(row["created_at"]),
+                )
+        except Exception as exc:
+            logger.warning(f"Supabase update_farm fallback to memory: {exc}")
+
+        if farm_id in self._farms:
+            self._farms[farm_id].update(update_data)
+            row = self._farms[farm_id]
+            return FarmResponse(
+                id=row["id"],
+                farmer_id=UUID(str(row["farmer_id"])),
+                name=row["name"],
+                lat=row["lat"],
+                lon=row["lon"],
+                grid_key=row["grid_key"],
+                state=row["state"],
+                district=row["district"],
+                soil_type=row.get("soil_type"),
+                soil_source=row.get("soil_source", "farmer_input"),
+                soil_npk=row.get("soil_npk"),
+                irrigation_type=row.get("irrigation_type"),
+                field_size_acres=row.get("field_size_acres"),
+                created_at=datetime.fromisoformat(row["created_at"]),
+            )
+        return self.get_farm(farm_id)
+
     # --- Farm Crop Operations ---
     def add_crop(self, data: FarmCropCreate) -> FarmCropResponse:
         sowing_str = data.sowing_date.isoformat() if data.sowing_date else None
@@ -397,6 +475,100 @@ class FarmerRepository:
 
     get_crops_by_farm = get_crops
 
+    def get_crop(self, crop_id: int) -> FarmCropResponse | None:
+        try:
+            res = self.client.table("farm_crops").select("*").eq("id", crop_id).limit(1).execute()
+            if res.data and len(res.data) > 0:
+                row = res.data[0]
+                raw_sd = row.get("sowing_date")
+                s_date = datetime.fromisoformat(raw_sd).date() if raw_sd else None
+                return FarmCropResponse(
+                    id=row["id"],
+                    farm_id=row["farm_id"],
+                    crop=row["crop"],
+                    variety=row.get("variety"),
+                    sowing_date=s_date,
+                    season=row.get("season"),
+                    status=row.get("status", "active"),
+                )
+        except Exception as exc:
+            logger.warning(f"Supabase get_crop fallback: {exc}")
+
+        if crop_id in self._crops:
+            row = self._crops[crop_id]
+            raw_sd = row.get("sowing_date")
+            if raw_sd is None:
+                s_date = None
+            elif isinstance(raw_sd, type(datetime.now().date())):
+                s_date = raw_sd
+            else:
+                s_date = datetime.fromisoformat(raw_sd).date()
+            return FarmCropResponse(
+                id=row["id"],
+                farm_id=row["farm_id"],
+                crop=row["crop"],
+                variety=row.get("variety"),
+                sowing_date=s_date,
+                season=row.get("season"),
+                status=row.get("status", "active"),
+            )
+        return None
+
+    def update_crop(self, crop_id: int, updates: FarmCropUpdate) -> FarmCropResponse | None:
+        update_data: dict[str, Any] = {}
+        if updates.crop is not None:
+            update_data["crop"] = updates.crop
+        if updates.variety is not None:
+            update_data["variety"] = updates.variety
+        if updates.sowing_date is not None:
+            update_data["sowing_date"] = updates.sowing_date.isoformat()
+        if updates.season is not None:
+            update_data["season"] = updates.season
+        if updates.status is not None:
+            update_data["status"] = updates.status
+
+        if not update_data:
+            return self.get_crop(crop_id)
+
+        try:
+            res = self.client.table("farm_crops").update(update_data).eq("id", crop_id).execute()
+            if res.data and len(res.data) > 0:
+                row = res.data[0]
+                raw_sd = row.get("sowing_date")
+                s_date = datetime.fromisoformat(raw_sd).date() if raw_sd else None
+                return FarmCropResponse(
+                    id=row["id"],
+                    farm_id=row["farm_id"],
+                    crop=row["crop"],
+                    variety=row.get("variety"),
+                    sowing_date=s_date,
+                    season=row.get("season"),
+                    status=row.get("status", "active"),
+                )
+        except Exception as exc:
+            logger.warning(f"Supabase update_crop fallback: {exc}")
+
+        if crop_id in self._crops:
+            self._crops[crop_id].update(update_data)
+            row = self._crops[crop_id]
+            raw_sd = row.get("sowing_date")
+            if raw_sd is None:
+                s_date = None
+            elif isinstance(raw_sd, type(datetime.now().date())):
+                s_date = raw_sd
+            else:
+                s_date = datetime.fromisoformat(raw_sd).date()
+            return FarmCropResponse(
+                id=row["id"],
+                farm_id=row["farm_id"],
+                crop=row["crop"],
+                variety=row.get("variety"),
+                sowing_date=s_date,
+                season=row.get("season"),
+                status=row.get("status", "active"),
+            )
+        return None
+
     # --- Irrigation log ---
     def log_irrigation(self, farm_id: int, data: IrrigationEventCreate) -> IrrigationEventResponse:
         payload = {
@@ -450,37 +622,79 @@ class FarmerRepository:
     # --- Unified Multi-Step Onboarding ---
     def onboard(self, req: OnboardingRequest) -> OnboardingResponse:
         farmer_id = req.farmer_id or uuid4()
-        profile_req = FarmerProfileCreate(
-            id=farmer_id,
-            full_name=req.full_name,
-            preferred_language=req.preferred_language,
-            phone=req.phone,
-        )
-        profile = self.create_profile(profile_req)
-
-        farm_req = FarmCreate(
-            farmer_id=profile.id,
-            name=req.farm_name,
-            lat=req.lat,
-            lon=req.lon,
-            state=req.state or "",
-            district=req.district or "",
-            soil_type=req.soil_type,
-            soil_npk=req.soil_npk,
-            irrigation_type=req.irrigation_type,
-            field_size_acres=req.field_size_acres,
-        )
-        farm = self.create_farm(farm_req)
-
-        crops: list[FarmCropResponse] = []
-        for crop_input in req.crops:
-            crop_req = FarmCropCreate(
-                farm_id=farm.id,
-                crop=crop_input.crop,
-                variety=crop_input.variety,
-                sowing_date=crop_input.sowing_date,
-                season=crop_input.season,
+        existing_profile = self.get_profile(farmer_id) if req.farmer_id else None
+        if existing_profile:
+            profile = self.update_profile(
+                farmer_id,
+                FarmerProfileUpdate(
+                    full_name=req.full_name or existing_profile.full_name,
+                    preferred_language=req.preferred_language or existing_profile.preferred_language,
+                    phone=req.phone or existing_profile.phone,
+                ),
+            ) or existing_profile
+        else:
+            profile_req = FarmerProfileCreate(
+                id=farmer_id,
+                full_name=req.full_name,
+                preferred_language=req.preferred_language,
+                phone=req.phone,
             )
-            crops.append(self.add_crop(crop_req))
+            profile = self.create_profile(profile_req)
+
+        existing_farms = self.get_farms(profile.id)
+        if existing_farms:
+            target_farm = existing_farms[0]
+            farm_update = FarmUpdate(
+                name=req.farm_name,
+                lat=req.lat,
+                lon=req.lon,
+                state=req.state or "",
+                district=req.district or "",
+                soil_type=req.soil_type,
+                soil_npk=req.soil_npk,
+                irrigation_type=req.irrigation_type,
+                field_size_acres=req.field_size_acres,
+            )
+            farm = self.update_farm(target_farm.id, farm_update) or target_farm
+        else:
+            farm_req = FarmCreate(
+                farmer_id=profile.id,
+                name=req.farm_name,
+                lat=req.lat,
+                lon=req.lon,
+                state=req.state or "",
+                district=req.district or "",
+                soil_type=req.soil_type,
+                soil_npk=req.soil_npk,
+                irrigation_type=req.irrigation_type,
+                field_size_acres=req.field_size_acres,
+            )
+            farm = self.create_farm(farm_req)
+
+        existing_crops = self.get_crops(farm.id)
+        crops: list[FarmCropResponse] = []
+        for idx, crop_input in enumerate(req.crops):
+            if idx < len(existing_crops):
+                target_crop = existing_crops[idx]
+                updated = self.update_crop(
+                    target_crop.id,
+                    FarmCropUpdate(
+                        crop=crop_input.crop,
+                        variety=crop_input.variety,
+                        sowing_date=crop_input.sowing_date,
+                        season=crop_input.season,
+                        status="active",
+                    ),
+                )
+                crops.append(updated or target_crop)
+            else:
+                crop_req = FarmCropCreate(
+                    farm_id=farm.id,
+                    crop=crop_input.crop,
+                    variety=crop_input.variety,
+                    sowing_date=crop_input.sowing_date,
+                    season=crop_input.season,
+                )
+                crops.append(self.add_crop(crop_req))
 
         return OnboardingResponse(profile=profile, farm=farm, crops=crops)

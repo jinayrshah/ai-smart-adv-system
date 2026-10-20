@@ -49,46 +49,43 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
   const isThinWindow = typeof reportsInWindow === "number" && reportsInWindow < 3;
 
   return (
-    <div className="bg-[#111827] border border-stone-800 rounded-3xl p-6 sm:p-8 shadow-2xl mb-6">
+    <div className="bg-white border border-[#c3cda7] rounded-3xl p-6 sm:p-8 mb-6 text-[#212529]">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#e8fe85] font-mono mb-1.5">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#07503f] font-mono mb-1.5">
             <span>{state}</span>
             <span>•</span>
             <span>{market} APMC</span>
           </div>
-          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white flex flex-wrap items-center gap-4">
+          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#07503f] flex flex-wrap items-center gap-4">
             <span>{commodity}</span>
             {latestPrice !== null && (
               <span className="flex flex-wrap items-baseline gap-2.5">
-                <span className="font-serif text-3xl sm:text-4xl font-bold text-[#e8fe85]">
+                <span className="font-serif text-3xl sm:text-4xl font-bold text-[#07503f]">
                   ₹{latestPrice.toLocaleString("en-IN")}
-                  <span className="text-sm font-sans font-normal text-stone-400 ml-1.5">/{unitLabel}</span>
+                  <span className="text-sm font-sans font-normal text-[#555e4a] ml-1.5">/{unitLabel}</span>
                 </span>
-                <span className="text-xs font-bold font-mono text-[#e8fe85] bg-[#07503f] px-3 py-1 rounded-full border border-[#e8fe85]/30 shadow-sm">
+                <span className="text-xs font-bold font-mono text-[#e8fe85] bg-[#07503f] px-3 py-1 rounded-full">
                   ₹{(latestPrice / 100).toFixed(2)} / kg
                 </span>
               </span>
             )}
           </h2>
           {latestDate && (
-            <p className="text-xs text-stone-400 mt-1.5 font-mono">
-              Latest report: {fmtDate(latestDate)}
+            <p className="text-xs text-[#555e4a] mt-1.5 font-mono">
+              Latest arrival: {fmtDate(latestDate)}
               {reportsInWindow !== undefined && ` • ${reportsInWindow} report${reportsInWindow === 1 ? "" : "s"} in this period`}
             </p>
           )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* §2.7 (Revisions_MarketWeather.md): only show % badges when there are 3+ reports;
-               with ≤2 reports both 7d and 30d are computed from the same pair of points
-               and showing "+7% / +7%" is actively misleading. */}
           {!isThinWindow && change7dPct !== undefined && change7dPct !== null && (
             <div
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${
                 change7dPct >= 0
-                  ? "bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30"
-                  : "bg-rose-950/70 text-rose-300 border border-rose-500/30"
+                  ? "bg-[#e6ecd5] text-[#3b5921] border border-[#c3cda7]"
+                  : "bg-rose-50 text-rose-800 border border-rose-200"
               }`}
             >
               {change7dPct >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
@@ -98,10 +95,10 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
 
           {!isThinWindow && change30dPct !== undefined && change30dPct !== null && (
             <div
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${
                 change30dPct >= 0
-                  ? "bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30"
-                  : "bg-rose-950/70 text-rose-300 border border-rose-500/30"
+                  ? "bg-[#e6ecd5] text-[#3b5921] border border-[#c3cda7]"
+                  : "bg-rose-50 text-rose-800 border border-rose-200"
               }`}
             >
               {change30dPct >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
@@ -109,10 +106,9 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
             </div>
           )}
 
-          {/* Show honest caveat in place of badges when data is thin */}
           {isThinWindow && (
-            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-950/60 border border-amber-500/30 text-amber-300">
-              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-50 border border-amber-200 text-amber-800">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 text-amber-600" />
               <span>
                 Only {reportsInWindow} report{reportsInWindow === 1 ? "" : "s"} — % suppressed
               </span>
@@ -122,14 +118,14 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
           <div
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border ${
               isHealthyCoverage
-                ? "bg-stone-900 border-stone-700 text-stone-200"
-                : "bg-amber-950/40 border-amber-500/30 text-amber-300"
+                ? "bg-[#f1efdf] border-[#c3cda7] text-[#212529]"
+                : "bg-amber-50 border-amber-200 text-amber-800"
             }`}
           >
             {isHealthyCoverage ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#e8fe85]" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#07503f]" />
             ) : (
-              <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
             )}
             <span>
               {coverage.days_with_data}/{coverage.expected_days}d ({coveragePct}%)
@@ -139,29 +135,29 @@ export const PriceContextHeader: React.FC<PriceContextHeaderProps> = ({
       </div>
 
       {(firstReportedDate || maxGapDays !== undefined || (varietiesIncluded && varietiesIncluded.length > 0)) && (
-        <div className="mt-5 pt-3.5 border-t border-stone-800 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-stone-400 font-mono">
+        <div className="mt-5 pt-3.5 border-t border-[#e2e8ce] flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-[#555e4a] font-mono">
           {firstReportedDate && (
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-stone-300">First recorded:</span>
+              <span className="font-semibold text-[#212529]">First recorded:</span>
               <span>{fmtDate(firstReportedDate)}</span>
             </div>
           )}
           {maxGapDays !== undefined && (
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-stone-300">Max gap:</span>
+              <span className="font-semibold text-[#212529]">Max gap:</span>
               <span>{maxGapDays === 0 ? "None" : `${maxGapDays} day${maxGapDays === 1 ? "" : "s"}`}</span>
             </div>
           )}
           {mergedNames && mergedNames.length > 1 && (
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-semibold text-stone-300">Aliases:</span>
+              <span className="font-semibold text-[#212529]">Aliases:</span>
               <span>{mergedNames.join(", ")}</span>
             </div>
           )}
           {varietiesIncluded && varietiesIncluded.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-semibold text-stone-300">Varieties:</span>
-              <span className="bg-stone-800 px-2.5 py-0.5 rounded-full text-stone-200 border border-stone-700">
+              <span className="font-semibold text-[#212529]">Varieties:</span>
+              <span className="bg-[#f1efdf] px-2.5 py-0.5 rounded-full text-[#212529] border border-[#c3cda7]">
                 {varietiesIncluded.join(", ")}
               </span>
             </div>

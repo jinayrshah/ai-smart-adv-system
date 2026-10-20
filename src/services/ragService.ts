@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import agricultureKnowledge from '../data/agriculture_knowledge.json';
+import { geminiKeyPool } from './geminiKeyPool';
 
 const getGeminiApiKey = () => {
   const viteKey = import.meta.env?.VITE_GEMINI_API_KEY;
@@ -100,68 +101,18 @@ export const initKnowledgeBase = async () => {
       contents: chunksToEmbed.map(chunk => chunk.content)
     });
 
-    // Map embeddings back to chunks
-    result.embeddings.forEach((embedding, index) => {
-      chunksToEmbed[index].embedding = embedding.values;
-    });
-
-    saveEmbeddingsToCache();
-    console.log(`Successfully embedded ${chunksToEmbed.length} chunks.`);
-  } catch (error: any) {
-    // If batch fails, try individual with delay and retries
-    const isRateLimit = error?.status === "RESOURCE_EXHAUSTED" || 
-                        error?.code === 429 || 
-                        error?.error?.code === 429 ||
-                        error?.message?.includes("quota") ||
-                        error?.message?.includes("429");
-    
-    if (isRateLimit) {
-      if (import.meta.env.DEV) {
-        console.warn("Rate limit hit during batch embedding, falling back to individual with delay...");
-      }
-      
-      for (const chunk of chunksToEmbed) {
-        let retries = 5;
-        let success = false;
-        
-        while (retries > 0 && !success) {
-          try {
-            const result = await ai.models.embedContent({
-              model: "gemini-embedding-001",
-              contents: [chunk.content]
-            });
-            chunk.embedding = result.embeddings[0].values;
-            saveEmbeddingsToCache();
-            success = true;
-            // Increased delay between successful individual requests to avoid hitting rate limits
-            await new Promise(resolve => setTimeout(resolve, 3000));
-          } catch (err: any) {
-            const isChunkRateLimit = err?.status === "RESOURCE_EXHAUSTED" || 
-                                     err?.code === 429 || 
-                                     err?.error?.code === 429 ||
-                                     err?.message?.includes("quota") ||
-                                     err?.message?.includes("429");
-            
-            if (isChunkRateLimit) {
-              retries--;
-              const delay = (6 - retries) * 8000; // Increased progressive backoff: 8s, 16s, 24s, 32s, 40s
-              if (import.meta.env.DEV) {
-                console.warn(`Rate limit hit for chunk ${chunk.id}, retrying in ${delay}ms... (${retries} retries left)`);
-              }
-              await new Promise(resolve => setTimeout(resolve, delay));
-            } else {
-              console.error(`Error embedding chunk ${chunk.id}:`, err);
-              break; // Non-rate limit error, stop retrying this chunk
-            }
-          }
+    if (result?.embeddings) {
+      result.embeddings.forEach((embedding, index) => {
+        if (chunksToEmbed[index]) {
+          chunksToEmbed[index].embedding = embedding.values;
         }
-      }
-    } else {
-      console.error("Error initializing knowledge base embeddings:", error);
+      });
+      saveEmbeddingsToCache();
+      console.log(`Successfully embedded ${chunksToEmbed.length} chunks.`);
     }
+  } catch (error: any) {
+    console.warn("Knowledge base batch embedding skipped (will use keyword matching fallback):", error?.message || error);
   }
-  
-  console.log("Knowledge base embeddings initialization complete.");
 };
 
 // Cosine similarity
@@ -179,7 +130,8 @@ const cosineSimilarity = (vecA: number[], vecB: number[]) => {
 
 // Retrieve top-k chunks
 const retrieveChunks = async (query: string, k: number = 2) => {
-  const ai = getGeminiClient();
+  const keys = geminiKeyPool.getOrderedKeys();
+  const ai = keys.length > 0 ? geminiKeyPool.getClient(keys[0]) : null;
   if (!ai) {
     const queryTokens = query.toLowerCase().split(/\W+/).filter(Boolean);
     return knowledgeBase
@@ -191,15 +143,13 @@ const retrieveChunks = async (query: string, k: number = 2) => {
       .slice(0, k);
   }
 
-  let retries = 3;
-  while (retries > 0) {
-    try {
-      const result = await ai.models.embedContent({
-        model: "gemini-embedding-001",
-        contents: [query]
-      });
-      const queryEmbedding = result.embeddings[0].values;
-
+  try {
+    const result = await ai.models.embedContent({
+      model: "gemini-embedding-001",
+      contents: [query]
+    });
+    const queryEmbedding = result.embeddings?.[0]?.values;
+    if (queryEmbedding) {
       const scoredChunks = knowledgeBase.map(chunk => ({
         ...chunk,
         score: chunk.embedding ? cosineSimilarity(queryEmbedding, chunk.embedding) : 0
@@ -208,87 +158,92 @@ const retrieveChunks = async (query: string, k: number = 2) => {
       return scoredChunks
         .sort((a, b) => b.score - a.score)
         .slice(0, k);
-    } catch (error: any) {
-      const isRateLimit = error?.status === "RESOURCE_EXHAUSTED" || 
-                          error?.code === 429 || 
-                          error?.error?.code === 429 ||
-                          error?.message?.includes("quota") ||
-                          error?.message?.includes("429");
-      
-      if (isRateLimit) {
-        retries--;
-        const delay = (4 - retries) * 3000;
-        if (import.meta.env.DEV) {
-          console.warn(`Rate limit hit during retrieval, retrying in ${delay}ms...`);
-        }
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        console.error("Error retrieving chunks:", error);
-        return [];
-      }
+    }
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      console.warn("Embedding retrieval fallback to keyword scoring:", error?.message || error);
     }
   }
-  return [];
+
+  // Fast keyword matching fallback
+  const queryTokens = query.toLowerCase().split(/\W+/).filter(Boolean);
+  return knowledgeBase
+    .map(chunk => ({
+      ...chunk,
+      score: chunk.keywords.filter(keyword => queryTokens.includes(keyword.toLowerCase())).length
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, k);
 };
 
 export const generateChatResponse = async (query: string, history: any[] = []) => {
   // 1. Retrieve relevant context
   const relevantChunks = await retrieveChunks(query);
   const context = relevantChunks.map(c => c.content).join("\n\n");
-  const ai = getGeminiClient();
+  const keys = geminiKeyPool.getOrderedKeys();
 
-  if (!ai) {
+  if (keys.length === 0) {
     if (context) {
-      return `Gemini is not configured right now, but I found this from the local agriculture guide:\n\n${context}`;
+      return `Based on our verified agricultural knowledge base:\n\n${context}`;
     }
-
-    return "Gemini is not configured right now. Please set VITE_GEMINI_API_KEY for the frontend build or GEMINI_API_KEY for server-side usage, then redeploy.";
+    return "Our agricultural advisory service is currently unavailable. Please consult your local Krishi Vigyan Kendra (KVK).";
   }
 
   // 2. Detect intent and generate response
-  const systemInstruction = `You are a helpful AI Farmer Assistant for the "Smart Agriculture" app. 
-  Your goal is to provide short, clear, and practical agricultural advice.
-  
-  Use the following context if relevant to the user's query:
-  ${context}
-  
-  If the user asks about a disease, crop, market, or weather, provide a structured answer:
-  - Problem: (Briefly state the issue)
-  - Cause: (What causes it)
-  - Solution: (Actionable steps)
-  - Prevention: (How to avoid it in the future)
-  
-  If the context doesn't contain the answer, use your general agricultural knowledge but keep it practical and concise.
-  Always be polite and encouraging to the farmer.`;
+  const systemInstruction = `You are an expert, compassionate AI Agricultural Advisor for Indian farmers. 
+Your goal is to provide comprehensive, practical, scientifically sound, and complete guidance.
 
-  const candidateModels = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+Use the following verified context if relevant to the user's query:
+${context}
+
+When answering inquiries on crops, diseases, pests, fertilizers, irrigation, weather, markets, or government schemes:
+- Provide detailed, actionable, step-by-step guidance.
+- Include cultural prevention, organic/bio-control options, and chemical measures (with reminders to confirm exact commercial formulations with local KVK).
+- If asked about government schemes, explain eligibility, benefits, application steps, and portals clearly.
+- COMPLETENESS: Never cut answers short. Finish every sentence, bullet point, and section thoroughly with a helpful closing summary.`;
+
+  const candidateModels = ["gemini-flash-lite-latest", "gemini-3-flash-preview"];
   const contents = [
     ...history.map(h => ({ role: h.role, parts: [{ text: h.content }] })),
     { role: 'user', parts: [{ text: query }] }
   ];
 
-  for (const model of candidateModels) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents,
-        config: {
-          systemInstruction,
-          thinkingConfig: { thinkingBudget: 0 }
+  try {
+    return await geminiKeyPool.executeWithRotation(async (ai) => {
+      for (const model of candidateModels) {
+        try {
+          const config: any = { systemInstruction, maxOutputTokens: 3000 };
+          if (model.startsWith("gemini-2.5") && !model.includes("lite")) {
+            config.thinkingConfig = { thinkingBudget: 0 };
+          }
+          const response = await ai.models.generateContent({
+            model,
+            contents,
+            config
+          });
+
+          if (response.text) {
+            return response.text;
+          }
+        } catch (error: any) {
+          console.warn(`Chat generation error with model ${model}:`, error?.message || error);
+          if (String(error?.message || error).includes("429")) {
+            throw error;
+          }
         }
-      });
-
-      if (response.text) {
-        return response.text;
       }
-    } catch (error: any) {
-      console.warn(`Chat generation error with model ${model}:`, error?.message || error);
+
+      if (context) {
+        return `Based on our local agricultural knowledge base:\n\n${context}`;
+      }
+
+      return "I'm having trouble connecting to the AI advisory service right now. Please try again in a moment or consult your local Krishi Vigyan Kendra (KVK).";
+    });
+  } catch (poolErr) {
+    console.warn("Key pool chat generation failed:", poolErr);
+    if (context) {
+      return `Based on our local agricultural knowledge base:\n\n${context}`;
     }
+    return "I'm having trouble connecting to the AI advisory service right now. Please try again in a moment or consult your local Krishi Vigyan Kendra (KVK).";
   }
-
-  if (context) {
-    return `Based on our local agricultural knowledge base:\n\n${context}`;
-  }
-
-  return "I'm having trouble connecting to the AI advisory service right now. Please try again in a moment or consult your local Krishi Vigyan Kendra (KVK).";
 };

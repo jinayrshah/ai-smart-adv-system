@@ -58,8 +58,8 @@ def test_api_advisory_ask_rate_limit_exceeded():
         "soil_type": "Loamy (दोमट)",
     }
 
-    # Exhaust rate limit (max 20)
-    for _ in range(20):
+    # Exhaust rate limit
+    for _ in range(advisory_rate_limiter.max_requests):
         advisory_rate_limiter.is_allowed(farmer_id)
 
     # Next call should return HTTP 429

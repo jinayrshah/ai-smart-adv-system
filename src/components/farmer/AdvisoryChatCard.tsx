@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   HelpCircle,
   Sprout,
-  ChevronDown,
+  RotateCcw,
 } from 'lucide-react';
 import {
   askAdvisory,
@@ -38,8 +38,12 @@ export const AdvisoryChatCard: React.FC<Props> = ({
 }) => {
   const { i18n } = useTranslation();
   const [query, setQuery] = useState('');
+  const [pendingQuery, setPendingQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const storageKey = `advisory_chat_history_${farmerId || farmId || 'farmer'}`;
+
   const [history, setHistory] = useState<
     Array<{
       id: number;
@@ -47,7 +51,42 @@ export const AdvisoryChatCard: React.FC<Props> = ({
       response: AdvisoryAskResponse;
       feedbackGiven?: 1 | -1 | null;
     }>
-  >([]);
+  >(() => {
+    try {
+      const saved = sessionStorage.getItem(storageKey) || localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Sync history to both sessionStorage and localStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify(history));
+      localStorage.setItem(storageKey, JSON.stringify(history));
+    } catch {}
+  }, [history, storageKey]);
+
+  // When farmer or farm changes, load their corresponding history
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(storageKey) || localStorage.getItem(storageKey);
+      if (saved) {
+        setHistory(JSON.parse(saved));
+      } else {
+        setHistory([]);
+      }
+    } catch {}
+  }, [storageKey]);
+
+  const handleClearHistory = () => {
+    setHistory([]);
+    try {
+      sessionStorage.removeItem(storageKey);
+      localStorage.removeItem(storageKey);
+    } catch {}
+  };
 
   const quickPrompts = [
     `How much water does my ${crop || 'crop'} need right now?`,
@@ -65,34 +104,79 @@ export const AdvisoryChatCard: React.FC<Props> = ({
     if (!q || loading) return;
 
     setLoading(true);
+    setPendingQuery(q);
     setError(null);
 
     try {
-      const resp = await askAdvisory({
-        query: q,
-        farm_id: farmId ? Number(farmId) : undefined,
-        crop: crop || undefined,
-        farmer_id: farmerId || undefined,
-        sowing_date: sowingDate || undefined,
-        soil_type: soilType || undefined,
-        // The backend answers in English and translates with Bhashini (README §8).
-        language: (i18n.language || 'en').split('-')[0]
-      });
+      const parsedFarmId = (farmId && !isNaN(Number(farmId)) && Number(farmId) > 0) ? Number(farmId) : undefined;
+      let resp: AdvisoryAskResponse | null = null;
 
-      setHistory(prev => [
-        {
-          id: resp.id,
+      try {
+        resp = await askAdvisory({
           query: q,
-          response: resp,
-          feedbackGiven: null
-        },
-        ...prev
-      ]);
-      setQuery('');
+          farm_id: parsedFarmId,
+          crop: crop || undefined,
+          farmer_id: farmerId || undefined,
+          sowing_date: sowingDate || undefined,
+          soil_type: soilType || undefined,
+          language: (i18n.language || 'en').split('-')[0]
+        });
+      } catch (firstErr: any) {
+        // If failed with crop-specific validation, retry as general query without crop
+        console.warn('Advisory ask failed, retrying without crop:', firstErr?.message || firstErr);
+        try {
+          resp = await askAdvisory({
+            query: q,
+            farm_id: parsedFarmId,
+            farmer_id: farmerId || undefined,
+            language: (i18n.language || 'en').split('-')[0]
+          });
+        } catch (retryErr: any) {
+          console.warn('Advisory ask retry also failed:', retryErr?.message || retryErr);
+        }
+      }
+
+      // Final fallback: direct Gemini chat if backend is completely down
+      if (!resp?.response) {
+        try {
+          const { generateChatResponse } = await import('../../services/ragService');
+          const fallbackText = await generateChatResponse(q);
+          if (fallbackText) {
+            resp = {
+              id: 0,
+              response: fallbackText,
+              confidence: 'partial' as const,
+              sources: [],
+              computed: {} as any,
+              retrieved_chunk_ids: [],
+              generated_by: 'direct_gemini_fallback',
+            };
+          }
+        } catch (fbErr) {
+          console.warn('Final Gemini fallback failed:', fbErr);
+        }
+      }
+
+      if (resp?.response) {
+        setHistory(prev => [
+          {
+            id: resp!.id,
+            query: q,
+            response: resp!,
+            feedbackGiven: null
+          },
+          ...prev
+        ]);
+        setQuery('');
+        setPendingQuery('');
+      } else {
+        setError('The advisory service is temporarily unavailable. Please try again in a moment or consult your local KVK.');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to get advisory response. Please try again.');
     } finally {
       setLoading(false);
+      setPendingQuery('');
     }
   };
 
@@ -112,7 +196,7 @@ export const AdvisoryChatCard: React.FC<Props> = ({
   const renderConfidenceBadge = (confidence: string) => {
     if (confidence === 'grounded') {
       return (
-        <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 shadow-sm">
+        <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#07503f] text-[#ffffff] shadow-sm font-mono">
           <CheckCircle2 size={12} className="text-[#e8fe85]" />
           <span>ICAR Verified Grounded</span>
         </span>
@@ -120,48 +204,59 @@ export const AdvisoryChatCard: React.FC<Props> = ({
     }
     if (confidence === 'partial') {
       return (
-        <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-950/70 text-amber-300 border border-amber-500/30">
-          <HelpCircle size={12} className="text-amber-400" />
+        <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#fceace] text-[#07503f] border border-[#ebd1aa] font-mono">
+          <HelpCircle size={12} className="text-[#07503f]" />
           <span>Partially Grounded</span>
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-stone-800 text-stone-300 border border-stone-700">
-        <AlertTriangle size={12} className="text-stone-400" />
+      <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#efefef] text-[#353535] border border-[#d5d8db] font-mono">
+        <AlertTriangle size={12} className="text-[#6d6d6d]" />
         <span>General Agronomy</span>
       </span>
     );
   };
 
   return (
-    <div className="bg-[#111827] border border-stone-800 rounded-3xl overflow-hidden shadow-2xl">
+    <div className="bg-[#ffffff] border border-[#c3cda7] rounded-[24px] overflow-hidden shadow-sm">
       {/* Header */}
-      <div className="p-6 border-b border-stone-800 flex items-center justify-between bg-[#07503f]/10">
+      <div className="p-6 border-b border-[#e2dfcb] flex items-center justify-between bg-[#faf9f2]">
         <div className="flex items-center space-x-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-[#07503f] text-[#e8fe85] flex items-center justify-center font-bold shadow-md shrink-0">
-            <Sparkles size={22} />
+          <div className="w-11 h-11 rounded-2xl bg-[#07503f] text-[#ffffff] flex items-center justify-center font-bold shadow-sm shrink-0">
+            <Sparkles size={22} className="text-[#e8fe85]" />
           </div>
           <div>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white flex items-center space-x-2 tracking-tight">
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#212529] flex items-center space-x-2 tracking-tight">
               <span>Personalized Agronomic Advisor</span>
               {crop && (
-                <span className="text-xs px-3 py-0.5 bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 rounded-full font-bold">
+                <span className="text-xs px-3 py-0.5 bg-[#07503f] text-[#ffffff] rounded-full font-bold">
                   {crop}
                 </span>
               )}
             </h2>
-            <p className="text-xs text-stone-400 mt-1">
+            <p className="text-xs text-[#6d6d6d] mt-1">
               Strictly grounded in ICAR Packages of Practice, FAO-56 thermal stages, and real-time agromet weather.
             </p>
           </div>
         </div>
+        {history.length > 0 && (
+          <button
+            type="button"
+            onClick={handleClearHistory}
+            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs text-[#555e4a] hover:text-[#b42318] bg-[#f1efdf] hover:bg-[#fee4e2] border border-[#c3cda7] hover:border-[#fecdca] rounded-full transition-all cursor-pointer font-mono shrink-0 ml-3"
+            title="Clear discussion history"
+          >
+            <RotateCcw size={13} />
+            <span>Clear History</span>
+          </button>
+        )}
       </div>
 
       <div className="p-6 space-y-6">
         {/* Quick prompt suggestions */}
         <div className="space-y-2.5">
-          <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider font-mono">
+          <p className="text-[11px] font-bold text-[#6d6d6d] uppercase tracking-wider font-mono">
             Suggested Agronomic Inquiries
           </p>
           <div className="flex flex-wrap gap-2">
@@ -169,9 +264,13 @@ export const AdvisoryChatCard: React.FC<Props> = ({
               <button
                 key={idx}
                 type="button"
-                onClick={() => handleAsk(promptText)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAsk(promptText);
+                }}
                 disabled={loading}
-                className="text-xs text-stone-300 hover:text-white bg-stone-900 hover:bg-[#07503f]/20 border border-stone-700/80 hover:border-[#e8fe85]/60 rounded-full px-4 py-2 text-left transition-all duration-200 disabled:opacity-50"
+                className="text-xs text-[#212529] hover:text-[#07503f] bg-[#f1efdf] hover:bg-[#e6ecd5] border border-[#c3cda7] rounded-full px-4 py-2 text-left transition-all duration-200 disabled:opacity-50 cursor-pointer"
               >
                 {promptText}
               </button>
@@ -180,28 +279,34 @@ export const AdvisoryChatCard: React.FC<Props> = ({
         </div>
 
         {/* Query Input (33px rounded with pill submit button) */}
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            handleAsk(query);
-          }}
-          className="relative"
-        >
+        <div className="relative">
           <input
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                handleAsk(query);
+              }
+            }}
             placeholder={`Ask anything about ${crop || 'your crop'}, irrigation, fertilizers, or diseases...`}
             disabled={loading}
-            className="w-full bg-stone-900 border border-stone-700/80 rounded-full pl-5 pr-28 py-3.5 text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-[#e8fe85] focus:border-[#e8fe85] transition-all shadow-inner"
+            className="w-full bg-[#ffffff] border border-[#c3cda7] rounded-full pl-5 pr-28 py-3.5 text-sm text-[#212529] placeholder-[#6d6d6d] focus:outline-none focus:ring-1 focus:ring-[#07503f] focus:border-[#07503f] transition-all shadow-inner"
           />
           <button
-            type="submit"
+            type="button"
+            onClick={e => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleAsk(query);
+            }}
             disabled={loading || !query.trim()}
-            className="absolute right-2 top-2 bottom-2 px-5 bg-[#07503f] hover:bg-[#0d6e57] text-[#e8fe85] rounded-full text-xs font-bold transition-all disabled:opacity-40 flex items-center space-x-2 shadow-md"
+            className="absolute right-2 top-2 bottom-2 px-6 bg-[#07503f] hover:bg-[#0d6e57] text-[#ffffff] rounded-full text-xs font-bold transition-all disabled:opacity-40 flex items-center space-x-2 shadow-sm cursor-pointer"
           >
             {loading ? (
-              <Loader2 size={14} className="animate-spin text-[#e8fe85]" />
+              <Loader2 size={14} className="animate-spin text-[#ffffff]" />
             ) : (
               <>
                 <span>Ask</span>
@@ -209,28 +314,49 @@ export const AdvisoryChatCard: React.FC<Props> = ({
               </>
             )}
           </button>
-        </form>
+        </div>
 
         {error && (
-          <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-400">
+          <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-2xl text-xs text-rose-800">
             {error}
+          </div>
+        )}
+
+        {/* Active pending inquiry loading indicator */}
+        {loading && (
+          <div className="bg-[#faf9f2] border border-[#c3cda7] rounded-[24px] p-6 space-y-4 shadow-sm animate-pulse">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center space-x-2.5 text-sm font-bold text-[#212529]">
+                <MessageSquare size={16} className="text-[#07503f] shrink-0" />
+                <span>{pendingQuery || 'Analyzing agronomic inquiry...'}</span>
+              </div>
+              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#e6ecd5] text-[#07503f] font-mono shrink-0">
+                <Loader2 size={12} className="animate-spin text-[#07503f]" />
+                <span>Consulting ICAR & Agro-weather...</span>
+              </span>
+            </div>
+            <div className="space-y-2.5 pt-2">
+              <div className="h-4 bg-[#e6ecd5]/70 rounded-md w-3/4"></div>
+              <div className="h-4 bg-[#e6ecd5]/50 rounded-md w-5/6"></div>
+              <div className="h-4 bg-[#e6ecd5]/60 rounded-md w-2/3"></div>
+            </div>
           </div>
         )}
 
         {/* Responses stream / history */}
         {history.length > 0 && (
           <div className="space-y-4 pt-2">
-            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider font-mono">
+            <h3 className="text-xs font-bold text-[#6d6d6d] uppercase tracking-wider font-mono">
               Recent Consultations
             </h3>
-            {history.map(item => (
+            {history.map((item, idx) => (
               <div
-                key={item.id}
-                className="bg-stone-900/60 border border-stone-800 rounded-3xl p-6 space-y-4 shadow-md"
+                key={`${item.id}-${idx}`}
+                className="bg-[#faf9f2] border border-[#e2dfcb] rounded-[24px] p-6 space-y-4 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center space-x-2.5 text-xs font-bold text-white">
-                    <MessageSquare size={15} className="text-[#e8fe85] shrink-0" />
+                  <div className="flex items-center space-x-2.5 text-sm font-bold text-[#212529]">
+                    <MessageSquare size={16} className="text-[#07503f] shrink-0" />
                     <span>{item.query}</span>
                   </div>
                   {renderConfidenceBadge(item.response.confidence)}
@@ -238,13 +364,13 @@ export const AdvisoryChatCard: React.FC<Props> = ({
 
                 {/* Computed context summary chip if present */}
                 {item.response.computed?.growth_stage && (
-                  <div className="flex flex-wrap items-center gap-2 p-3 bg-[#07503f]/20 border border-[#07503f]/40 rounded-2xl text-[11px] text-[#f1efdf]">
-                    <span className="font-bold flex items-center space-x-1.5 text-[#e8fe85]">
+                  <div className="flex flex-wrap items-center gap-2 p-3 bg-[#e6ecd5] border border-[#c3cda7] rounded-2xl text-[11px] text-[#212529]">
+                    <span className="font-bold flex items-center space-x-1.5 text-[#07503f]">
                       <Sprout size={14} />
                       <span>Stage: {item.response.computed.growth_stage.stage_name}</span>
                     </span>
                     {item.response.computed.irrigation && (
-                      <span className="text-stone-300">
+                      <span className="text-[#353535]">
                         • Water:{' '}
                         {{
                           irrigate_now: 'irrigate now',
@@ -259,9 +385,9 @@ export const AdvisoryChatCard: React.FC<Props> = ({
                 )}
 
                 {item.response.computed?.assumptions && item.response.computed.assumptions.length > 0 && (
-                  <div className="p-3 bg-amber-950/40 border border-amber-500/30 rounded-2xl text-[11px] text-amber-200">
-                    <span className="font-bold block mb-1">This answer is approximate because:</span>
-                    <ul className="list-disc pl-4 space-y-0.5 text-stone-300">
+                  <div className="p-3 bg-[#fceace] border border-[#ebd1aa] rounded-2xl text-[11px] text-[#212529]">
+                    <span className="font-bold block mb-1 text-[#07503f]">This answer is approximate because:</span>
+                    <ul className="list-disc pl-4 space-y-0.5 text-[#353535]">
                       {item.response.computed.assumptions.map((a, i) => (
                         <li key={i}>{a}</li>
                       ))}
@@ -270,22 +396,22 @@ export const AdvisoryChatCard: React.FC<Props> = ({
                 )}
 
                 {/* Advisory response body — rendered as Markdown */}
-                <div className="text-sm text-stone-200 leading-relaxed prose prose-invert prose-sm max-w-none prose-p:text-stone-200 prose-headings:text-white prose-headings:font-bold prose-li:text-stone-300 prose-strong:text-white">
+                <div className="text-sm text-[#212529] leading-relaxed prose prose-stone max-w-none prose-p:text-[#212529] prose-headings:text-[#212529] prose-headings:font-bold prose-strong:text-[#07503f] prose-li:text-[#353535]">
                   <ReactMarkdown>{item.response.response}</ReactMarkdown>
                 </div>
 
-                {/* Grounding Sources (Forest Section style) */}
+                {/* Grounding Sources */}
                 {item.response.sources && item.response.sources.length > 0 && (
-                  <div className="pt-3 border-t border-stone-800">
-                    <div className="text-[11px] font-bold text-stone-400 mb-2 flex items-center space-x-1.5 font-mono">
-                      <BookOpen size={13} className="text-[#e8fe85]" />
+                  <div className="pt-3 border-t border-[#e2dfcb]">
+                    <div className="text-[11px] font-bold text-[#07503f] mb-2 flex items-center space-x-1.5 font-mono">
+                      <BookOpen size={13} />
                       <span>Grounded References & ICAR Package of Practice</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {item.response.sources.map((src, sIdx) => (
                         <span
                           key={sIdx}
-                          className="text-[11px] bg-stone-800 text-stone-300 px-3 py-1 rounded-full border border-stone-700/80"
+                          className="text-[11px] bg-[#ffffff] text-[#07503f] px-3 py-1 rounded-full border border-[#c3cda7] shadow-xs"
                         >
                           {src.title} {src.page ? `(p. ${src.page})` : ''}
                         </span>
@@ -295,17 +421,17 @@ export const AdvisoryChatCard: React.FC<Props> = ({
                 )}
 
                 {/* Feedback buttons */}
-                <div className="pt-3 flex items-center justify-between text-xs text-stone-400 border-t border-stone-800">
+                <div className="pt-3 flex items-center justify-between text-xs text-[#6d6d6d] border-t border-[#e2dfcb]">
                   <span className="text-[11px]">Was this agronomic guidance helpful?</span>
                   <div className="flex items-center space-x-2">
                     <button
                       type="button"
                       onClick={() => handleFeedback(item.id, 1)}
                       disabled={item.feedbackGiven !== null && item.feedbackGiven !== undefined}
-                      className={`p-2 rounded-full border transition-all ${
+                      className={`p-2 rounded-full border transition-all cursor-pointer ${
                         item.feedbackGiven === 1
-                          ? 'bg-[#07503f] text-[#e8fe85] border-[#e8fe85]/40'
-                          : 'hover:bg-stone-800 text-stone-400 border-stone-700'
+                          ? 'bg-[#07503f] text-[#ffffff] border-[#07503f]'
+                          : 'hover:bg-[#f1efdf] text-[#6d6d6d] border-[#c3cda7]'
                       }`}
                       title="Helpful"
                     >
@@ -315,17 +441,17 @@ export const AdvisoryChatCard: React.FC<Props> = ({
                       type="button"
                       onClick={() => handleFeedback(item.id, -1)}
                       disabled={item.feedbackGiven !== null && item.feedbackGiven !== undefined}
-                      className={`p-2 rounded-full border transition-all ${
+                      className={`p-2 rounded-full border transition-all cursor-pointer ${
                         item.feedbackGiven === -1
-                          ? 'bg-rose-950/60 text-rose-400 border-rose-500/40'
-                          : 'hover:bg-stone-800 text-stone-400 border-stone-700'
+                          ? 'bg-rose-100 text-rose-800 border-rose-300'
+                          : 'hover:bg-[#f1efdf] text-[#6d6d6d] border-[#c3cda7]'
                       }`}
                       title="Not helpful"
                     >
                       <ThumbsDown size={13} />
                     </button>
                     {item.feedbackGiven && (
-                      <span className="text-[11px] text-[#e8fe85] font-bold ml-1">
+                      <span className="text-[11px] text-[#07503f] font-bold ml-1">
                         Feedback recorded
                       </span>
                     )}

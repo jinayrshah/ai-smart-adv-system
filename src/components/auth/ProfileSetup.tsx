@@ -31,33 +31,33 @@ export const ProfileSetup: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#f1efdf] flex items-center justify-center p-4">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md bg-[#111827] border border-stone-800 rounded-3xl p-8 shadow-2xl"
+        className="w-full max-w-md bg-white border border-[#c3cda7] rounded-3xl p-8 shadow-xl"
       >
         <div className="text-left mb-8">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-serif font-bold text-stone-100">{t('profile.completeProfile')}</h1>
+            <h1 className="text-2xl font-serif font-bold text-[#07503f]">{t('profile.completeProfile')}</h1>
             {useAuth().user?.id?.startsWith('demo-user') && (
-              <span className="text-[9px] font-mono font-bold bg-[#07503f] text-[#e8fe85] px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-[#e8fe85]/30">
+              <span className="text-[9px] font-mono font-bold bg-[#07503f] text-[#e8fe85] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                 {t('auth.demoMode')}
               </span>
             )}
           </div>
-          <p className="text-stone-400 text-xs font-mono">
+          <p className="text-[#555e4a] text-xs font-mono">
             {t('profile.profileDesc')}
           </p>
         </div>
 
         <div className="space-y-6">
           <div>
-            <label className="block text-[10px] font-mono uppercase tracking-wider text-stone-400 mb-2">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-[#555e4a] font-semibold mb-2">
               {t('profile.fullName')}
             </label>
             <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-500">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#555e4a]">
                 <User size={16} />
               </div>
               <input 
@@ -65,18 +65,18 @@ export const ProfileSetup: React.FC = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 pl-12 pr-4 text-stone-200 text-xs font-mono focus:outline-none focus:border-[#e8fe85] transition-colors"
+                className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 pl-12 pr-4 text-[#212529] text-xs font-mono focus:outline-none focus:border-[#07503f] focus:bg-white transition-colors shadow-xs"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[10px] font-mono uppercase tracking-wider text-stone-400 mb-2">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-[#555e4a] font-semibold mb-2">
               {t('profile.location')}
             </label>
             <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-500">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#555e4a]">
                 <MapPin size={16} />
               </div>
               <input 
@@ -84,24 +84,24 @@ export const ProfileSetup: React.FC = () => {
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="Enter your region"
-                className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 pl-12 pr-4 text-stone-200 text-xs font-mono focus:outline-none focus:border-[#e8fe85] transition-colors"
+                className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 pl-12 pr-4 text-[#212529] text-xs font-mono focus:outline-none focus:border-[#07503f] focus:bg-white transition-colors shadow-xs"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[10px] font-mono uppercase tracking-wider text-stone-400 mb-2">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-[#555e4a] font-semibold mb-2">
               {t('profile.farmType')}
             </label>
             <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-500">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#555e4a]">
                 <Sprout size={16} />
               </div>
               <select 
                 value={farmType}
                 onChange={(e) => setFarmType(e.target.value)}
-                className="w-full bg-stone-900 border border-stone-800 rounded-full py-2.5 pl-12 pr-4 text-stone-200 text-xs font-mono focus:outline-none focus:border-[#e8fe85] transition-colors appearance-none"
+                className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 pl-12 pr-4 text-[#212529] text-xs font-mono focus:outline-none focus:border-[#07503f] focus:bg-white transition-colors appearance-none shadow-xs"
               >
                 <option value="Vegetable">Vegetable Farming</option>
                 <option value="Fruit">Fruit Orchard</option>
@@ -113,7 +113,7 @@ export const ProfileSetup: React.FC = () => {
           </div>
 
           {error && (
-            <p className="text-red-400 text-xs bg-red-400/10 p-3 rounded-2xl border border-red-400/20 font-mono">
+            <p className="text-rose-700 text-xs bg-rose-50 p-3 rounded-2xl border border-rose-200 font-mono">
               {error}
             </p>
           )}
@@ -122,7 +122,7 @@ export const ProfileSetup: React.FC = () => {
             type="button"
             onClick={handleSubmit}
             disabled={loading || !name || !location}
-            className="w-full bg-[#07503f] hover:bg-[#0c6b54] disabled:opacity-50 text-[#f1efdf] text-xs font-mono font-bold uppercase tracking-wider py-3.5 rounded-full flex items-center justify-center space-x-2 transition-all shadow-lg border border-[#e8fe85]/30 cursor-pointer"
+            className="w-full bg-[#07503f] hover:bg-[#064234] disabled:opacity-50 text-[#e8fe85] text-xs font-mono font-bold uppercase tracking-wider py-3.5 rounded-full flex items-center justify-center space-x-2 transition-all shadow-sm cursor-pointer"
           >
             {loading ? <Loader2 className="animate-spin text-[#e8fe85]" size={18} /> : (
               <>

@@ -50,11 +50,11 @@ function TabPanel({
   active: boolean;
   children: React.ReactNode;
 }) {
-  if (!active) {
-    return null;
-  }
-
-  return <div>{children}</div>;
+  return (
+    <div className={active ? 'block' : 'hidden'} aria-hidden={!active}>
+      {children}
+    </div>
+  );
 }
 
 type Tab = UIActiveTab;
@@ -170,26 +170,26 @@ export function AppContent() {
       {/* Precision Agronomy Profile / Onboarding Banner */}
       {farmerProfile ? (
         <>
-          <div className="bg-gradient-to-r from-[#07503f]/30 via-dark-card to-zinc-900/60 rounded-3xl border border-[#07503f]/40 p-6 shadow-xl relative overflow-hidden">
+          <div className="bg-[#ffffff] rounded-[24px] border border-[#c3cda7] p-6 shadow-sm relative overflow-hidden">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center space-x-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30">
+                  <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#07503f] text-[#ffffff]">
                     Precision Farm Profile Active
                   </span>
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-[#6d6d6d] font-mono">
                     Weather grid: {farmView?.farm?.gridKey || '11km Agro Grid'}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-stone-100 mt-2 font-serif">
+                <h3 className="text-xl font-bold text-[#212529] mt-2 font-serif">
                   🌾 {farmView?.farm?.name || 'My Farm'}
                   {farmView?.crop ? ` • ${farmView.crop.name}` : ''}
                   {farmView?.crop?.variety ? ` (${farmView.crop.variety})` : ''}
                 </h3>
-                <p className="text-xs text-stone-400 mt-1">
-                  Soil: <span className="text-emerald-400 font-medium">{farmView?.farm?.soilType || 'Black Cotton'}</span>
+                <p className="text-xs text-[#353535] mt-1">
+                  Soil: <span className="text-[#07503f] font-semibold">{farmView?.farm?.soilType || 'Black Cotton'}</span>
                   {farmView?.crop?.sowingDate && (
-                    <> • Sown: <span className="text-stone-300 font-medium">{formatIsoDate(farmView.crop.sowingDate)}</span></>
+                    <> • Sown: <span className="text-[#212529] font-medium">{formatIsoDate(farmView.crop.sowingDate)}</span></>
                   )}
                   {farmView?.farm?.npk && [farmView.farm.npk.n, farmView.farm.npk.p, farmView.farm.npk.k, farmView.farm.npk.ph].some((v) => v != null) && (
                     <span>
@@ -197,14 +197,12 @@ export function AppContent() {
                     </span>
                   )}
                 </p>
-              </div>
-              <div className="flex items-center space-x-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setShowFarmerOnboarding(true)}
-                  className="px-4 py-2 bg-[#07503f] hover:bg-[#0d6e57] text-[#f1efdf] rounded-full text-xs font-bold uppercase tracking-wider transition-colors shadow"
+                  onClick={() => setActiveTab('profile')}
+                  className="mt-2 inline-flex items-center gap-1 text-xs text-[#07503f] font-mono hover:underline"
                 >
-                  Edit Farm
+                  <span>Edit farm & crop details in Profile Settings →</span>
                 </button>
               </div>
             </div>
@@ -218,22 +216,22 @@ export function AppContent() {
           )}
         </>
       ) : (
-        <div className="bg-gradient-to-r from-[#07503f]/25 via-dark-card to-zinc-900/50 rounded-3xl border border-[#07503f]/30 p-6 relative overflow-hidden">
+        <div className="bg-[#ffffff] rounded-[24px] border border-[#c3cda7] p-6 shadow-sm relative overflow-hidden">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
-              <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30">
-                <Sprout size={12} />
+              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#e6ecd5] text-[#07503f] border border-[#c3cda7]">
+                <Sprout size={13} />
                 <span>Phase 1 Precision Agronomy</span>
               </div>
-              <h3 className="text-lg font-bold text-stone-100 font-serif">Set Up Your Farm & Crop Cycle</h3>
-              <p className="text-xs text-stone-400 max-w-xl">
+              <h3 className="text-xl font-bold text-[#212529] font-serif">Set Up Your Farm & Crop Cycle</h3>
+              <p className="text-xs text-[#6d6d6d] max-w-xl">
                 Link your farm GPS coordinates, soil test card (NPK & pH), and sowing date to unlock stage-based agro-advisories.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setShowFarmerOnboarding(true)}
-              className="px-5 py-2.5 bg-[#e8fe85] hover:bg-[#d8f06f] text-[#07503f] rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-lg flex items-center justify-center space-x-2 shrink-0"
+              className="px-6 py-3 bg-[#07503f] hover:bg-[#0d6e57] text-[#ffffff] rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center space-x-2 shrink-0"
             >
               <span>Onboard Farm</span>
               <ArrowRight size={14} />
@@ -299,47 +297,47 @@ export function AppContent() {
   );
 
   return (
-    <div className="min-h-screen bg-dark-bg text-stone-200 font-sans selection:bg-[#07503f]/40">
-      {/* Arva Header */}
-      <header className="fixed top-0 left-0 right-0 h-20 bg-dark-bg/85 backdrop-blur-md border-b border-dark-border z-40 px-6 flex items-center justify-between">
+    <div className="min-h-screen bg-[#f1efdf] text-[#212529] font-sans selection:bg-[#07503f]/20 selection:text-[#07503f]">
+      {/* Header Bar */}
+      <header className="sticky top-0 left-0 right-0 h-16 bg-[#07503f] text-[#ffffff] border-b border-[#04362b] z-40 px-4 sm:px-8 flex items-center justify-between shadow-md">
         <div 
           onClick={() => switchTab('home')}
           className="flex items-center space-x-3 group cursor-pointer"
         >
-          <div className="w-10 h-10 rounded-2xl bg-[#07503f] text-[#e8fe85] flex items-center justify-center font-bold shadow-md">
-            <Sprout size={22} />
+          <div className="w-9 h-9 rounded-full bg-[#ffffff] text-[#07503f] flex items-center justify-center font-bold shadow-sm">
+            <Sprout size={20} />
           </div>
           <div className="flex flex-col">
-            <h1 className="font-serif font-bold text-xl tracking-tight leading-none text-white group-hover:text-[#e8fe85] transition-colors">
+            <h1 className="font-serif font-bold text-lg sm:text-xl tracking-tight leading-none text-white group-hover:text-[#e8fe85] transition-colors">
               Smart Agriculture
             </h1>
-            <div className="flex items-center mt-1">
-              <span className="text-[10px] font-medium text-stone-400 uppercase tracking-[0.15em] font-mono">
+            <div className="flex items-center mt-0.5">
+              <span className="text-[9px] font-medium text-[#e8fe85] uppercase tracking-[0.15em] font-mono">
                 AI Precision Agronomy
               </span>
               {user?.id?.startsWith('demo-user') && (
-                <span className="ml-2 text-[8px] font-bold bg-[#e8fe85]/20 text-[#e8fe85] px-1.5 py-0.5 rounded-md uppercase tracking-wider border border-[#e8fe85]/30">
-                  Demo Mode
+                <span className="ml-2 text-[8px] font-bold bg-[#e8fe85] text-[#07503f] px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Demo
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3 sm:space-x-4">
           <LanguageSelector />
           <button 
             onClick={() => switchTab('profile')}
             className={cn(
-              "w-9 h-9 rounded-full bg-stone-800 flex items-center justify-center border border-dark-border overflow-hidden transition-all",
-              activeTab === 'profile' ? "border-[#e8fe85] ring-2 ring-[#e8fe85]/20" : "hover:border-stone-500"
+              "w-9 h-9 rounded-full bg-[#ffffff] text-[#07503f] flex items-center justify-center border border-white/20 overflow-hidden transition-all shadow-sm font-bold",
+              activeTab === 'profile' ? "ring-2 ring-[#e8fe85]" : "hover:bg-[#f1efdf]"
             )}
             title="Farmer Profile & Settings"
           >
             {user?.name ? (
-              <span className="text-xs font-bold text-[#e8fe85]">{user.name.charAt(0)}</span>
+              <span className="text-xs font-bold text-[#07503f]">{user.name.charAt(0).toUpperCase()}</span>
             ) : (
-              <User size={18} className="text-stone-400" />
+              <User size={16} className="text-[#07503f]" />
             )}
           </button>
         </div>
@@ -352,8 +350,8 @@ export function AppContent() {
         denied={locationDenied}
       />
 
-      {/* Main Content Viewport */}
-      <main className="pt-24 px-4 sm:px-6 mx-auto max-w-5xl">
+      {/* Main Content Viewport on Bone Canvas */}
+      <main className="pt-6 px-4 sm:px-6 mx-auto max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -390,7 +388,7 @@ export function AppContent() {
 
           <TabPanel active={activeTab === 'profile'}>
             <ErrorBoundary fallbackTitle="Unable to load Profile Settings">
-              <ProfileSettings />
+              <ProfileSettings onEditFarm={() => setShowFarmerOnboarding(true)} farmerProfile={farmerProfile} />
             </ErrorBoundary>
           </TabPanel>
         </motion.div>
@@ -399,8 +397,10 @@ export function AppContent() {
       <FarmerOnboardingModal
         isOpen={showFarmerOnboarding}
         onClose={() => setShowFarmerOnboarding(false)}
-        initialFarmerId={user?.id}
-        initialName={user?.name}
+        initialFarmerId={farmerProfile?.profile?.id || user?.id}
+        initialName={farmView?.fullName || user?.name || ''}
+        initialFarmView={farmView}
+        initialProfile={farmerProfile}
         onComplete={(result) => {
           setFarmerProfile(result);
           const lang = result?.profile?.preferred_language;
@@ -410,13 +410,21 @@ export function AppContent() {
           try {
             localStorage.setItem('farmer_onboarding_profile', JSON.stringify(result));
           } catch {}
+
+          // Refresh weather for the updated farm location
+          const farm = result?.farm;
+          if (farm) {
+            const city = farm.district || farm.state || user?.location || 'Bangalore';
+            fetchWeather(city, farm.lat, farm.lon);
+          }
+
           setShowFarmerOnboarding(false);
         }}
       />
 
-      {/* Arva Clean Pill Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-dark-bg/90 backdrop-blur-xl border-t border-dark-border z-50 px-3 py-2.5">
-        <div className="max-w-lg mx-auto flex items-center justify-around">
+      {/* Arva Clean Pill Bottom Navigation (DESIGN.md §Pill Nav Element) */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#07503f] border-t border-[#04362b] z-50 px-3 py-2 shadow-2xl">
+        <div className="max-w-md mx-auto flex items-center justify-around">
           {[
             { id: 'home', icon: Home, label: t('common.home') },
             { id: 'advisor', icon: Sprout, label: t('common.advisor') },
@@ -430,13 +438,13 @@ export function AppContent() {
                 key={item.id}
                 onClick={() => switchTab(item.id as Tab)}
                 className={cn(
-                  "flex flex-col items-center py-1.5 px-3 rounded-full transition-all duration-200 active:scale-95",
+                  "flex flex-col items-center py-1.5 px-4 rounded-full transition-all duration-200 active:scale-95 cursor-pointer",
                   isActive
-                    ? "bg-[#07503f] text-[#e8fe85] shadow-md shadow-[#07503f]/40 font-bold"
-                    : "text-stone-400 hover:text-stone-200 hover:bg-stone-800/40"
+                    ? "bg-[#e8fe85] text-[#07503f] font-bold shadow-md"
+                    : "text-stone-200 hover:text-white hover:bg-white/10"
                 )}
               >
-                <item.icon size={19} className={cn("transition-transform", isActive && "scale-110")} />
+                <item.icon size={18} className={cn("transition-transform", isActive && "scale-110")} />
                 <span className="text-[10px] uppercase tracking-wider mt-0.5">{item.label}</span>
               </button>
             );
@@ -444,7 +452,7 @@ export function AppContent() {
         </div>
       </nav>
 
-      <ChatWidget />
+      {activeTab === 'home' && <ChatWidget />}
     </div>
   );
 }

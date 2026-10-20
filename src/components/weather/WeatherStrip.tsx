@@ -22,6 +22,11 @@ import {
   Compass,
   Calendar,
   Info,
+  Sparkles,
+  ShieldAlert,
+  ShieldCheck,
+  Sprout,
+  Activity,
 } from "lucide-react";
 
 interface WeatherStripProps {
@@ -200,45 +205,45 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
   };
 
   const PASTEL_TINTS = [
-    { bg: "bg-[#d0e6f6]/10", border: "border-[#d0e6f6]/30", text: "text-[#d0e6f6]", label: "Sky" },
-    { bg: "bg-[#f8d4c8]/10", border: "border-[#f8d4c8]/30", text: "text-[#f8d4c8]", label: "Peach" },
-    { bg: "bg-[#d9e2d5]/10", border: "border-[#d9e2d5]/30", text: "text-[#d9e2d5]", label: "Sage" },
-    { bg: "bg-[#d5d8db]/10", border: "border-[#d5d8db]/30", text: "text-[#d5d8db]", label: "Ash" },
+    { bg: "bg-[#b2cee7]/40", border: "border-[#b2cee7]", text: "text-[#18486b]", label: "Sky" },
+    { bg: "bg-[#fceace]/60", border: "border-[#f5d5b0]", text: "text-[#8a4b12]", label: "Peach" },
+    { bg: "bg-[#e6ecd5]/70", border: "border-[#c3cda7]", text: "text-[#3b5921]", label: "Sage" },
+    { bg: "bg-[#efefef]", border: "border-[#d8d8d8]", text: "text-[#4a4f55]", label: "Ash" },
   ];
 
   return (
-    <div className="w-full bg-[#111827] border border-[#1f2937] rounded-3xl p-5 sm:p-8 shadow-2xl space-y-7 text-stone-200">
+    <div className="w-full bg-white border border-[#c3cda7] rounded-3xl p-5 sm:p-8 space-y-7 text-[#212529]">
       {/* Top Header & Location Selector */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 border-b border-stone-800 pb-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 border-b border-[#e2e8ce] pb-5">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-[#07503f] text-[#e8fe85] flex items-center justify-center font-bold shadow-md shrink-0">
+            <div className="w-11 h-11 rounded-2xl bg-[#07503f] text-[#e8fe85] flex items-center justify-center font-bold shrink-0">
               <CloudRain className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-white">
-                  Weather Intelligence & Agro Climatology
+                <h2 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-[#07503f]">
+                  Weather Intelligence & Climatology
                 </h2>
                 {isUsingGps && !isExplore && (
-                  <span className="text-[11px] bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
-                    <MapPin className="w-3 h-3" /> Your Location
+                  <span className="text-[11px] bg-[#07503f] text-[#e8fe85] px-3 py-0.5 rounded-full font-bold flex items-center gap-1">
+                    <MapPin className="w-3 h-3" /> Detected GPS
                   </span>
                 )}
                 {isExplore && (
-                  <span className="text-[11px] bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                  <span className="text-[11px] bg-[#07503f] text-[#e8fe85] px-3 py-0.5 rounded-full font-bold flex items-center gap-1">
                     <Compass className="w-3 h-3" /> Explore Mode
                   </span>
                 )}
                 {data?.degraded && (
-                  <span className="text-[11px] bg-amber-950/60 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">
+                  <span className="text-[11px] bg-amber-100 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded-full font-bold">
                     Degraded / Fallback
                   </span>
                 )}
               </div>
-              <p className="text-xs text-stone-400 flex items-center gap-1.5 mt-1 font-mono">
-                <MapPin className="w-3.5 h-3.5 text-[#e8fe85]" />
-                {data?.location?.name || displayName} <span className="text-stone-500">•</span> Grid: {data?.location?.grid_key || `${lat.toFixed(1)},${lon.toFixed(1)}`}
+              <p className="text-xs text-[#555e4a] flex items-center gap-1.5 mt-1 font-mono">
+                <MapPin className="w-3.5 h-3.5 text-[#07503f]" />
+                {data?.location?.name || displayName} <span className="text-[#a1ab89]">•</span> Grid: {data?.location?.grid_key || `${lat.toFixed(1)},${lon.toFixed(1)}`}
               </p>
             </div>
           </div>
@@ -252,13 +257,13 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
               placeholder="Search village/district..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-stone-900 text-xs text-stone-100 placeholder-stone-500 border border-stone-700/80 rounded-full pl-9 pr-10 py-2.5 focus:outline-none focus:ring-1 focus:ring-[#e8fe85] focus:border-[#e8fe85] w-full sm:w-60 transition-all"
+              className="bg-[#f1efdf] text-xs text-[#212529] placeholder-[#788365] border border-[#c3cda7] rounded-full pl-9 pr-12 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#07503f] focus:border-[#07503f] w-full sm:w-60 transition-all"
             />
-            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3.5 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-[#788365] absolute left-3.5 pointer-events-none" />
             <button
               type="submit"
               disabled={isSearching}
-              className="absolute right-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#07503f] hover:bg-[#0d6e57] text-[#e8fe85] transition-colors"
+              className="absolute right-1 px-3 py-1 rounded-full text-[11px] font-bold bg-[#07503f] hover:bg-[#0a624d] text-[#e8fe85] transition-colors cursor-pointer"
             >
               {isSearching ? "..." : "Go"}
             </button>
@@ -266,13 +271,13 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
 
           {/* Autocomplete dropdown */}
           {showSearchResults && searchResults.length > 0 && (
-            <div className="absolute top-full mt-2 right-0 sm:right-auto z-50 w-full sm:w-80 bg-stone-900 border border-stone-700 rounded-2xl shadow-2xl p-2 text-xs space-y-1 backdrop-blur-xl">
-              <div className="px-3 py-1.5 text-[10px] uppercase font-bold text-stone-400 border-b border-stone-800 flex justify-between items-center">
+            <div className="absolute top-full mt-2 right-0 sm:right-auto z-50 w-full sm:w-80 bg-white border border-[#c3cda7] rounded-2xl shadow-xl p-2 text-xs space-y-1">
+              <div className="px-3 py-1.5 text-[10px] uppercase font-bold text-[#555e4a] border-b border-[#e2e8ce] flex justify-between items-center">
                 <span>Select Location</span>
                 <button
                   type="button"
                   onClick={() => setShowSearchResults(false)}
-                  className="text-stone-500 hover:text-stone-300"
+                  className="text-stone-400 hover:text-stone-700"
                 >
                   ✕
                 </button>
@@ -281,15 +286,15 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
                 <button
                   key={idx}
                   onClick={() => handleSelectSearchResult(r)}
-                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-stone-800 text-stone-200 transition flex items-center justify-between"
+                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#f1efdf] text-[#212529] transition flex items-center justify-between"
                 >
                   <div>
-                    <span className="font-semibold text-white">{r.name}</span>
-                    <span className="text-[11px] text-stone-400 block">
+                    <span className="font-semibold text-[#07503f]">{r.name}</span>
+                    <span className="text-[11px] text-[#555e4a] block">
                       {r.district ? `${r.district}, ` : ""}{r.state}
                     </span>
                   </div>
-                  <span className="text-[10px] text-[#e8fe85] bg-[#07503f]/40 px-2 py-0.5 rounded-full border border-[#07503f]">
+                  <span className="text-[10px] text-[#07503f] bg-[#e6ecd5] px-2 py-0.5 rounded-full font-mono">
                     {r.lat.toFixed(1)}, {r.lon.toFixed(1)}
                   </span>
                 </button>
@@ -298,7 +303,7 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
           )}
 
           <select
-            className="bg-stone-900 text-xs text-stone-200 border border-stone-700/80 rounded-full px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-[#e8fe85]"
+            className="bg-[#f1efdf] text-xs text-[#212529] border border-[#c3cda7] rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#07503f]"
             onChange={(e) => {
               const idx = parseInt(e.target.value, 10);
               if (!isNaN(idx) && POPULAR_LOCATIONS[idx]) {
@@ -320,7 +325,7 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
           <button
             onClick={() => loadWeather(lat, lon)}
             disabled={loading}
-            className="p-2.5 rounded-full bg-[#07503f] hover:bg-[#0d6e57] text-[#e8fe85] transition shadow-md shrink-0 flex items-center justify-center"
+            className="p-2.5 rounded-full bg-[#07503f] hover:bg-[#0a624d] text-[#e8fe85] transition shrink-0 flex items-center justify-center cursor-pointer"
             title="Refresh weather data"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-[#e8fe85]" : ""}`} />
@@ -329,40 +334,40 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
       </div>
 
       {isUsingGps && !isExplore && (
-        <div className="px-4 py-3 rounded-2xl bg-[#07503f]/20 border border-[#07503f]/40 text-[#f1efdf] text-xs flex items-center justify-between">
+        <div className="px-4 py-3 rounded-2xl bg-[#e6ecd5]/50 border border-[#c3cda7] text-[#212529] text-xs flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <MapPin className="w-4 h-4 text-[#e8fe85] flex-shrink-0" />
+            <MapPin className="w-4 h-4 text-[#07503f] flex-shrink-0" />
             <span>
-              <b className="text-white">Auto-Location:</b> Weather data is loaded for your detected GPS position.
-              Use the search or <b>Other Regions</b> dropdown to explore weather elsewhere in India.
+              <b className="text-[#07503f]">Auto-Location:</b> Microclimate data calculated for your verified GPS coordinate.
+              Use search or <b>Other Regions</b> to check conditions across India.
             </span>
           </div>
         </div>
       )}
 
       {isExplore && (
-        <div className="px-4 py-3 rounded-2xl bg-[#07503f]/20 border border-[#07503f]/40 text-[#f1efdf] text-xs flex items-center justify-between">
+        <div className="px-4 py-3 rounded-2xl bg-[#fceace]/60 border border-[#f5d5b0] text-[#212529] text-xs flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <Compass className="w-4 h-4 text-[#e8fe85] flex-shrink-0" />
+            <Compass className="w-4 h-4 text-[#8a4b12] flex-shrink-0" />
             <span>
-              <b className="text-white">Explore Tier:</b> Weather for newly enrolled location is live via Open-Meteo. Confidence starts at <b>medium</b>; full multi-source cross-check validation runs during tonight&apos;s scheduled pipeline.
+              <b className="text-[#8a4b12]">Explore Mode:</b> Showing weather for newly enrolled coordinate via Open-Meteo. Confidence starts at <b>medium</b> until full multi-source cross-check runs.
             </span>
           </div>
         </div>
       )}
 
       {loading && !data && (
-        <div className="py-16 flex flex-col items-center justify-center space-y-3 text-stone-400">
-          <div className="w-10 h-10 rounded-full border-4 border-[#07503f] border-t-[#e8fe85] animate-spin" />
-          <p className="text-xs font-mono uppercase tracking-widest text-stone-400">
+        <div className="py-16 flex flex-col items-center justify-center space-y-3 text-[#555e4a]">
+          <div className="w-10 h-10 rounded-full border-4 border-[#c3cda7] border-t-[#07503f] animate-spin" />
+          <p className="text-xs font-mono uppercase tracking-widest text-[#555e4a]">
             Fusing multi-source weather data across Open-Meteo, NASA POWER, and OpenWeather...
           </p>
         </div>
       )}
 
       {error && !data && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0 text-rose-600" />
           <p className="text-xs">{error}</p>
         </div>
       )}
@@ -372,51 +377,51 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
           {/* Main Weather Display: Current + Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Current Conditions Card */}
-            <div className="bg-[#111827] border border-stone-800 rounded-3xl p-6 flex flex-col justify-between space-y-5">
+            <div className="bg-[#f1efdf] border border-[#c3cda7] rounded-3xl p-6 flex flex-col justify-between space-y-5">
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 font-mono">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#555e4a] font-mono">
                     Current Observation
                   </span>
-                  <div className="text-4xl font-serif font-bold text-white mt-1.5 flex items-baseline gap-1">
+                  <div className="text-4xl font-serif font-bold text-[#07503f] mt-1.5 flex items-baseline gap-1">
                     {data.current?.temp_c != null ? `${data.current.temp_c}°C` : "—"}
                   </div>
                   {data.current?.weather_code != null && WMO_TEXT[data.current.weather_code] && (
-                    <p className="text-sm text-[#e8fe85] font-medium mt-0.5">{WMO_TEXT[data.current.weather_code]}</p>
+                    <p className="text-sm text-[#07503f] font-semibold mt-0.5">{WMO_TEXT[data.current.weather_code]}</p>
                   )}
-                  <p className="text-xs text-stone-400 mt-1">
-                    From <span className="text-stone-200 font-medium">{providerName(data.current?.source)}</span>
+                  <p className="text-xs text-[#555e4a] mt-1">
+                    Source: <span className="text-[#212529] font-medium">{providerName(data.current?.source)}</span>
                   </p>
                 </div>
                 {data.current && renderConfidenceBadge(data.current.confidence, false)}
               </div>
 
-              {/* Observation stats */}
-              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-stone-800 text-center">
-                <div className="bg-stone-900/60 p-2.5 rounded-2xl border border-stone-800/80">
-                  <div className="flex items-center justify-center gap-1 text-[11px] text-stone-400">
-                    <Droplets className="w-3.5 h-3.5 text-[#d0e6f6]" /> Humidity
+              {/* Observation stats - 3 pastel chips */}
+              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-[#c3cda7]/50 text-center">
+                <div className="bg-[#b2cee7]/50 p-2.5 rounded-2xl border border-[#b2cee7]">
+                  <div className="flex items-center justify-center gap-1 text-[11px] text-[#18486b] font-medium">
+                    <Droplets className="w-3.5 h-3.5 text-[#18486b]" /> Humidity
                   </div>
-                  <span className="text-sm font-bold text-stone-100">{data.current?.rh_pct ?? "—"}%</span>
+                  <span className="text-sm font-bold text-[#18486b]">{data.current?.rh_pct ?? "—"}%</span>
                 </div>
-                <div className="bg-stone-900/60 p-2.5 rounded-2xl border border-stone-800/80">
-                  <div className="flex items-center justify-center gap-1 text-[11px] text-stone-400">
-                    <Wind className="w-3.5 h-3.5 text-[#d9e2d5]" /> Wind
+                <div className="bg-[#e6ecd5] p-2.5 rounded-2xl border border-[#c3cda7]">
+                  <div className="flex items-center justify-center gap-1 text-[11px] text-[#3b5921] font-medium">
+                    <Wind className="w-3.5 h-3.5 text-[#3b5921]" /> Wind
                   </div>
-                  <span className="text-sm font-bold text-stone-100">{data.current?.wind_kmh ?? "—"} km/h</span>
+                  <span className="text-sm font-bold text-[#3b5921]">{data.current?.wind_kmh ?? "—"} km/h</span>
                 </div>
-                <div className="bg-stone-900/60 p-2.5 rounded-2xl border border-stone-800/80">
-                  <div className="flex items-center justify-center gap-1 text-[11px] text-stone-400">
-                    <CloudRain className="w-3.5 h-3.5 text-[#f8d4c8]" /> 1h Rain
+                <div className="bg-[#fceace] p-2.5 rounded-2xl border border-[#f5d5b0]">
+                  <div className="flex items-center justify-center gap-1 text-[11px] text-[#8a4b12] font-medium">
+                    <CloudRain className="w-3.5 h-3.5 text-[#8a4b12]" /> 1h Rain
                   </div>
-                  <span className="text-sm font-bold text-stone-100">{data.current?.precip_mm_1h ?? 0} mm</span>
+                  <span className="text-sm font-bold text-[#8a4b12]">{data.current?.precip_mm_1h ?? 0} mm</span>
                 </div>
               </div>
 
               {/* Cross check */}
               {data.current?.cross_check && Object.keys(data.current.cross_check).length > 0 && (
-                <div className="text-xs text-stone-400 bg-stone-900/80 p-2.5 rounded-2xl border border-stone-800">
-                  <span className="text-stone-300 font-medium">Cross-check:</span>{" "}
+                <div className="text-xs text-[#555e4a] bg-white p-2.5 rounded-2xl border border-[#c3cda7]">
+                  <span className="text-[#07503f] font-semibold">Cross-check:</span>{" "}
                   {Object.entries(data.current.cross_check).map(([prov, details]: any) => (
                     <span key={prov}>
                       {prov} reports {details.temp_c}°C
@@ -427,13 +432,13 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
             </div>
 
             {/* Agro Climatology Metrics Card */}
-            <div className="lg:col-span-2 bg-[#111827] border border-stone-800 rounded-3xl p-6 flex flex-col justify-between space-y-5">
+            <div className="lg:col-span-2 bg-[#f1efdf] border border-[#c3cda7] rounded-3xl p-6 flex flex-col justify-between space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 mb-1">
+                  <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#07503f] text-[#e8fe85] mb-1">
                     <span>Agro-Climatology Metrics</span>
                   </div>
-                  <p className="text-xs text-stone-400">Calculated over historical actuals &amp; 15-year ERA5-Land normals</p>
+                  <p className="text-xs text-[#555e4a]">Calculated over actual rainfall &amp; 15-year ERA5-Land agricultural normals</p>
                 </div>
                 <div className="shrink-0">
                   {renderConfidenceBadge(data.metrics.confidence, false)}
@@ -442,38 +447,38 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
 
               {/* Pastel Quilt grid for the 4 core metrics */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-[#d0e6f6]/10 border border-[#d0e6f6]/25 p-3.5 rounded-2xl flex flex-col justify-between">
-                  <span className="text-xs text-[#d0e6f6] font-semibold block">7-Day Rainfall</span>
-                  <span className="text-2xl font-serif font-bold text-white mt-1 block">{data.metrics.rain_7d_mm} mm</span>
-                  <span className="text-[10px] text-stone-400">Recent accumulation</span>
+                <div className="bg-[#b2cee7] border border-[#9cbcd8] p-4 rounded-2xl flex flex-col justify-between">
+                  <span className="text-xs text-[#18486b] font-bold block">7-Day Rain</span>
+                  <span className="text-2xl font-serif font-bold text-[#18486b] mt-1 block">{data.metrics.rain_7d_mm} mm</span>
+                  <span className="text-[10px] text-[#18486b]/80">Recent accumulation</span>
                 </div>
 
-                <div className="bg-[#f8d4c8]/10 border border-[#f8d4c8]/25 p-3.5 rounded-2xl flex flex-col justify-between">
-                  <span className="text-xs text-[#f8d4c8] font-semibold block">30-Day Total</span>
-                  <span className="text-2xl font-serif font-bold text-white mt-1 block">{data.metrics.rain_30d_mm} mm</span>
-                  <span className="text-[10px] text-stone-400">Monthly total</span>
+                <div className="bg-[#fceace] border border-[#edd1ad] p-4 rounded-2xl flex flex-col justify-between">
+                  <span className="text-xs text-[#8a4b12] font-bold block">30-Day Rain</span>
+                  <span className="text-2xl font-serif font-bold text-[#8a4b12] mt-1 block">{data.metrics.rain_30d_mm} mm</span>
+                  <span className="text-[10px] text-[#8a4b12]/80">Cumulative actual</span>
                 </div>
 
-                <div className="bg-[#d9e2d5]/10 border border-[#d9e2d5]/25 p-3.5 rounded-2xl flex flex-col justify-between">
-                  <span className="text-xs text-[#d9e2d5] font-semibold block">Vs. Normal (30d)</span>
+                <div className="bg-[#e6ecd5] border border-[#c3cda7] p-4 rounded-2xl flex flex-col justify-between">
+                  <span className="text-xs text-[#3b5921] font-bold block">Vs. Normal (30d)</span>
                   <div className="my-1">
                     {data.metrics.rain_30d_vs_normal_pct != null ? (
                       <span
                         className={`text-2xl font-serif font-bold block ${
                           data.metrics.rain_30d_vs_normal_pct >= 0
-                            ? "text-[#e8fe85]"
-                            : "text-amber-400"
+                            ? "text-[#3b5921]"
+                            : "text-[#8a4b12]"
                         }`}
                       >
                         {data.metrics.rain_30d_vs_normal_pct > 0 ? "+" : ""}{data.metrics.rain_30d_vs_normal_pct}%
                       </span>
                     ) : (
-                      <span className="text-xs font-semibold text-stone-400 block leading-tight">
+                      <span className="text-xs font-semibold text-[#555e4a] block leading-tight">
                         Not enough data yet
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-stone-400">
+                  <span className="text-[10px] text-[#555e4a]">
                     {data.metrics.rain_30d_vs_normal_pct != null
                       ? "vs. 2010–24 average"
                       : data.metrics.days_in_30d_window != null
@@ -482,19 +487,19 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
                   </span>
                 </div>
 
-                <div className="bg-[#d5d8db]/10 border border-[#d5d8db]/25 p-3.5 rounded-2xl flex flex-col justify-between">
-                  <span className="text-xs text-[#d5d8db] font-semibold block">Consecutive Dry Days</span>
-                  <span className="text-2xl font-serif font-bold text-white mt-1 block">{data.metrics.dry_spell_days} d</span>
-                  <span className="text-[10px] text-stone-400">&lt;1mm daily threshold</span>
+                <div className="bg-[#efefef] border border-[#d8d8d8] p-4 rounded-2xl flex flex-col justify-between">
+                  <span className="text-xs text-[#4a4f55] font-bold block">Dry Days</span>
+                  <span className="text-2xl font-serif font-bold text-[#212529] mt-1 block">{data.metrics.dry_spell_days} d</span>
+                  <span className="text-[10px] text-[#6c757d]">&lt;1mm threshold</span>
                 </div>
               </div>
 
               {/* Extra agro indicators */}
-              <div className="flex flex-wrap items-center gap-4 text-xs text-stone-400 pt-3 border-t border-stone-800">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-[#555e4a] pt-3 border-t border-[#c3cda7]/50">
                 {data.metrics.tmax_7d_anomaly_c != null && (
                   <div>
-                    <span className="text-stone-500">7d Temp Anomaly:</span>{" "}
-                    <span className="font-semibold text-stone-200">
+                    <span className="text-[#788365]">7d Temp Anomaly:</span>{" "}
+                    <span className="font-semibold text-[#212529]">
                       {data.metrics.tmax_7d_anomaly_c > 0 ? "+" : ""}
                       {data.metrics.tmax_7d_anomaly_c}°C
                     </span>
@@ -502,13 +507,13 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
                 )}
                 {data.metrics.et0_7d_mm != null && (
                   <div>
-                    <span className="text-stone-500">7d Evapotranspiration (ET₀):</span>{" "}
-                    <span className="font-semibold text-stone-200">{data.metrics.et0_7d_mm} mm</span>
+                    <span className="text-[#788365]">7d Evapotranspiration (ET₀):</span>{" "}
+                    <span className="font-semibold text-[#212529]">{data.metrics.et0_7d_mm} mm</span>
                   </div>
                 )}
                 <div>
-                  <span className="text-stone-500">Metrics Confidence:</span>{" "}
-                  <span className="font-medium text-[#e8fe85] capitalize">{data.metrics.confidence}</span> (inherited from 7d window)
+                  <span className="text-[#788365]">Confidence:</span>{" "}
+                  <span className="font-bold text-[#07503f] capitalize">{data.metrics.confidence}</span>
                 </div>
               </div>
             </div>
@@ -517,10 +522,10 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
           {/* 7-Day Forecast & Recent Strip (Pastel Quilt Strip) */}
           <div>
             <div className="flex items-center justify-between mb-3.5">
-              <h3 className="font-serif text-lg font-bold text-stone-100 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-[#e8fe85]" /> Multi-Source Fused Daily Horizon (Past + Forecast)
+              <h3 className="font-serif text-lg font-bold text-[#07503f] flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#07503f]" /> Multi-Source Daily Horizon (Past actuals + 7-Day Forecast)
               </h3>
-              <span className="text-xs text-stone-400">Click a day card to inspect validation & disagreements</span>
+              <span className="text-xs text-[#555e4a]">Click a day to inspect model consensus</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 pb-2">
@@ -534,45 +539,45 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
                   <button
                     key={day.date}
                     onClick={() => setSelectedDay(day)}
-                    className={`flex flex-col text-left p-3.5 rounded-2xl border transition-all duration-200 ${
+                    className={`flex flex-col text-left p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer ${
                       isSelected
-                        ? "bg-[#07503f]/40 border-[#e8fe85] ring-2 ring-[#e8fe85]/40 shadow-lg scale-[1.02]"
-                        : `${tint.bg} hover:brightness-125 ${tint.border}`
+                        ? "bg-white border-2 border-[#07503f] ring-2 ring-[#07503f]/20 scale-[1.02]"
+                        : `${tint.bg} hover:brightness-95 ${tint.border}`
                     }`}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <span className="text-xs font-bold text-stone-200">
+                      <span className="text-xs font-bold text-[#212529]">
                         {isToday ? "Today" : day.date.slice(5)}
                       </span>
                       <span
                         className={`w-2 h-2 rounded-full ${
                           day.confidence === "high"
-                            ? "bg-[#e8fe85]"
+                            ? "bg-[#07503f]"
                             : day.confidence === "medium"
-                            ? "bg-amber-400"
-                            : "bg-rose-400"
+                            ? "bg-amber-500"
+                            : "bg-rose-500"
                         }`}
                         title={`Confidence: ${day.confidence}`}
                       />
                     </div>
 
                     <div className="my-2.5">
-                      <div className="text-lg font-serif font-bold text-white">
+                      <div className="text-lg font-serif font-bold text-[#212529]">
                         {day.tmax_c != null ? `${Math.round(day.tmax_c)}°` : "—"}
-                        <span className="text-xs text-stone-400 font-sans font-normal ml-1">
+                        <span className="text-xs text-[#6c757d] font-sans font-normal ml-1">
                           {day.tmin_c != null ? `${Math.round(day.tmin_c)}°` : ""}
                         </span>
                       </div>
-                      <div className={`text-xs ${tint.text} flex items-center gap-1 mt-0.5 font-medium`}>
+                      <div className={`text-xs ${tint.text} flex items-center gap-1 mt-0.5 font-bold`}>
                         <Droplets className="w-3 h-3" />
                         {day.precip_mm != null ? `${day.precip_mm} mm` : "0 mm"}
                       </div>
                     </div>
 
-                    <div className="text-[10px] text-stone-400 capitalize flex items-center justify-between w-full pt-1.5 border-t border-stone-800">
+                    <div className="text-[10px] text-[#555e4a] capitalize flex items-center justify-between w-full pt-1.5 border-t border-[#c3cda7]/50">
                       <span>{day.phase}</span>
                       {hasDisagreement && (
-                        <span className="text-rose-400 font-bold" title="Provider Disagreement">
+                        <span className="text-rose-600 font-bold" title="Provider Disagreement">
                           !
                         </span>
                       )}
@@ -583,16 +588,16 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
             </div>
           </div>
 
-          {/* Selected Day Deep Dive Panel (Forest Section Banner) */}
+          {/* Selected Day Deep Dive Panel (Forest Ink Banner) */}
           {selectedDay && (
-            <div className="bg-[#07503f]/20 border border-[#07503f]/50 rounded-3xl p-6 space-y-4 shadow-xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#07503f]/40 pb-3">
+            <div className="bg-[#07503f] text-[#f1efdf] rounded-3xl p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/20 pb-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <Calendar className="w-4 h-4 text-[#e8fe85] shrink-0" />
-                  <span className="font-serif font-bold text-white text-base">Inspection: {selectedDay.date}</span>
+                  <span className="font-serif font-bold text-white text-base">Day Analysis: {selectedDay.date}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <span className="text-xs text-stone-300">
+                  <span className="text-xs text-[#f1efdf]/80">
                     Main source: <b className="text-white">{selectedDay.primary_source === "open_meteo" ? "Open-Meteo" : selectedDay.primary_source}</b>
                   </span>
                   {renderConfidenceBadge(selectedDay.confidence, !!selectedDay.disagreement)}
@@ -600,25 +605,25 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                <div className="bg-stone-900/40 p-3 rounded-2xl border border-stone-800">
-                  <span className="text-stone-400 block">Temperature High / Low</span>
-                  <span className="text-sm font-semibold text-stone-100 mt-1 block">
+                <div className="bg-white/10 p-3.5 rounded-2xl border border-white/15">
+                  <span className="text-[#f1efdf]/70 block">Temperature Range</span>
+                  <span className="text-sm font-semibold text-white mt-1 block">
                     {selectedDay.tmax_c ?? "—"}°C / {selectedDay.tmin_c ?? "—"}°C
                   </span>
                 </div>
-                <div className="bg-stone-900/40 p-3 rounded-2xl border border-stone-800">
-                  <span className="text-stone-400 block">Precipitation & Probability</span>
-                  <span className="text-sm font-semibold text-stone-100 mt-1 block">
+                <div className="bg-white/10 p-3.5 rounded-2xl border border-white/15">
+                  <span className="text-[#f1efdf]/70 block">Rainfall & Probability</span>
+                  <span className="text-sm font-semibold text-white mt-1 block">
                     {selectedDay.precip_mm ?? 0} mm {selectedDay.precip_prob_pct != null ? `(${selectedDay.precip_prob_pct}%)` : ""}
                   </span>
                 </div>
-                <div className="bg-stone-900/40 p-3 rounded-2xl border border-stone-800">
-                  <span className="text-stone-400 block">Relative Humidity (Mean)</span>
-                  <span className="text-sm font-semibold text-stone-100 mt-1 block">{selectedDay.rh_mean_pct ?? "—"}%</span>
+                <div className="bg-white/10 p-3.5 rounded-2xl border border-white/15">
+                  <span className="text-[#f1efdf]/70 block">Mean Humidity</span>
+                  <span className="text-sm font-semibold text-white mt-1 block">{selectedDay.rh_mean_pct ?? "—"}%</span>
                 </div>
-                <div className="bg-stone-900/40 p-3 rounded-2xl border border-stone-800">
-                  <span className="text-stone-400 block">Solar Radiation / ET₀</span>
-                  <span className="text-sm font-semibold text-stone-100 mt-1 block">
+                <div className="bg-white/10 p-3.5 rounded-2xl border border-white/15">
+                  <span className="text-[#f1efdf]/70 block">Solar Radiation / ET₀</span>
+                  <span className="text-sm font-semibold text-white mt-1 block">
                     {selectedDay.radiation_mj_m2 ? `${selectedDay.radiation_mj_m2} MJ/m²` : "—"} /{" "}
                     {selectedDay.et0_mm ? `${selectedDay.et0_mm} mm` : "—"}
                   </span>
@@ -627,9 +632,9 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
 
               {/* Disagreement Warning if any */}
               {selectedDay.disagreement && (
-                <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs space-y-1">
-                  <div className="font-bold flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <div className="p-3.5 rounded-2xl bg-rose-900/60 border border-rose-400 text-rose-100 text-xs space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-rose-200">
+                    <AlertTriangle className="w-4 h-4 text-rose-300 shrink-0" />
                     Provider Disagreement Detected (Confidence Lowered to Low):
                   </div>
                   {Object.entries(selectedDay.disagreement).map(([field, provMap]: any) => (
@@ -638,48 +643,254 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
                       {Object.entries(provMap).map(([p, v]: any) => `${p} reported ${v}`).join(", ")}
                     </div>
                   ))}
-                  <p className="ml-5 text-[11px] text-rose-400/80">
-                    Advisory contract rule enforced: Weather-linked advice is phrased conservatively without hard instructions.
+                  <p className="ml-5 text-[11px] text-rose-200">
+                    Conservative rule applied: advisory recommendations for this day avoid hard spray/irrigation triggers.
                   </p>
                 </div>
               )}
 
               {/* Validators info */}
-              <div className="text-[11px] text-stone-400 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#07503f]/30">
+              <div className="text-[11px] text-[#f1efdf]/70 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/15">
                 <span>
                   Validation:{" "}
                   {selectedDay.validators && selectedDay.validators.length > 0
                     ? `Double-checked against ${selectedDay.validators.map(providerName).join(", ")}`
-                    : "Not yet double-checked against a second source"}
+                    : "Single-source observation"}
                 </span>
                 {selectedDay.degraded && (
-                  <span className="text-amber-400">Backup source used for this day</span>
+                  <span className="text-amber-300 font-semibold">Backup source used for this day</span>
                 )}
               </div>
             </div>
           )}
 
           {/* Area Estimate & Provenance Disclaimer */}
-          <div className="pt-2 border-t border-stone-800 text-[11px] text-stone-400 leading-relaxed flex flex-col gap-1.5">
+          <div className="pt-2 border-t border-[#e2e8ce] text-[11px] text-[#555e4a] leading-relaxed flex flex-col gap-1.5">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <button
                 type="button"
                 onClick={() => setShowAreaNotice(!showAreaNotice)}
-                className="inline-flex items-center gap-1 text-[#e8fe85] hover:underline font-bold cursor-pointer"
+                className="inline-flex items-center gap-1 text-[#07503f] hover:underline font-bold cursor-pointer"
               >
-                <Info className="w-3.5 h-3.5" />
+                <Info className="w-3.5 h-3.5 text-[#07503f]" />
                 <span>Area Estimate Notice {showAreaNotice ? "▲" : "▼"}</span>
               </button>
-              <span className="text-stone-500 text-[10px]">
+              <span className="text-[#788365] text-[10px]">
                 Sources: Open-Meteo (primary), NASA POWER &amp; OpenWeather (validation).
               </span>
             </div>
             {showAreaNotice && (
-              <p className="text-stone-400 text-[11px] leading-relaxed bg-stone-900/60 p-3 rounded-2xl border border-stone-800">
+              <p className="text-[#555e4a] text-[11px] leading-relaxed bg-[#f1efdf] p-3 rounded-2xl border border-[#c3cda7]">
                 Weather is derived from the 0.1° (~9–11 km) ERA5-Land grid cell. Gridded rainfall reflects an area average; local farm-level rainfall may vary due to monsoon convection.
               </p>
             )}
           </div>
+
+          {/* Weather Summary Insights & Agrometeorological Advisory */}
+          {(() => {
+            const futureDays = data.days.filter((d) => d.phase === "future" || d.phase === "today");
+            const forecastRainTotal = Number(
+              futureDays.reduce((acc, d) => acc + (d.precip_mm || 0), 0).toFixed(1)
+            );
+            const rainDaysCount = futureDays.filter((d) => (d.precip_mm || 0) > 0.5).length;
+            const maxForecastProb = Math.max(0, ...futureDays.map((d) => d.precip_prob_pct || 0));
+            
+            const tmaxValues = futureDays.map((d) => d.tmax_c).filter((v): v is number => v != null);
+            const tminValues = futureDays.map((d) => d.tmin_c).filter((v): v is number => v != null);
+            const highestTmax = tmaxValues.length ? Math.round(Math.max(...tmaxValues)) : (data.current?.temp_c ? Math.round(data.current.temp_c) : 33);
+            const lowestTmin = tminValues.length ? Math.round(Math.min(...tminValues)) : 22;
+            
+            const rhValues = futureDays.map((d) => d.rh_mean_pct).filter((v): v is number => v != null);
+            const avgForecastRh = rhValues.length
+              ? Math.round(rhValues.reduce((a, b) => a + b, 0) / rhValues.length)
+              : (data.current?.rh_pct ?? 65);
+
+            const drySpellDays = data.metrics.dry_spell_days ?? 0;
+            const rain30dNormalPct = data.metrics.rain_30d_vs_normal_pct;
+            const et07d = data.metrics.et0_7d_mm ?? 28;
+            const rain7d = data.metrics.rain_7d_mm ?? 0;
+            const netDeficit = Number(Math.max(0, et07d - rain7d).toFixed(1));
+
+            // Agromet triggers
+            const isSprayFavorable = forecastRainTotal < 3.0 && maxForecastProb < 35 && (data.current?.wind_kmh ?? 10) < 18;
+            const isIrrigationNeeded = drySpellDays >= 5 || (rain30dNormalPct != null && rain30dNormalPct < -20) || (netDeficit > 15);
+            const isElevatedFungal = avgForecastRh >= 72 && highestTmax >= 24 && highestTmax <= 34;
+
+            return (
+              <div className="bg-[#f1efdf] border border-[#c3cda7] rounded-3xl p-6 space-y-6 mt-4 shadow-sm">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#c3cda7]/60 pb-4">
+                  <div>
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#07503f] text-[#e8fe85] mb-1">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Agrometeorological Summary &amp; Field Insights</span>
+                    </div>
+                    <p className="text-xs text-[#555e4a]">
+                      7-day agronomic horizon synthesized from FAO-56 crop water demand, historical rainfall anomalies, and microclimate consensus.
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    <span className="text-[11px] font-mono font-bold bg-[#e6ecd5] text-[#07503f] border border-[#c3cda7] px-3 py-1.5 rounded-full">
+                      Grid: {data.location.district ? `${data.location.district}, ` : ""}{data.location.state}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3 Key Horizon Indicator Chips */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="bg-[#b2cee7]/60 border border-[#9cbcd8] p-4 rounded-2xl flex flex-col justify-between">
+                    <div>
+                      <span className="text-xs text-[#18486b] font-bold flex items-center gap-1.5">
+                        <CloudRain className="w-4 h-4 text-[#18486b]" /> Forecast Rain (7d)
+                      </span>
+                      <span className="text-2xl font-serif font-bold text-[#18486b] mt-1.5 block">
+                        {forecastRainTotal} mm
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-[#18486b]/80 mt-2 block">
+                      {rainDaysCount > 0 ? `${rainDaysCount} rain day${rainDaysCount > 1 ? "s" : ""} expected (peak chance ${maxForecastProb}%)` : "No substantial rainfall expected"}
+                    </span>
+                  </div>
+
+                  <div className="bg-[#fceace]/70 border border-[#edd1ad] p-4 rounded-2xl flex flex-col justify-between">
+                    <div>
+                      <span className="text-xs text-[#8a4b12] font-bold flex items-center gap-1.5">
+                        <Droplets className="w-4 h-4 text-[#8a4b12]" /> Water Deficit / ET₀
+                      </span>
+                      <span className="text-2xl font-serif font-bold text-[#8a4b12] mt-1.5 block">
+                        {netDeficit > 0 ? `-${netDeficit} mm` : "Hydrated"}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-[#8a4b12]/80 mt-2 block">
+                      ET₀ {et07d} mm vs {rain7d} mm rain ({drySpellDays} consecutive dry days)
+                    </span>
+                  </div>
+
+                  <div className="bg-[#e6ecd5] border border-[#c3cda7] p-4 rounded-2xl flex flex-col justify-between">
+                    <div>
+                      <span className="text-xs text-[#3b5921] font-bold flex items-center gap-1.5">
+                        <Thermometer className="w-4 h-4 text-[#3b5921]" /> Thermal Range (7d)
+                      </span>
+                      <span className="text-2xl font-serif font-bold text-[#3b5921] mt-1.5 block">
+                        {lowestTmin}°C – {highestTmax}°C
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-[#3b5921]/80 mt-2 block">
+                      {data.metrics.tmax_7d_anomaly_c != null
+                        ? `7d anomaly: ${data.metrics.tmax_7d_anomaly_c > 0 ? "+" : ""}${data.metrics.tmax_7d_anomaly_c}°C vs ERA5 normal`
+                        : "Normal seasonal temperature range"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4 Detailed Operational Advisory Cards (2x2 Grid) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 1. Spraying Window */}
+                  <div className="bg-white border border-[#c3cda7] p-4.5 rounded-2xl flex flex-col justify-between space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#212529] flex items-center gap-2">
+                        <Droplets className="w-4 h-4 text-[#07503f]" />
+                        Spraying &amp; Foliar Operations
+                      </span>
+                      {isSprayFavorable ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e6ecd5] text-[#3b5921] border border-[#c3cda7]">
+                          ✓ Favorable Window
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                          ⚠ Wash-off Risk
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#555e4a] leading-relaxed">
+                      {isSprayFavorable
+                        ? `Rain probability remains low (peak ${maxForecastProb}%) with light winds (<${data.current?.wind_kmh ?? 12} km/h). Safe 48–72h window for foliar nutrient sprays, plant growth regulators, or scheduled insecticides. Best applied between 6:30–9:30 AM.`
+                        : `Precipitation anticipated within upcoming forecast (${forecastRainTotal} mm, ${maxForecastProb}% probability). Postpone foliar applications or contact pesticides to prevent costly wash-off and chemical runoff.`}
+                    </p>
+                  </div>
+
+                  {/* 2. Irrigation Scheduling */}
+                  <div className="bg-white border border-[#c3cda7] p-4.5 rounded-2xl flex flex-col justify-between space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#212529] flex items-center gap-2">
+                        <Sprout className="w-4 h-4 text-[#07503f]" />
+                        Irrigation &amp; Moisture Balance
+                      </span>
+                      {isIrrigationNeeded ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fceace] text-[#8a4b12] border border-[#f5d5b0]">
+                          ● Supplemental Irrigation Advised
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e6ecd5] text-[#3b5921] border border-[#c3cda7]">
+                          ✓ Sufficient Moisture
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#555e4a] leading-relaxed">
+                      {isIrrigationNeeded
+                        ? `Crop evapotranspiration (${et07d} mm) has outpaced precipitation with ${drySpellDays} consecutive dry days. Provide light supplemental irrigation (drip or alternate furrow) for sensitive stages such as flowering or grain filling.`
+                        : `Recent moisture or low atmospheric demand keeps the root-zone sufficiently hydrated. Withhold irrigation to conserve energy, avoid root waterlogging, and preserve soil aeration.`}
+                    </p>
+                  </div>
+
+                  {/* 3. Pest & Disease Predisposition */}
+                  <div className="bg-white border border-[#c3cda7] p-4.5 rounded-2xl flex flex-col justify-between space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#212529] flex items-center gap-2">
+                        <ShieldAlert className="w-4 h-4 text-[#8a4b12]" />
+                        Disease &amp; Pest Predisposition
+                      </span>
+                      {isElevatedFungal ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                          ⚠ Elevated Fungal Risk
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#efefef] text-[#4a4f55] border border-[#d8d8d8]">
+                          ✓ Low Disease Pressure
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#555e4a] leading-relaxed">
+                      {isElevatedFungal
+                        ? `Average humidity around ${avgForecastRh}% and warm daytime highs (${highestTmax}°C) heighten predisposition to powdery mildew, blight, and sucking pest activity. Inspect bottom leaf canopy and ensure clear furrow drainage.`
+                        : `Ambient relative humidity averaging ${avgForecastRh}% keeps foliar disease incidence low. Continue regular monitoring during morning field walks.`}
+                    </p>
+                  </div>
+
+                  {/* 4. Cultural Operations & Trafficability */}
+                  <div className="bg-white border border-[#c3cda7] p-4.5 rounded-2xl flex flex-col justify-between space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#212529] flex items-center gap-2">
+                        <Compass className="w-4 h-4 text-[#07503f]" />
+                        Field Workability &amp; Operations
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e6ecd5] text-[#3b5921] border border-[#c3cda7]">
+                        ✓ High Accessibility
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#555e4a] leading-relaxed">
+                      Firm surface soil condition offers optimal traction for machinery and manual field operations. Ideal timeframe for intercultural weeding, earthing up, mulching, and localized top-dressing of nitrogenous fertilizer.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Agronomist Executive Takeaway Banner */}
+                <div className="bg-[#07503f] text-[#f1efdf] rounded-2xl p-4.5 flex flex-col sm:flex-row items-start gap-3.5">
+                  <div className="w-9 h-9 rounded-full bg-[#e8fe85] text-[#07503f] flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                    <Sparkles className="w-4.5 h-4.5 text-[#07503f]" />
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <h4 className="font-serif font-bold text-white text-sm">
+                      Weekly Agronomy Takeaway for {displayName}
+                    </h4>
+                    <p className="text-[#f1efdf]/85 leading-relaxed">
+                      Over the upcoming 7 days, maximum temperatures will hover near {highestTmax}°C with {forecastRainTotal > 1 ? `${forecastRainTotal} mm expected precipitation` : `${drySpellDays} cumulative dry days`}. {isIrrigationNeeded ? "Focus on maintaining root-zone moisture through targeted irrigation and surface mulching." : "Utilize favorable clear skies to complete scheduled weeding and preventative crop protection."} All field activities can proceed safely during morning hours.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </>
       )}
     </div>

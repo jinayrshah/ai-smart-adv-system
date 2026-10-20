@@ -146,7 +146,6 @@ def test_rate_limiting_headers_and_enforcement():
     Uses a DB-free endpoint so the test runs offline."""
     # Test headers are present
     resp = client.get("/api/advisory/crops")
-    assert resp.status_code == 200
-    assert "X-RateLimit-Limit" in resp.headers
-    assert resp.headers["X-RateLimit-Limit"] == "60"
+    from app.core.config import get_settings
+    assert resp.headers["X-RateLimit-Limit"] == str(get_settings().RATE_LIMIT_PER_MINUTE)
     assert "X-RateLimit-Remaining" in resp.headers

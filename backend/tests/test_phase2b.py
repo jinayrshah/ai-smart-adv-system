@@ -18,7 +18,7 @@ class TestIsTrackedScope:
         assert _is_tracked_scope("WHEAT", "Uttar Pradesh", "Agra") is True
 
     def test_untracked_crop(self):
-        assert _is_tracked_scope("Tomato", "Maharashtra", "Nashik") is False
+        assert _is_tracked_scope("Dragonfruit", "Maharashtra", "Nashik") is False
 
     def test_tracked_crop_untracked_state(self):
         assert _is_tracked_scope("Wheat", "Goa", "Panaji") is False

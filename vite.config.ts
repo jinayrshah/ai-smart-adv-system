@@ -21,7 +21,18 @@ export default defineConfig(({mode}) => {
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true' ? { overlay: false } : false,
       watch: {
-        ignored: ['**/users.json', '**/market_price_history.json', '**/disease_history.json', '**/products.json', '**/fertilizer_history.json'],
+        ignored: [
+          '**/backend/**',
+          '**/data/**',
+          '**/fixtures/**',
+          '**/.venv/**',
+          '**/*.json',
+          '**/users.json',
+          '**/market_price_history.json',
+          '**/disease_history.json',
+          '**/products.json',
+          '**/fertilizer_history.json',
+        ],
       },
     },
     preview: {

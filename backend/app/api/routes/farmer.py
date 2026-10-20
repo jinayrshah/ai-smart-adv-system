@@ -12,6 +12,7 @@ from app.schemas.farmer import (
     FarmUpdate,
     FarmResponse,
     FarmCropCreate,
+    FarmCropUpdate,
     FarmCropResponse,
     IrrigationEventCreate,
     IrrigationEventResponse,
@@ -160,6 +161,32 @@ def get_farm(
     return farm
 
 
+@router.patch("/farms/{farm_id}", response_model=FarmResponse)
+def update_farm(
+    farm_id: int,
+    updates: FarmUpdate,
+    repo: FarmerRepository = Depends(get_farmer_repo),
+    caller: UUID | None = Depends(require_self_or_dev),
+):
+    """
+    Update farm attributes (e.g., location, soil type, NPK, irrigation, field size).
+    """
+    farm = repo.get_farm(farm_id)
+    if not farm:
+        raise HTTPException(status_code=404, detail="Farm not found")
+    if caller is not None:
+        owner_id = getattr(farm, "farmer_id", None)
+        if owner_id and UUID(str(owner_id)) != caller:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: this farm does not belong to you.",
+            )
+    updated = repo.update_farm(farm_id, updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Farm not found")
+    return updated
+
+
 # ---------------------------------------------------------------------------
 # Crop Endpoints
 # ---------------------------------------------------------------------------
@@ -187,6 +214,32 @@ def add_farm_crop(
     if crop_data.farm_id != farm_id:
         crop_data.farm_id = farm_id
     return repo.add_crop(crop_data)
+
+
+@router.patch("/crops/{crop_id}", response_model=FarmCropResponse)
+def update_crop(
+    crop_id: int,
+    updates: FarmCropUpdate,
+    repo: FarmerRepository = Depends(get_farmer_repo),
+    caller: UUID | None = Depends(require_self_or_dev),
+):
+    """
+    Update crop attributes (e.g., crop name, variety, sowing date, season, status).
+    """
+    existing = repo.get_crop(crop_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Crop not found")
+    if caller is not None:
+        farm = repo.get_farm(existing.farm_id)
+        if farm and getattr(farm, "farmer_id", None) and UUID(str(farm.farmer_id)) != caller:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: you do not own the farm for this crop.",
+            )
+    updated = repo.update_crop(crop_id, updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Crop not found")
+    return updated
 
 
 @router.get("/farms/{farm_id}/crops", response_model=list[FarmCropResponse])

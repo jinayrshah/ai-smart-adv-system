@@ -27,15 +27,17 @@ from app.schemas.advisory import AdvisoryAskResponse, AdvisoryComputedContext, A
 logger = logging.getLogger(__name__)
 
 SYSTEM_INSTRUCTION = """You are an expert AI agronomic advisor assisting Indian farmers.
-Your goal is to provide clear, practical, scientifically sound agricultural advice.
+Your goal is to provide clear, practical, scientifically sound, and complete agricultural advice.
 GROUNDING & CONTEXT:
 1. Use the provided farm CONTEXT (active physiological crop stage, real-time agromet weather, soil conditions, root-zone water balance, and retrieved ICAR/university passages) as your primary reference.
-2. If the retrieved passages only partially cover the question or if specific details are not in the passages, use your extensive knowledge of Indian agronomy, ICAR Good Agricultural Practices, and State Agricultural Universities (SAU) guidelines to answer thoroughly.
-3. Ground every weather or irrigation recommendation in the WEATHER and IRRIGATION lines provided.
-4. For pest, weed, and disease queries: outline clear identification signs, preventive cultural practices, bio-control options, and general chemical modes of action. Always remind the farmer to verify exact commercial formulations and dose rates with their local Krishi Vigyan Kendra (KVK) or State Agriculture Department officer before spraying.
-5. If assumptions are listed in the CONTEXT, note briefly that advice is tailored to the estimated crop stage.
-6. When referencing retrieved passages, cite them naturally as "Source: [Title, p.X]". If synthesizing general agronomic practice, cite "Source: [ICAR Good Agricultural Practices & Agrometeorological Advisory]".
-7. Format with clean bullet points or short paragraphs. Write in direct, helpful English (it will be translated to Indic languages if requested)."""
+2. If retrieved passages are provided and relevant, cite them naturally (e.g. "Source: [Title, p.X]").
+3. If the retrieved passages are empty or do not cover the user's specific query, directly switch to your extensive knowledge of Indian agronomy, crop management, and ICAR Good Agricultural Practices to give a thorough, actionable answer. Do not start by complaining that the retrieved passages do not contain the answer; directly provide the expert guidance. When answering directly from general LLM knowledge without retrieved reference documents, do NOT cite or mention any document titles, sources, or page numbers.
+4. Ground every weather or irrigation recommendation in the WEATHER and IRRIGATION lines provided.
+5. For pest, weed, and disease queries: outline clear identification signs, preventive cultural practices, bio-control options, and general chemical modes of action. Always remind the farmer to verify exact commercial formulations and dose rates with their local Krishi Vigyan Kendra (KVK) or State Agriculture Department officer before spraying.
+6. If assumptions are listed in the CONTEXT, note briefly that advice is tailored to the estimated crop stage.
+7. If the farmer's question is general (e.g. vermicomposting, soil fertility, drip irrigation setups, agricultural implements, or national government schemes), answer the question directly and thoroughly without forcing unrelated crop stage details into the response.
+8. COMPLETENESS & THOROUGHNESS: Provide full, comprehensive, and exhaustive answers. Never leave a sentence, recommendation, or thought unfinished. Always finish every paragraph, bullet point, step, and section cleanly and completely with a helpful closing recommendation.
+9. Format with clean bullet points or short paragraphs. Write in direct, helpful English (it will be translated to Indic languages if requested)."""
 
 
 def _current_weather(ctx: AdvisoryContext) -> dict[str, Any]:
@@ -128,7 +130,7 @@ FARMER'S QUESTION: {user_query}
 
 def _citation(ctx: AdvisoryContext) -> str:
     top = ctx.retrieved_chunks[0] if ctx.retrieved_chunks else None
-    if not top:
+    if not top or top.similarity < 0.50:
         return ""
     page = f", p.{top.page_number}" if top.page_number else ""
     return f"Source: [{top.source_title or 'Untitled source'}{page}]"
@@ -150,17 +152,60 @@ def _generate_offline_synthesis(ctx: AdvisoryContext, user_query: str) -> str:
         if cite:
             text += f" {cite}"
     elif any(w in q for w in ["pest", "disease", "spray", "treatment", "fungicide", "rot", "blight", "rust", "worm", "insect"]):
-        excerpt = top.chunk_text[:280].rstrip() + "…" if top else ""
-        text = f"For {ctx.crop} at the {stage} stage, the relevant guidance says: {excerpt} {cite}".strip()
-        text += " Scout the field regularly and confirm product and dose with your KVK before spraying."
-    else:
-        excerpt = top.chunk_text[:240].rstrip() + "…" if top else ""
-        text = f"For your {ctx.crop} in {ctx.district} ({stage} stage): {excerpt} {cite}".strip()
+        excerpt = top.chunk_text.strip() if top else ""
+        if excerpt:
+            text = f"For {ctx.crop} at the {stage} stage, the verified agricultural guidance states:\n\n{excerpt}\n\n{cite}".strip()
+            text += "\n\nAlways scout the field regularly and confirm the exact commercial product and dose with your local Krishi Vigyan Kendra (KVK) or Agriculture Department extension officer before spraying."
+        else:
+            text = (
+                f"For {ctx.crop} at the {stage} stage, pest and disease management is critical.\n\n"
+                "**General Recommendations:**\n"
+                "- **Scouting:** Walk through the field regularly and check the undersides of leaves, stems, and growing points.\n"
+                "- **Cultural Practices:** Ensure proper spacing, remove infected plant debris, and practice crop rotation.\n"
+                "- **Biological Control:** Consider neem-based formulations (Azadirachtin), Trichoderma viride for soil-borne diseases, and Pseudomonas fluorescens.\n"
+                "- **Chemical Control:** Consult your local KVK for recommended pesticides and their exact dosage.\n\n"
+                "⚠️ Always confirm the exact commercial product and dose with your local Krishi Vigyan Kendra (KVK) before spraying."
+            )
+    elif top and top.chunk_text.strip():
+        excerpt = top.chunk_text.strip()
+        text = f"For your {ctx.crop} in {ctx.district} ({stage} stage):\n\n{excerpt}\n\n{cite}".strip()
         weather = _weather_line(ctx)
         if not weather.startswith("no current"):
-            text += f" Weather: {weather}."
+            text += f"\n\nCurrent local weather: {weather}."
+    else:
+        # No relevant retrieved chunks — provide a helpful summary from computed context
+        text = f"**Advisory for {ctx.crop} in {ctx.district}:**\n\n"
+        text += f"• **Growth Stage:** Your crop is currently in the **{stage}** stage"
+        if ctx.stage.days_since_sowing:
+            text += f" (day {ctx.stage.days_since_sowing} since sowing)"
+        text += ".\n"
+
+        text += f"• **Irrigation:** {ctx.irrigation.recommendation}\n"
+        if ctx.irrigation.action and ctx.irrigation.action != "unknown":
+            text += f"• **Action:** {ctx.irrigation.action.replace('_', ' ').title()}\n"
+
+        weather = _weather_line(ctx)
+        if not weather.startswith("no current"):
+            text += f"• **Weather:** {weather}.\n"
+
+        if ctx.climate:
+            text += f"• **Climate Suitability:** {ctx.climate.verdict}"
+            if ctx.climate.notes:
+                text += f" — {ctx.climate.notes}"
+            text += "\n"
+
+        if ctx.soil_flags:
+            flags_str = "; ".join(f.notes for f in ctx.soil_flags if f.notes)
+            if flags_str:
+                text += f"• **Soil Notes:** {flags_str}\n"
+
+        text += (
+            f"\nFor more specific guidance on your question (\"{user_query}\"), "
+            "please consult your local Krishi Vigyan Kendra (KVK) or State Agricultural University extension service."
+        )
+
     if ctx.assumptions:
-        text += " Note: this advice is approximate because " + "; ".join(a.rstrip(".").lower() for a in ctx.assumptions) + "."
+        text += "\n\nNote: This advice is tailored to the estimated crop stage (" + "; ".join(a.rstrip(".").lower() for a in ctx.assumptions) + ")."
     return text + soil_note
 
 
@@ -232,7 +277,7 @@ def generate_advisory_response(
     snapshot = ctx.to_snapshot()
     prompt = build_system_prompt(ctx, user_query)
     response_text, model_used = ("", None) if use_mock else generate_text(
-        prompt, system_instruction=SYSTEM_INSTRUCTION, temperature=0.2, max_output_tokens=700
+        prompt, system_instruction=SYSTEM_INSTRUCTION, temperature=0.2, max_output_tokens=6000, timeout=45.0
     )
 
     ungrounded: list[str] = []
@@ -262,29 +307,46 @@ def generate_advisory_response(
 
     sources: list[AdvisorySource] = []
     seen: set[tuple[Any, Any]] = set()
-    for c in ctx.retrieved_chunks:
-        if c.similarity < 0.50:
-            continue
-        key = (c.source_title, c.page_number)
-        if key in seen:
-            continue
-        seen.add(key)
-        sources.append(
-            AdvisorySource(
-                title=c.source_title or "Untitled source",
-                page=c.page_number,
-                url=getattr(c, "source_url", None),
-            )
-        )
 
-    if not sources:
-        sources.append(
-            AdvisorySource(
-                title=f"ICAR Good Agricultural Practices & Agrometeorological Advisory for {ctx.crop}",
-                page=1,
-                url="https://icar.org.in",
-            )
-        )
+    # Check if the LLM explicitly declared that the passages did not contain the answer
+    declined_passages = any(
+        phrase in response_text.lower()
+        for phrase in [
+            "none of the provided passages contain",
+            "retrieved passages do not contain",
+            "not present in the provided passages",
+            "passages do not mention",
+            "passages do not contain",
+            "not specifically for",
+            "but not for",
+            "based on general agricultural knowledge",
+            "based on general icar good agricultural practices",
+            "based on general knowledge",
+            "general agronomy knowledge",
+        ]
+    )
+
+    if not declined_passages:
+        query_words = {w for w in user_query.lower().split() if len(w) > 3}
+        for c in ctx.retrieved_chunks:
+            chunk_lower = (c.chunk_text or "").lower()
+            source_title = c.source_title or ""
+            has_overlap = any(qw in chunk_lower for qw in query_words)
+            cited_in_text = (source_title.lower() in response_text.lower()) if source_title else False
+
+            # Include source only if strongly similar and keyword relevant, or explicitly cited by the model
+            if (c.similarity >= 0.62 and has_overlap) or cited_in_text:
+                key = (source_title, c.page_number)
+                if key not in seen:
+                    seen.add(key)
+                    sources.append(
+                        AdvisorySource(
+                            title=source_title or "Agricultural Package of Practices",
+                            page=c.page_number,
+                            url=getattr(c, "source_url", None),
+                        )
+                    )
+    # When answered directly by LLM without referencing retrieved passages, sources remains empty.
 
     return AdvisoryAskResponse(
         id=query_id,

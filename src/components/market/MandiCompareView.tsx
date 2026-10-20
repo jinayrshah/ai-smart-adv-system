@@ -25,7 +25,7 @@ interface MandiCompareViewProps {
   externalSlots?: CompareSlot[];
 }
 
-const SERIES_COLORS = ["#e8fe85", "#60a5fa", "#f97316"];
+const SERIES_COLORS = ["#07503f", "#2563eb", "#d97706"];
 const SERIES_LABELS = ["Market A", "Market B", "Market C"];
 const MAX_SLOTS = 3;
 
@@ -50,12 +50,12 @@ function mergePoints(slots: SlotData[]): Record<string, any>[] {
 }
 
 const pctBadge = (val: number | null | undefined) => {
-  if (val == null) return <span className="text-stone-500 text-xs">—</span>;
+  if (val == null) return <span className="text-[#555e4a] text-xs">—</span>;
   const pos = val >= 0;
   return (
     <span
       className={`inline-flex items-center gap-0.5 text-xs font-bold ${
-        pos ? "text-emerald-400" : "text-rose-400"
+        pos ? "text-[#07503f]" : "text-rose-600"
       }`}
     >
       {pos ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -153,24 +153,24 @@ export const MandiCompareView: React.FC<MandiCompareViewProps> = ({
   const hasData = slots.some((s) => s.data && s.data.points.length > 0);
 
   return (
-    <div className="bg-[#111827] border border-stone-800 rounded-3xl p-6 space-y-6">
+    <div className="bg-white border border-[#c3cda7] rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-800 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#c3cda7] pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#07503f] text-[#e8fe85] flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-[#07503f] text-[#e8fe85] flex items-center justify-center shrink-0 shadow-sm">
             <GitCompare className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-serif font-bold text-white text-lg leading-tight">
+            <h3 className="font-serif font-bold text-[#07503f] text-xl sm:text-2xl leading-tight">
               Multi-Mandi Price Comparison
             </h3>
-            <p className="text-xs text-stone-400 font-mono">
-              Compare up to 3 markets for <span className="text-[#e8fe85]">{commodity || "—"}</span> · {rangeDays}-day window
+            <p className="text-xs text-[#555e4a] font-mono mt-0.5">
+              Compare up to 3 markets for <span className="font-bold text-[#07503f]">{commodity || "—"}</span> · {rangeDays}-day window
             </p>
           </div>
         </div>
         {slots.length > 0 && (
-          <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider">
+          <span className="text-[10px] font-mono text-[#555e4a] bg-[#f1efdf] px-3 py-1 rounded-full border border-[#c3cda7] uppercase tracking-wider font-semibold">
             {slots.length}/{MAX_SLOTS} markets added
           </span>
         )}
@@ -178,7 +178,7 @@ export const MandiCompareView: React.FC<MandiCompareViewProps> = ({
 
       {/* No commodity selected guard */}
       {!commodity && (
-        <div className="text-center py-8 text-stone-500 text-sm">
+        <div className="text-center py-8 text-[#555e4a] text-sm font-medium">
           Select a crop above to enable market comparison.
         </div>
       )}
@@ -187,23 +187,25 @@ export const MandiCompareView: React.FC<MandiCompareViewProps> = ({
         <>
           {/* Add Market Form */}
           {slots.length < MAX_SLOTS && (
-            <div className="flex flex-wrap items-end gap-3 p-4 bg-stone-900/60 border border-stone-800 rounded-2xl">
+            <div className="flex flex-wrap items-end gap-3 p-4 bg-[#f1efdf] border border-[#c3cda7] rounded-2xl">
               <div>
-                <label className="block text-[10px] font-mono font-semibold text-stone-400 uppercase tracking-widest mb-1.5">
+                <label className="block text-[10px] font-mono font-semibold text-[#555e4a] uppercase tracking-widest mb-1.5">
                   State
                 </label>
                 <select
                   value={addState}
                   onChange={(e) => { setAddState(e.target.value); setAddMarket(""); }}
-                  className="bg-stone-900 border border-stone-700 rounded-full px-4 py-2 text-xs font-mono text-stone-200 focus:outline-none focus:border-[#e8fe85]"
+                  className="bg-white border border-[#c3cda7] rounded-full px-4 py-2 text-xs font-mono text-[#212529] focus:outline-none focus:border-[#07503f] shadow-xs"
                 >
                   <option value="">— Select state —</option>
                   {[
-                    "Andhra Pradesh","Bihar","Chhattisgarh","Gujarat","Haryana",
-                    "Karnataka","Madhya Pradesh","Maharashtra","Odisha","Punjab",
-                    "Rajasthan","Tamil Nadu","Telangana","Uttar Pradesh","West Bengal",
+                    "Andhra Pradesh", "Assam", "Bihar", "Chhattisgarh", "Gujarat", "Haryana",
+                    "Karnataka", "Keralam", "Madhya Pradesh", "Maharashtra", "Odisha", "Punjab",
+                    "Rajasthan", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
                   ].map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                    <option key={s} value={s}>
+                      {s === "Keralam" ? "Kerala (Keralam)" : s}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -218,7 +220,7 @@ export const MandiCompareView: React.FC<MandiCompareViewProps> = ({
               <button
                 onClick={() => addSlot(addState, addMarket)}
                 disabled={!addState || !addMarket}
-                className="flex items-center gap-1.5 px-5 py-2 bg-[#07503f] hover:bg-[#0c6b54] disabled:opacity-40 disabled:cursor-not-allowed text-[#e8fe85] border border-[#e8fe85]/30 rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-all shadow-md"
+                className="flex items-center gap-1.5 px-5 py-2 bg-[#07503f] hover:bg-[#064234] disabled:opacity-40 disabled:cursor-not-allowed text-[#e8fe85] rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-all shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Market
@@ -232,23 +234,23 @@ export const MandiCompareView: React.FC<MandiCompareViewProps> = ({
               {slots.map((s, idx) => (
                 <div
                   key={`${s.slot.state}-${s.slot.market}`}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-mono"
-                  style={{ borderColor: SERIES_COLORS[idx] + "60", background: SERIES_COLORS[idx] + "12" }}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-mono bg-white shadow-xs"
+                  style={{ borderColor: SERIES_COLORS[idx] + "60" }}
                 >
                   <span
-                    className="w-2 h-2 rounded-full shrink-0"
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
                     style={{ background: SERIES_COLORS[idx] }}
                   />
-                  <span className="text-stone-200">
+                  <span className="text-[#212529] font-medium">
                     {s.slot.market}, {s.slot.state}
                   </span>
-                  {s.loading && <Loader2 className="w-3 h-3 animate-spin text-stone-400" />}
-                  {s.error && <span className="text-rose-400">Error</span>}
+                  {s.loading && <Loader2 className="w-3 h-3 animate-spin text-[#555e4a]" />}
+                  {s.error && <span className="text-rose-600 font-semibold">Error</span>}
                   <button
                     onClick={() => removeSlot(idx)}
-                    className="text-stone-500 hover:text-stone-200 transition ml-1"
+                    className="text-[#555e4a] hover:text-[#212529] transition ml-1"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ))}
@@ -259,42 +261,46 @@ export const MandiCompareView: React.FC<MandiCompareViewProps> = ({
           {slots.length === 0 && (
             <div className="text-center py-10 space-y-2">
               <div className="text-3xl">📊</div>
-              <p className="text-stone-400 text-sm">
+              <p className="text-[#212529] font-serif text-lg font-bold">
                 Add two or more markets above to compare price trends side by side.
               </p>
-              <p className="text-stone-600 text-xs font-mono">
-                Or click <b className="text-stone-500">Compare</b> on any card in the Mandi Explorer below.
+              <p className="text-[#555e4a] text-xs font-mono">
+                Or click <b className="text-[#07503f]">Compare</b> on any card in the Mandi Explorer below.
               </p>
             </div>
           )}
 
           {/* Overlay Chart */}
           {hasData && (
-            <div className="space-y-4">
-              <div className="h-64 w-full">
+            <div className="space-y-6">
+              <div className="h-64 sm:h-72 w-full pt-2">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={mergedPoints} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                  <LineChart data={mergedPoints} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e6ecd5" vertical={false} />
                     <XAxis
                       dataKey="date"
-                      tick={{ fill: "#6b7280", fontSize: 10, fontFamily: "monospace" }}
+                      tick={{ fill: "#555e4a", fontSize: 10, fontFamily: "monospace" }}
                       tickFormatter={(v) => v.slice(5)}
+                      stroke="#c3cda7"
                       interval="preserveStartEnd"
                     />
                     <YAxis
-                      tick={{ fill: "#6b7280", fontSize: 10, fontFamily: "monospace" }}
+                      tick={{ fill: "#555e4a", fontSize: 10, fontFamily: "monospace" }}
                       tickFormatter={(v) => `₹${(v / 1000).toFixed(1)}k`}
-                      width={52}
+                      stroke="#c3cda7"
+                      width={56}
                     />
                     <Tooltip
                       contentStyle={{
-                        background: "#111827",
-                        border: "1px solid #374151",
-                        borderRadius: "12px",
+                        background: "#ffffff",
+                        border: "1px solid #c3cda7",
+                        borderRadius: "16px",
+                        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05)",
                         fontSize: 11,
                         fontFamily: "monospace",
+                        color: "#212529",
                       }}
-                      labelStyle={{ color: "#9ca3af", marginBottom: 4 }}
+                      labelStyle={{ color: "#07503f", fontWeight: "bold", marginBottom: 4 }}
                       formatter={(value: any, name: string) => {
                         const idx = parseInt(name.replace("modal_", ""));
                         const slot = slots[idx];
@@ -308,7 +314,7 @@ export const MandiCompareView: React.FC<MandiCompareViewProps> = ({
                         const slot = slots[idx];
                         return slot ? `${slot.slot.market}, ${slot.slot.state}` : value;
                       }}
-                      wrapperStyle={{ fontSize: 11, fontFamily: "monospace", color: "#9ca3af" }}
+                      wrapperStyle={{ fontSize: 11, fontFamily: "monospace", color: "#555e4a" }}
                     />
                     {slots.map((s, idx) =>
                       s.data ? (
@@ -317,10 +323,10 @@ export const MandiCompareView: React.FC<MandiCompareViewProps> = ({
                           type="monotone"
                           dataKey={`modal_${idx}`}
                           stroke={SERIES_COLORS[idx]}
-                          strokeWidth={2}
-                          dot={false}
-                          activeDot={{ r: 4, fill: SERIES_COLORS[idx] }}
-                          connectNulls={false}
+                          strokeWidth={2.5}
+                          dot={{ r: 3, fill: SERIES_COLORS[idx] }}
+                          activeDot={{ r: 5, fill: SERIES_COLORS[idx], stroke: "#ffffff", strokeWidth: 2 }}
+                          connectNulls={true}
                         />
                       ) : null
                     )}
@@ -329,18 +335,18 @@ export const MandiCompareView: React.FC<MandiCompareViewProps> = ({
               </div>
 
               {/* Summary Comparison Table */}
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto border border-[#c3cda7] rounded-2xl">
                 <table className="w-full text-xs font-mono border-collapse">
                   <thead>
-                    <tr className="border-b border-stone-800">
-                      <th className="text-left py-2 px-3 text-stone-500 font-semibold uppercase tracking-wider">Market</th>
-                      <th className="text-right py-2 px-3 text-stone-500 font-semibold uppercase tracking-wider">Latest Price</th>
-                      <th className="text-right py-2 px-3 text-stone-500 font-semibold uppercase tracking-wider">7-Day Δ</th>
-                      <th className="text-right py-2 px-3 text-stone-500 font-semibold uppercase tracking-wider">30-Day Δ</th>
-                      <th className="text-right py-2 px-3 text-stone-500 font-semibold uppercase tracking-wider">Reports</th>
+                    <tr className="bg-[#f1efdf] border-b border-[#c3cda7]">
+                      <th className="text-left py-3 px-4 text-[#555e4a] font-semibold uppercase tracking-wider">Market</th>
+                      <th className="text-right py-3 px-4 text-[#555e4a] font-semibold uppercase tracking-wider">Latest Price</th>
+                      <th className="text-right py-3 px-4 text-[#555e4a] font-semibold uppercase tracking-wider">7-Day Δ</th>
+                      <th className="text-right py-3 px-4 text-[#555e4a] font-semibold uppercase tracking-wider">30-Day Δ</th>
+                      <th className="text-right py-3 px-4 text-[#555e4a] font-semibold uppercase tracking-wider">Reports</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-[#e6ecd5]">
                     {slots.map((s, idx) => {
                       const d = s.data;
                       const latestModal = d?.latest_modal ?? null;
@@ -354,50 +360,50 @@ export const MandiCompareView: React.FC<MandiCompareViewProps> = ({
                       return (
                         <tr
                           key={idx}
-                          className={`border-b border-stone-900 ${isBest ? "bg-[#07503f]/10" : ""}`}
+                          className={`hover:bg-[#f9f8f3] transition-colors ${isBest ? "bg-[#e6ecd5]/30" : "bg-white"}`}
                         >
-                          <td className="py-3 px-3">
+                          <td className="py-3 px-4">
                             <div className="flex items-center gap-2">
                               <span
                                 className="w-2.5 h-2.5 rounded-full shrink-0"
                                 style={{ background: SERIES_COLORS[idx] }}
                               />
                               <div>
-                                <span className="text-stone-100 font-semibold">{s.slot.market}</span>
-                                <span className="text-stone-500 block text-[10px]">{s.slot.state}</span>
+                                <span className="text-[#212529] font-bold">{s.slot.market}</span>
+                                <span className="text-[#555e4a] block text-[10px]">{s.slot.state}</span>
                               </div>
                               {isBest && (
-                                <span className="ml-1 text-[10px] bg-[#07503f] text-[#e8fe85] px-2 py-0.5 rounded-full border border-[#e8fe85]/30 font-bold">
+                                <span className="ml-1 text-[10px] bg-[#07503f] text-[#e8fe85] px-2.5 py-0.5 rounded-full font-bold">
                                   Best Price
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td className="py-3 px-3 text-right">
+                          <td className="py-3 px-4 text-right">
                             {s.loading ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-stone-500 ml-auto" />
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#555e4a] ml-auto" />
                             ) : s.error ? (
-                              <span className="text-rose-400 text-[10px]">Error</span>
+                              <span className="text-rose-600 text-[10px] font-bold">Error</span>
                             ) : latestModal != null ? (
                               <div>
-                                <span className="text-white font-bold">
+                                <span className="text-[#212529] font-bold">
                                   ₹{latestModal.toLocaleString("en-IN")}/qtl
                                 </span>
-                                <span className="text-stone-500 block text-[10px]">
+                                <span className="text-[#555e4a] block text-[10px]">
                                   ₹{(latestModal / 100).toFixed(1)}/kg
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-stone-600">—</span>
+                              <span className="text-[#555e4a]">—</span>
                             )}
                           </td>
-                          <td className="py-3 px-3 text-right">
+                          <td className="py-3 px-4 text-right">
                             {pctBadge(d?.thin_data ? null : d?.change_7d_pct)}
                           </td>
-                          <td className="py-3 px-3 text-right">
+                          <td className="py-3 px-4 text-right">
                             {pctBadge(d?.thin_data ? null : d?.change_30d_pct)}
                           </td>
-                          <td className="py-3 px-3 text-right text-stone-400">
+                          <td className="py-3 px-4 text-right text-[#555e4a] font-medium">
                             {d?.reports_in_window ?? "—"}
                           </td>
                         </tr>

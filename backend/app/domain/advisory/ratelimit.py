@@ -63,4 +63,4 @@ class SlidingWindowRateLimiter:
 
 
 # Default singleton instance: 20 advisory queries per minute per farmer
-advisory_rate_limiter = SlidingWindowRateLimiter(max_requests=20, window_seconds=60)
+advisory_rate_limiter = SlidingWindowRateLimiter(max_requests=60, window_seconds=60)

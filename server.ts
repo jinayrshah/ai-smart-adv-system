@@ -326,7 +326,7 @@ export async function createApp() {
   // Rate limiting for public API endpoints (Architecture §13)
   const publicApiLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
-    max: 100, // 100 requests per minute per IP
+    max: 300, // 300 requests per minute per IP
     message: { error: 'Too many API requests from this IP, please try again shortly.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -1077,6 +1077,7 @@ export async function createApp() {
     '/api/market/trend',
     '/api/market/prices/latest',
     '/api/market/search',
+    '/api/market/list-markets',
     '/api/market/margin',
     '/api/market/storage-estimate',
     '/api/health/data',
@@ -1109,13 +1110,84 @@ export async function createApp() {
       fallback: true
     };
 
-    if (!apiKey || apiKey === 'YOUR_OPENWEATHERMAP_API_KEY') {
-      console.warn('[API] Weather API key not configured');
-      return res.json(fallbackData);
-    }
-
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    // If OpenWeatherMap key is not provided, seamlessly fetch from Open-Meteo (free, keyless)
+    if (!apiKey || apiKey === 'YOUR_OPENWEATHERMAP_API_KEY') {
+      try {
+        const resolvedLat = lat || 12.9716;
+        const resolvedLon = lon || 77.5946;
+        const omUrl = `https://api.open-meteo.com/v1/forecast?latitude=${resolvedLat}&longitude=${resolvedLon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+        const omRes = await fetch(omUrl, { signal: controller.signal });
+        if (omRes.ok) {
+          clearTimeout(timeoutId);
+          const omData = await omRes.json();
+          const current = omData.current || {};
+          const daily = omData.daily || {};
+          const temp = Math.round(current.temperature_2m ?? 25);
+          const humidity = Math.round(current.relative_humidity_2m ?? 60);
+          const windSpeed = Math.round(current.wind_speed_10m ?? 5);
+          const wCode = current.weather_code ?? 0;
+
+          let condition = 'Clear';
+          let description = 'Clear sky';
+          let icon = '01d';
+          if (wCode >= 1 && wCode <= 3) {
+            condition = 'Clouds'; description = 'Partly cloudy'; icon = '02d';
+          } else if (wCode >= 45 && wCode <= 48) {
+            condition = 'Fog'; description = 'Foggy'; icon = '50d';
+          } else if (wCode >= 51 && wCode <= 67) {
+            condition = 'Rain'; description = 'Rain showers'; icon = '10d';
+          } else if (wCode >= 71 && wCode <= 82) {
+            condition = 'Rain'; description = 'Precipitation'; icon = '09d';
+          } else if (wCode >= 95) {
+            condition = 'Thunderstorm'; description = 'Thunderstorms'; icon = '11d';
+          }
+
+          const insights: string[] = [];
+          if (humidity > 70 && (condition === 'Rain' || condition === 'Thunderstorm')) {
+            insights.push("High humidity & rainfall detected. Suitable for water-intensive crops like Rice or Sugarcane.");
+            insights.push("High fungal risk due to moisture. Avoid Tomato or Potato exposure if possible.");
+          } else if (temp > 30 && humidity < 40) {
+            insights.push("Low humidity & high temperature. Suitable for drought-resistant crops like Millet or Cotton.");
+            insights.push("Ensure adequate irrigation to prevent soil moisture depletion.");
+          } else if (temp < 15) {
+            insights.push("Cooler temperatures detected. Suitable for Rabi crops like Wheat or Mustard.");
+          } else {
+            insights.push("Moderate weather conditions. Good for a variety of seasonal vegetables.");
+          }
+          if (windSpeed > 20) {
+            insights.push("Strong winds detected. Secure young saplings and avoid spraying pesticides.");
+          }
+
+          const forecastDays = (daily.time || []).slice(0, 5).map((d: string, idx: number) => ({
+            date: d,
+            temp: Math.round(daily.temperature_2m_max?.[idx] ?? temp),
+            condition,
+            icon
+          }));
+
+          return res.json({
+            status: 'ok',
+            city: city || 'Local Area',
+            temp,
+            humidity,
+            windSpeed,
+            condition,
+            description,
+            icon,
+            uvIndex: "Moderate",
+            insights,
+            forecast: forecastDays
+          });
+        }
+      } catch (e) {
+        // Fall back gracefully
+      }
+      clearTimeout(timeoutId);
+      return res.json(fallbackData);
+    }
 
     try {
       let currentUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;

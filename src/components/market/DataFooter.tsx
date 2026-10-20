@@ -38,15 +38,15 @@ export const DataFooter: React.FC<DataFooterProps> = ({
   };
 
   return (
-    <div className="mt-8 pt-5 border-t border-stone-800 text-xs text-stone-400 font-mono space-y-4">
+    <div className="mt-8 pt-5 border-t border-[#c3cda7] text-xs text-[#555e4a] font-mono space-y-4">
       {stale && (
-        <div className="flex items-center gap-2.5 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-amber-300">
-          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+        <div className="flex items-center gap-2.5 p-3.5 bg-[#fceace] border border-[#f5cba7] rounded-2xl text-[#93521e]">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-[#93521e]" />
           <span>
             {latestReportDate ? (
               <>
                 Latest report from {marketName || "this market"}:{" "}
-                <strong className="text-amber-200">
+                <strong className="font-bold text-[#6d370e]">
                   {new Date(latestReportDate.slice(0, 10) + "T00:00:00").toLocaleDateString("en-IN", {
                     day: "numeric",
                     month: "short",
@@ -62,20 +62,20 @@ export const DataFooter: React.FC<DataFooterProps> = ({
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-stone-400">
-          <Clock className="w-3.5 h-3.5 text-[#e8fe85]" />
+        <div className="flex items-center gap-2 text-[#555e4a]">
+          <Clock className="w-3.5 h-3.5 text-[#07503f]" />
           <span>Last fetched: {formattedAsOf} IST</span>
         </div>
 
         {sources && Object.keys(sources).length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1.5 text-stone-400">
-              <Database className="w-3.5 h-3.5 text-[#e8fe85]" /> Sources:
+            <span className="flex items-center gap-1.5 text-[#555e4a]">
+              <Database className="w-3.5 h-3.5 text-[#07503f]" /> Sources:
             </span>
             {Object.entries(sources).map(([src, count]) => (
               <span
                 key={src}
-                className="px-2.5 py-0.5 bg-stone-900 border border-stone-800 text-stone-300 rounded-full font-mono text-[10px]"
+                className="px-2.5 py-0.5 bg-[#f1efdf] border border-[#c3cda7] text-[#212529] rounded-full font-mono text-[10px]"
               >
                 {sourceLabels[src] || src}: {count}
               </span>
@@ -84,7 +84,7 @@ export const DataFooter: React.FC<DataFooterProps> = ({
         )}
       </div>
 
-      <p className="text-[10px] leading-relaxed text-stone-500 font-mono">
+      <p className="text-[10px] leading-relaxed text-[#555e4a] font-mono">
         {sourceAttribution ||
           "Source: Agmarknet, Directorate of Marketing & Inspection, Government of India (agmarknet.gov.in), via data.gov.in. Prices are reported by APMC mandis and are indicative only. Non-predictive."}
       </p>

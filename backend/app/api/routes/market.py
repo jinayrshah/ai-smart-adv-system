@@ -12,6 +12,8 @@ from app.schemas.market import (
     LatestPriceRecord,
     LatestPricesResponse,
     MarketInsightResponse,
+    MarketListItem,
+    MarketListResponse,
     MarketSearchResponse,
     MarketSearchResult,
     MarketTrendResponse,
@@ -278,3 +280,99 @@ def get_market_insight_route(
         reports_in_window=trend.reports_in_window,
     )
 
+
+@router.get("/list-markets", response_model=MarketListResponse)
+def list_markets_for_state(
+    state: str = Query(..., description="State name (e.g. Madhya Pradesh)"),
+    commodity: str = Query("", description="Optional crop filter (e.g. Wheat)"),
+    repo: MandiRepository = Depends(get_repo),
+):
+    """
+    Return all distinct APMC/mandi markets present in the database for a given state.
+    Used by the MandiAutocomplete component to populate the dynamic dropdown.
+    Optionally filtered by commodity.
+    """
+    try:
+        STATE_ALIASES = {
+            "kerala": "Keralam",
+            "keralam": "Keralam",
+            "kerala (keralam)": "Keralam",
+            "chhattisgarh": "Chattisgarh",
+            "chatishgarh": "Chattisgarh",
+            "chattisgarh": "Chattisgarh",
+            "orissa": "Odisha",
+            "odisha": "Odisha",
+        }
+        clean_state = state.strip()
+        lookup_state = STATE_ALIASES.get(clean_state.lower(), clean_state)
+
+        query = (
+            repo.client.table("mandi_prices")
+            .select("market, district")
+            .ilike("state", lookup_state)
+            .eq("quality_flag", "ok")
+        )
+        if commodity and commodity.strip():
+            query = query.ilike("commodity", f"%{commodity.strip()}%")
+
+        res = query.limit(5000).execute()
+        rows = res.data or []
+
+        # If commodity filter returned 0 rows, fallback to state-wide mandis so user isn't stuck with empty dropdown
+        if not rows and commodity and commodity.strip():
+            fallback_query = (
+                repo.client.table("mandi_prices")
+                .select("market, district")
+                .ilike("state", lookup_state)
+                .eq("quality_flag", "ok")
+            )
+            fallback_res = fallback_query.limit(5000).execute()
+            rows = fallback_res.data or []
+
+        # De-duplicate by canonical market key and count distinct records
+        from app.data.mandi.repository import market_key
+        from app.data.mandi.canonical import clean_market_name
+        from collections import defaultdict
+
+        seen: dict[str, dict] = {}
+        counts: dict[str, int] = defaultdict(int)
+        for r in rows:
+            raw_name = r.get("market", "") or ""
+            if not raw_name:
+                continue
+            key = market_key(raw_name)
+            if key not in seen:
+                seen[key] = {
+                    "market": clean_market_name(raw_name),
+                    "district": r.get("district") or "",
+                }
+            counts[key] += 1
+
+        items = [
+            MarketListItem(
+                market=v["market"],
+                district=v["district"],
+                records=counts[k],
+            )
+            for k, v in sorted(seen.items(), key=lambda x: x[0])
+        ]
+
+        return MarketListResponse(
+            status="ok",
+            state=state,
+            commodity=commodity,
+            markets=items,
+            total=len(items),
+            as_of=now_utc_iso(),
+        )
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning(f"list-markets failed: {exc}")
+        return MarketListResponse(
+            status="error",
+            state=state,
+            commodity=commodity,
+            markets=[],
+            total=0,
+            as_of=now_utc_iso(),
+        )

@@ -39,7 +39,8 @@ Guidelines:
    - Required documents (Aadhaar card, 7/12 or land record, bank passbook).
 3. Base your answer primarily on the verified scheme catalog and retrieved passages provided. If answering about standard schemes like PM-KUSUM or PMKSY that complement the catalog, cite standard Ministry of Agriculture & Farmers Welfare (MoA&FW) guidelines.
 4. Format with clean, structured bullet points or short paragraphs. Write in direct, helpful English (it will be translated to Indic languages if requested).
-5. Always reference the official portal URL or recommend visiting the nearest CSC or Krishi Vigyan Kendra (KVK)."""
+5. Always reference the official portal URL or recommend visiting the nearest CSC or Krishi Vigyan Kendra (KVK).
+6. COMPLETENESS & THOROUGHNESS: Always provide full, comprehensive, and exhaustive answers. Never cut answers short. Always finish every explanation, requirement, portal step, and sentence completely."""
 
 NATIONAL_SCHEMES: list[dict[str, Any]] = [
     {
@@ -168,24 +169,22 @@ def answer_scheme_query(
 
     # 2. Match against curated static schemes
     matched_schemes: list[GovernmentScheme] = []
-    if scheme_code:
-        explicit_scheme = get_scheme_by_code(scheme_code)
-        if explicit_scheme:
-            matched_schemes.append(explicit_scheme)
-
     for s in NATIONAL_SCHEMES:
         code = s["code"]
-        if scheme_code and code.lower() == scheme_code.lower():
-            continue
         code_match = (code.lower() in q_lower) or (s["name"].lower() in q_lower)
         keyword_match = any(kw in q_lower for kw in SCHEME_KEYWORDS.get(code, []))
         if code_match or keyword_match:
             matched_schemes.append(GovernmentScheme(**s))
 
+    if not matched_schemes and scheme_code:
+        explicit_scheme = get_scheme_by_code(scheme_code)
+        if explicit_scheme:
+            matched_schemes.append(explicit_scheme)
+
     if not matched_schemes and retrieved:
         first_txt = retrieved[0].chunk_text.upper()
         for s in NATIONAL_SCHEMES:
-            if s["code"] in first_txt:
+            if s["code"] in first_txt and not any(m.code == s["code"] for m in matched_schemes):
                 matched_schemes.append(GovernmentScheme(**s))
 
     # 3. Handle mock mode (used in test suites)
@@ -255,7 +254,8 @@ FARMER'S QUESTION: {query}
         prompt,
         system_instruction=SYSTEM_INSTRUCTION,
         temperature=0.2,
-        max_output_tokens=650,
+        max_output_tokens=3000,
+        timeout=25.0,
     )
 
     if not answer_text:
@@ -289,11 +289,16 @@ FARMER'S QUESTION: {query}
     else:
         confidence = "insufficient"
 
-    # Assemble sources
+    # Assemble sources only for genuine query-relevant matches
     sources: list[AdvisorySource] = []
     seen: set[tuple[Any, Any]] = set()
+
+    query_words = {w for w in query.lower().split() if len(w) > 3}
     for c in retrieved:
-        if c.similarity < 0.45:
+        if c.similarity < 0.60:
+            continue
+        chunk_lower = (c.chunk_text or "").lower()
+        if not any(qw in chunk_lower for qw in query_words):
             continue
         title = c.source_title or "Government of India Agricultural Welfare Guidelines"
         key = (title, c.page_number)
@@ -302,20 +307,15 @@ FARMER'S QUESTION: {query}
             sources.append(AdvisorySource(title=title, page=c.page_number, url=None))
 
     for ms in matched_schemes:
-        title = f"Government of India {ms.name} Official Guidelines"
-        key = (title, 1)
-        if key not in seen:
-            seen.add(key)
-            sources.append(AdvisorySource(title=title, page=1, url=ms.official_portal))
-
-    if not sources:
-        sources.append(
-            AdvisorySource(
-                title="Government of India Farmers' Portal (Farmer Welfare & Schemes)",
-                page=1,
-                url="https://farmer.gov.in",
-            )
-        )
+        code = ms.code.lower()
+        is_query_match = (code in q_lower) or any(kw in q_lower for kw in SCHEME_KEYWORDS.get(ms.code, []))
+        if is_query_match:
+            title = f"Government of India {ms.name} Official Guidelines"
+            key = (title, 1)
+            if key not in seen:
+                seen.add(key)
+                sources.append(AdvisorySource(title=title, page=1, url=ms.official_portal))
+    # When answered directly by LLM without matching catalog/retrieval documents, sources remains empty.
 
     final_answer = translate_from_english(answer_text, language)
 

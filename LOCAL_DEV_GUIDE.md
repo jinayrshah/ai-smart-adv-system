@@ -11,6 +11,7 @@ Keep this file handy to quickly launch and test the application without searchin
 | **Web UI (Frontend App)** | **[http://localhost:3000](http://localhost:3000)** | Full Web Application (Vite + React + Express proxy) |
 | **FastAPI Backend Root** | **[http://localhost:8000](http://localhost:8000)** | Backend API root / health check |
 | **Data Layer Health & Ops** | **[http://localhost:8000/api/health/data](http://localhost:8000/api/health/data)** | Live pipeline job statuses, age, and 400 MB storage telemetry |
+| **Master Project Details** | **[`PROJECT_DETAILS.md`](file:///Users/jinayshah/Downloads/smart%20adv%20system%20repo/AI-Smart-Agriculture-System/PROJECT_DETAILS.md)** | Complete technical blueprint & architecture specification |
 | **Market Coverage Reference** | **[`MARKET_COVERAGE.md`](file:///Users/jinayshah/Downloads/smart%20adv%20system%20repo/AI-Smart-Agriculture-System/MARKET_COVERAGE.md)** | Verified directory of working crops, states & mandis with multi-report history |
 | **Interactive API Docs (Swagger)** | **[http://localhost:8000/docs](http://localhost:8000/docs)** | Test all endpoints directly in the browser |
 | **API Reference (ReDoc)** | **[http://localhost:8000/redoc](http://localhost:8000/redoc)** | Clean technical schema documentation |
@@ -49,7 +50,7 @@ curl -s "http://127.0.0.1:8000/api/market/trend?commodity=Wheat&market=Sidhi&sta
 curl -s "http://127.0.0.1:8000/api/market/trend?commodity=Wheat&market=Malegaon&state=Maharashtra&days=30"
 ```
 
-### 1b. Grounded AI Market Insight (Gemini 2.5 Flash Synthesis)
+### 1b. Grounded AI Market Insight (Gemini Synthesis)
 ```bash
 curl -s "http://127.0.0.1:8000/api/market/insight?commodity=Wheat&market=Malegaon&state=Maharashtra&days=30"
 ```
@@ -61,6 +62,40 @@ curl -s "http://127.0.0.1:8000/api/market/prices/latest?commodity=Wheat&state=Ma
 
 # Include statistical IQR outliers for audit:
 curl -s "http://127.0.0.1:8000/api/market/prices/latest?commodity=Wheat&state=Maharashtra&limit=5&include_flagged=true"
+```
+
+### 1d. Dynamic Mandi List for Autocomplete (/api/market/list-markets)
+```bash
+# List all APMC mandis in a state for a specific commodity (returns market, district, records):
+curl -s "http://127.0.0.1:8000/api/market/list-markets?state=Madhya%20Pradesh&commodity=Wheat"
+
+# List all APMC mandis in a state across all crops:
+curl -s "http://127.0.0.1:8000/api/market/list-markets?state=Madhya%20Pradesh"
+
+# Via Express proxy (port 3000):
+curl -s "http://127.0.0.1:3000/api/market/list-markets?state=Madhya%20Pradesh&commodity=Wheat"
+```
+
+### 1e. Bulk MandiLens Agmarknet Snapshot Ingestion (88,852 records / 121 markets / 14 crops)
+Ingests the comprehensive Agmarknet snapshot spanning 2024–2026 into Supabase `mandi_prices`:
+```bash
+# Run bulk snapshot ingestion (~16s for 88,852 rows at 5,300+ rows/sec):
+PYTHONPATH=backend cd backend && .venv/bin/python jobs/load_mandilens_snapshot.py
+
+# Dry-run parse and check:
+PYTHONPATH=backend cd backend && .venv/bin/python jobs/load_mandilens_snapshot.py --dry-run
+```
+
+**Verify 180-Day Rich History & Multi-Market Comparison Overlap:**
+```bash
+# 1. 180-day trend for Groundnut at Malegaon APMC (84 active reports, not thin):
+curl -s "http://127.0.0.1:8000/api/market/trend?commodity=Groundnut&market=Malegaon%20APMC&state=Maharashtra&days=180"
+
+# 2. 180-day trend for Shirpur APMC Groundnut (63 reports, 45 common dates with Malegaon for side-by-side comparison):
+curl -s "http://127.0.0.1:8000/api/market/trend?commodity=Groundnut&market=Shirpur%20APMC&state=Maharashtra&days=180"
+
+# 3. State alias tolerance (e.g. 'Kerala' automatically normalizes to 'Keralam'):
+curl -s "http://127.0.0.1:8000/api/market/trend?commodity=Banana&market=Mookkannur%20VFPCK%20Market&state=Kerala&days=180"
 ```
 
 ### 2. Mandi Explore Tier (Any Crop, Anywhere in India)
@@ -141,7 +176,17 @@ curl -s -X POST "http://127.0.0.1:8000/api/farmer/onboard" \
   }'
 
 # Query farmer farms:
-curl -s "http://127.0.0.1:8000/api/farmer/farms"
+curl -s "http://127.0.0.1:8000/api/farmer/farms?farmer_id=00000000-0000-0000-0000-000000000001"
+
+# Update farm details (location, soil, irrigation):
+curl -s -X PATCH "http://127.0.0.1:8000/api/farmer/farms/1" \
+  -H "Content-Type: application/json" \
+  -d '{"field_size_acres": 4.0, "soil_type": "Clay Loam", "irrigation_type": "drip"}'
+
+# Update crop details:
+curl -s -X PATCH "http://127.0.0.1:8000/api/farmer/crops/1" \
+  -H "Content-Type: application/json" \
+  -d '{"crop": "Wheat", "variety": "HD-2967", "sowing_date": "2026-11-20"}'
 ```
 
 ### 12b. Farmer Irrigation Log & FAO-56 Water Balance Tracking
@@ -202,9 +247,13 @@ PYTHONPATH=backend cd backend && .venv/bin/python -m jobs.ingest_document --max-
 ```
 
 ### 15. Phase 4 Personalized Advisory Generation (Grounded Q&A & Audit)
+> **Model & Generation Specs**: Uses pooled multi-key rotation with `gemini-flash-lite-latest` (primary, 1.1s–2.5s fast generation) and `gemini-3-flash-preview` (fallback). Generation limits are set to `max_output_tokens=3500` with a `25.0s` client timeout to guarantee complete, unabridged agronomic schedules and government scheme details without mid-sentence truncations.
+> **Advisory UI Components (`AdvisoryChatCard.tsx`, `GovernmentSchemesCard.tsx`, `ChatWidget.tsx`)**: Input boxes use client-controlled keyboard (`Enter` key interception) and click dispatching with explicit `type="button"` handlers, completely eliminating browser `<form>` native GET submissions so typing questions never triggers a page reload or state reset.
+> **General Advisory Chat Widget (`ChatWidget.tsx`)**: The floating circular assistant widget at the bottom-right supports direct agricultural queries, disease troubleshooting, and government scheme routing (`/api/advisory/schemes/ask`). It safely validates crops against the GDD engine and offers quick inquiry chips.
+
 ```bash
-# 1. Ask crop advisory with personalized agronomic context (in-scope question):
-curl -s -X POST "http://127.0.0.1:8000/api/advisory/ask" \
+# 1. Ask crop advisory with personalized agronomic context (via Express port 3000 or FastAPI port 8000):
+curl -s -X POST "http://127.0.0.1:3000/api/advisory/ask" \
   -H "Content-Type: application/json" \
   -d '{
     "crop": "Wheat",
@@ -216,7 +265,7 @@ curl -s -X POST "http://127.0.0.1:8000/api/advisory/ask" \
   }'
 
 # 2. Out-of-scope question triggering safety refusal template:
-curl -s -X POST "http://127.0.0.1:8000/api/advisory/ask" \
+curl -s -X POST "http://127.0.0.1:3000/api/advisory/ask" \
   -H "Content-Type: application/json" \
   -d '{
     "crop": "Wheat",
@@ -330,19 +379,21 @@ curl -s -X GET "http://127.0.0.1:8000/api/farmer/profile/00000000-0000-0000-0000
 - **Universal View Rollout**:
   - **Cinematic Home Page (`src/components/home/CinematicHome.tsx`)**: Kinetic typography with staggered word/character reveal springs, 3D perspective stage with mouse parallax, 3 virtual camera sequences (Subsurface, Canopy, Phenology), MandiLens live dataset integrity telemetry, and task-first command launchpad.
   - **Mandi Price Trends & Intelligence (`src/components/market/`)**:
-    - `MandiAutocomplete.tsx`: 33px rounded search input, dark container popovers, and pill badge chips for tracked mandis.
-    - `MarketDataView.tsx`: `#111827` rounded-3xl control container, 33px select dropdowns, and Forest/Lime pill action buttons.
-    - `PriceTrendChart.tsx`: `#111827` card, Cormorant Garamond title, segmented pill range switcher, Vivid Lime `#e8fe85` SVG line, and `#07503f` gradient band.
-    - `MarketInsightCard.tsx`: `#111827` container, Cormorant Garamond header, Gemini 2.5 Flash pill chip, and verified confidence badge.
-    - `MarketContextCard.tsx`: Metric tiles with Cormorant Garamond serif numbers and pill strength badges.
-    - `MarketCalculators.tsx`: Crop Margin Calculator (DES benchmark), Storage Estimator (WDRA benchmark with non-storable refusal), and Mandi Logistics 7-day arrival weather disruption strip in rotating Pastel Quilt cards with 33px rounded inputs and Forest/Lime net profit displays.
-    - `MandiRecentReportsTable.tsx`: `#111827` rounded-3xl container, Cormorant Garamond header, font-mono dark table with `#e8fe85` verified badges.
-    - `MandiExplore.tsx`: Search controls container in `#111827`, 33px rounded input, Pastel Quilt rotating market cards with bold serif prices and Vivid Lime pill badges.
-  - **Weather Intelligence (`src/components/weather/WeatherStrip.tsx`)**: Rotating Pastel Quilt tiles (Sky, Peach, Sage, Ash), 33px search bar, multi-source weather fusion with confidence badges, and responsive layout.
-  - **Precision Agronomic Advisor (`src/components/farmer/`)**: `FarmDiagnosticCard` (GDD phenology & FAO-56 root-zone water balance in Pastel Quilt tiles), `AdvisoryChatCard` (ICAR grounded Q&A with 33px input and Forest/Lime pill submit button), and `GovernmentSchemesCard` (central welfare schemes with 33px search and category pills).
-  - **Sign-In & Farmer Portal (`src/components/auth/AuthPortal.tsx`)**: 6 Indic languages, credentials authentication, comprehensive farm parameter onboarding, and 1-click instant demo profiles.
-  - **Farmer Onboarding & Settings (`src/components/farmer/FarmerOnboardingModal.tsx`, `ProfileSettings.tsx`, `ProfileSetup.tsx`)**: Cormorant Garamond serif headers, 33px rounded inputs, Forest Ink pill save actions, and clean profile administration.
-  - **Farmer AI Assistant Widget (`src/components/ChatWidget.tsx`)**: Floating `#07503f` circular launcher button with `#e8fe85` accent icon, `#111827` rounded-3xl chat window, and 33px rounded chat input.
+    - `MandiAutocomplete.tsx`: 33px rounded bone input, white container dropdowns, and high-contrast chips for tracked mandis.
+    - `MarketDataView.tsx`: Pure white rounded-3xl control container, 33px bone select dropdowns, and Forest/Lime pill action buttons.
+    - `PriceTrendChart.tsx`: Pure white card, Cormorant Garamond title, segmented pill range switcher, high-contrast Forest Ink `#07503f` price line with lime active dots and custom white tooltip.
+    - `MarketInsightCard.tsx`: Pure white container, Cormorant Garamond header, Forest Ink badges, and grounded AI Gemini synthesis tag.
+    - `MarketContextCard.tsx`: Pure white card with 4 Quilted Pastel metric tiles (Sky `#b2cee7`, Peach `#fceace`, Sage `#e6ecd5`, Ash `#efefef`), Cormorant Garamond serif numbers, and high-contrast charcoal signals.
+    - `MarketCalculators.tsx`: Crop Margin Calculator (DES benchmark), Storage Estimator (WDRA benchmark with honest non-storable refusal), and Mandi Logistics arrival strip in clean white cards, 33px bone inputs, and Forest Ink `#07503f` / Lime `#e8fe85` summary banners.
+    - `MandiRecentReportsTable.tsx`: Pure white rounded-3xl container, Cormorant Garamond header, bone table header with high-contrast `#212529` rows and Forest Ink verified badges.
+    - `MandiExplore.tsx`: Search controls in white card, 33px rounded bone inputs, and rotating Quilted Pastel market cards with Cormorant Garamond prices and high-contrast badges.
+    - `MandiCompareView.tsx`: Side-by-side multi-mandi comparison in a pure white container, bone inputs, Forest Ink, Blue, and Amber high-contrast Recharts lines, and clear delta tables.
+  - **Weather Intelligence (`src/components/weather/WeatherStrip.tsx`)**: Pure white container, 3 pastel observation chips, 4 Quilted Pastel agro-climatology tiles, 7-day forecast strip, Forest Ink biological inspection card, and **Agrometeorological Summary & Field Insights** (7-day rain expectation, FAO-56 cumulative ET₀ vs rain deficit, thermal envelope, spray window check, root-zone irrigation guidance, foliar disease index, and weekly action takeaway). Zero text overlaps.
+  - **Precision Agronomic Advisor (`src/components/farmer/`)**: `FarmDiagnosticCard` (GDD phenology & FAO-56 root-zone water balance in Quilted Pastel tiles), `AdvisoryChatCard` (ICAR grounded Q&A with 33px bone input and Forest/Lime pill submit button), and `GovernmentSchemesCard` (central welfare schemes with 33px search and category pills).
+  - **Sign-In & Farmer Portal (`src/components/auth/AuthPortal.tsx`)**: 6 Indic languages, credentials authentication, comprehensive farm parameter onboarding, and 1-click instant demo profiles in a pastoral editorial shell (Forest Ink `#07503f` brand side, pure white interaction side).
+  - **Farmer Onboarding & Settings (`src/components/farmer/FarmerOnboardingModal.tsx`, `ProfileSettings.tsx`, `ProfileSetup.tsx`)**: Cormorant Garamond serif headers, 33px rounded bone inputs, Forest Ink `#07503f` pill save actions, and clean profile administration on white/bone cards.
+  - **Farmer AI Assistant Widget (`src/components/ChatWidget.tsx` & `CinematicHome.tsx`)**: Floating `#07503f` circular launcher with `#e8fe85` icon, direct hero action button on Home (`Ask General Agri Questions` with `open-general-chat` event dispatcher), pure white rounded-3xl chat window, bone user/bot speech bubbles, and 33px rounded chat input.
+  - **Design Foundation (`tokens.json`, `theme.css`, `src/index.css`)**: Arva Pastoral Editorial Magazine design system — Bone `#f1efdf` canvas, Forest Ink `#07503f` text/headers, Vivid Lime `#e8fe85` accents, and Quilted Pastel surfaces (`#b2cee7`, `#fceace`, `#e6ecd5`, `#efefef`). Zero text overlapping or clashing dark/white elements.
   - **Streamlined Navigation**: 5-tab pill shell (`Home`, `Advisor`, `Prices`, `Weather`, and `Profile`). Legacy removed tabs (`fertilizer`, `marketplace`, `disease`, `learn`, `history`) remain completely omitted from active navigation.
 
 ---
@@ -378,6 +429,8 @@ curl -s -X GET "http://127.0.0.1:8000/api/farmer/profile/00000000-0000-0000-0000
 | `JWT_SECRET` | **Production (Mandatory)** | HMAC secret for session authentication tokens. Express server refuses to start in production without it. |
 | `SUPABASE_JWT_SECRET` | Optional (Production recommended) | Supabase Project JWT secret. When set, `/api/farmer/*` routes enforce caller ownership on profile and farm resources. |
 | `GEMINI_API_KEY` | Development & Production | Google Gemini API key for grounded market insights and agronomic advisory. |
+| `GEMINI_API_KEYS` | Optional (Recommended) | Comma-separated list of Gemini API keys for the backend multi-key pool. Automatically rotates keys round-robin with auto-cooldown on rate limits (429). |
+| `VITE_GEMINI_API_KEYS` | Optional (Recommended) | Comma-separated list of Gemini API keys for frontend direct calls (`aiService`, `ragService`) with automatic quota failover. |
 | `GEMINI_MODEL` | Optional (default: `gemini-3.8-flash`) | Primary LLM model for generation; fallbacks automatically cascade through `gemini-3.5-flash`, `gemini-3.1-flash-lite`, and `gemini-flash-latest`. |
 | `BHASHINI_USER_ID` | Optional | MeitY Bhashini User ID for Indic language translations (hi, mr, gu, etc.). |
 | `BHASHINI_API_KEY` | Optional | MeitY Bhashini ULCA API key. |
@@ -385,3 +438,55 @@ curl -s -X GET "http://127.0.0.1:8000/api/farmer/profile/00000000-0000-0000-0000
 | `SUPABASE_SERVICE_ROLE_KEY` | Recommended | Supabase backend service key for migrations, RAG vectors, and farm persistence. |
 | `FASTAPI_URL` | Optional (default: `http://127.0.0.1:8000`) | Backend URL used by Express proxy routes. |
 | `CORS_ALLOW_ORIGINS` | Optional | Comma-separated allowed origins for FastAPI backend. |
+
+---
+
+## 📋 Recent Changes (Oct 19 2026)
+
+### 1. Profile Page — Full Redesign (`ProfileSettings.tsx`)
+The profile page was completely rebuilt as a structured, multi-section layout:
+- **Hero card** — Avatar initials, name, account type badge, sign-out button, and 4-stat grid (Active Crop, Location, Field Size, Irrigation)
+- **Farm Overview section** — Displays all onboarded farm data (name, state, district, soil type, irrigation, field size, NPK/pH) loaded from `localStorage`
+- **Active Crop section** — Displays crop name, variety, sowing date, and season with active status badge
+- **Account Settings** — View mode with inline edit toggle (name, location, farm type) and Save/Cancel actions
+- **Security section** — Password change form with show/hide toggle
+- **Edit Farm & Crop button** — Opens the FarmerOnboardingModal directly from the profile page
+
+### 2. Edit Farm Control Moved to Profile
+The "Edit Farm" button was **removed from the Advisor tab** and relocated to the Profile page's Farm Overview card. A subtle "Edit farm & crop details in Profile Settings →" text link remains in the Advisor tab for quick navigation.
+
+### 3. Advisory Response Truncation Fix (`generator.py`)
+- `max_output_tokens` increased: `3500 → 6000`
+- Timeout increased: `25s → 45s`
+- Prevents advisory answers from being cut off mid-sentence for complex multi-part questions
+
+### 4. Advisory Error Handling (`advisory.py`)
+Added `try/except` around `generate_advisory_response()` and `query_repo.log_query()`:
+- Gemini API failures (timeout, 429, network error) now return a proper HTTP 503 with a user-friendly message instead of a raw 500 crash
+- Query log failures are non-fatal — the user still receives the advisory response
+
+### 5. Chart Line Gaps Fixed (`PriceTrendChart.tsx`)
+Changed `connectNulls={false}` → `connectNulls={true}` on both the Area band and the Modal Price Line in the Recharts chart. This ensures the price trend line connects across days with no APMC mandi reports, eliminating disconnected dots.
+
+### 6. MandiCompareView Chart (already `connectNulls={true}`)
+Verified that the multi-mandi comparison chart already had `connectNulls={true}` in a previous session. No change needed.
+
+### 7. Intermittent Page Reload Fix & Watcher Isolation (`vite.config.ts`)
+- **Root Cause Identified**: The backend embedding cache writes to `backend/app/data/advisory/fixtures/query_embeddings_cache.json` on new queries. Because Vite's file watcher was watching the entire repository directory, every new query triggered an automatic full-page reload in the browser, aborting in-flight responses and making queries appear intermittent. Queries only answered on repeated tries because they hit in-memory cache without triggering file writes.
+- **Fix**: Expanded Vite's `server.watch.ignored` in `vite.config.ts` to ignore `**/backend/**`, `**/data/**`, `**/fixtures/**`, `**/.venv/**`, and `**/*.json`. This permanently eliminates inadvertent dev-server browser reloads.
+
+### 8. Chat Widget Visibility Restricted to Home Tab (`App.tsx`)
+- Updated `App.tsx` to conditionally render `<ChatWidget />` only when `activeTab === 'home'`.
+- The floating assistant button no longer clutters other focused feature tabs (Advisor, Price Trends, Weather, Profile).
+
+### 9. Chat Widget Maximize Mode & Storage (`ChatWidget.tsx`)
+- Added true window maximize/restore capability (`isMaximized` state with `<Maximize2>` and `<Minimize2>` controls).
+- Standard size: `380px × 520px`.
+- Maximized size: expanded view `min(860px, 92vw) × min(760px, 85vh)` with responsive layout, large conversation viewport, and clear conversation action (`<RotateCcw>`).
+- Persisted conversation messages into browser storage (`sessionStorage` & `localStorage`) so interactions are retained across widget toggling and tab switching.
+
+### 10. Personalized Advisor Chat Persistence Across Tab Switches (`App.tsx`, `AdvisoryChatCard.tsx`)
+- Fixed tab unmounting: Updated `TabPanel` in `App.tsx` to keep DOM tabs alive via hidden CSS (`active ? 'block' : 'hidden'`) rather than destroying and unmounting components on tab switch.
+- Added dual storage persistence (`sessionStorage` and `localStorage`) for `AdvisoryChatCard` query/response history keyed by farmer/farm ID.
+- Added a "Clear History" action button in the card header for resetting the session at will.
+- Stopped event bubbling on all inquiry prompt buttons and Enter keystrokes to ensure clean execution.

@@ -166,3 +166,17 @@ def test_market_insight_thin_data_says_so():
     assert data["confidence"] == "low"
     assert any(needle in data["insight"].lower() for needle in ("only 2 report", "only two", "data is thin"))
     assert "%" not in data["insight"]
+
+
+def test_list_markets_endpoint():
+    _install(THIN)
+    # THIN contains Maharashtra mandis
+    resp = client.get("/api/market/list-markets?state=Maharashtra&commodity=Wheat")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert data["state"] == "Maharashtra"
+    assert data["total"] > 0
+    markets = [m["market"] for m in data["markets"]]
+    assert "Malegaon" in markets or "Shahada" in markets
+

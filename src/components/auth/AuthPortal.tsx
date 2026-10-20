@@ -110,7 +110,36 @@ export const AuthPortal: React.FC = () => {
       if (!formatted || !password) {
         throw new Error('Please enter your contact and password');
       }
-      await login(formatted, password);
+      const authRes = await login(formatted, password);
+
+      // After login, fetch the user's own farm profile from backend
+      // to replace any stale data from a previous session
+      const userId = authRes.user?.id;
+      if (userId) {
+        try {
+          const { fetchFarmerProfile, fetchFarmerFarms, fetchFarmCrops } = await import('../../lib/api/farmer');
+          const profile = await fetchFarmerProfile(userId);
+          const farms = await fetchFarmerFarms(userId);
+          const farm = farms?.[0];
+          let crops: any[] = [];
+          if (farm?.id) {
+            crops = await fetchFarmCrops(farm.id);
+          }
+          localStorage.setItem('farmer_onboarding_profile', JSON.stringify({
+            profile,
+            farm: farm || null,
+            crops: crops || [],
+          }));
+        } catch (fetchErr) {
+          // If backend profile fetch fails (e.g., new user who hasn't onboarded yet),
+          // clear stale profile to prevent data leaking between accounts
+          console.warn('Could not fetch farm profile after login:', fetchErr);
+          localStorage.removeItem('farmer_onboarding_profile');
+        }
+      } else {
+        // No user ID — clear any stale profile data
+        localStorage.removeItem('farmer_onboarding_profile');
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -279,28 +308,22 @@ export const AuthPortal: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-[#f1efdf] flex items-center justify-center p-4 md:p-8 selection:bg-[#07503f] selection:text-white">
-      {/* Background Ambient Glow */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full bg-[#07503f]/30 blur-[120px]" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 rounded-full bg-[#e8fe85]/10 blur-[140px]" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 rounded-[36px] bg-[#111827] border border-[#1f2937] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.8)] overflow-hidden">
+    <div className="min-h-screen bg-[#f1efdf] text-[#212529] flex items-center justify-center p-4 md:p-8 selection:bg-[#07503f] selection:text-[#e8fe85]">
+      <div className="relative z-10 w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 rounded-[36px] bg-white border border-[#c3cda7] shadow-xl overflow-hidden">
         
         {/* Left: Atmospheric Brand & Science Panel */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-[#07503f] to-[#04362b] p-8 md:p-10 flex flex-col justify-between text-[#f1efdf] border-b lg:border-b-0 lg:border-r border-[#0d6e57]/40 relative overflow-hidden">
+        <div className="lg:col-span-5 bg-[#07503f] p-8 md:p-10 flex flex-col justify-between text-[#f1efdf] border-b lg:border-b-0 lg:border-r border-[#0d6e57] relative overflow-hidden">
           <div className="relative z-10 space-y-6">
             {/* Header Lockup */}
             <div className="flex items-center space-x-3">
-              <div className="w-11 h-11 rounded-2xl bg-[#e8fe85] text-[#07503f] flex items-center justify-center font-bold shadow-lg">
+              <div className="w-11 h-11 rounded-2xl bg-[#e8fe85] text-[#07503f] flex items-center justify-center font-bold shadow-md">
                 <Sprout size={24} />
               </div>
               <div>
                 <h2 className="font-serif text-2xl font-bold tracking-tight text-white leading-none">
                   Smart Agriculture
                 </h2>
-                <span className="text-[10px] uppercase font-mono tracking-widest text-[#e8fe85]/90 mt-1 block">
+                <span className="text-[10px] uppercase font-mono tracking-widest text-[#e8fe85] mt-1 block">
                   AI PRECISION AGRONOMY
                 </span>
               </div>
@@ -308,43 +331,43 @@ export const AuthPortal: React.FC = () => {
 
             {/* Editorial Statement */}
             <div className="space-y-3 pt-4">
-              <div className="inline-block px-3 py-1 rounded-full bg-[#e8fe85]/15 border border-[#e8fe85]/30 text-[#e8fe85] text-xs font-mono">
+              <div className="inline-block px-3 py-1 rounded-full bg-[#e8fe85]/20 border border-[#e8fe85]/40 text-[#e8fe85] text-xs font-mono font-semibold">
                 Sovereign Farm Portal
               </div>
-              <h1 className="font-serif text-2xl md:text-3xl font-normal leading-tight text-white">
+              <h1 className="font-serif text-2xl md:text-3xl font-bold leading-tight text-white">
                 Scientific intelligence tailored to your soil, crop and microclimate.
               </h1>
-              <p className="text-xs md:text-sm text-stone-300 leading-relaxed font-sans">
+              <p className="text-xs md:text-sm text-[#f1efdf]/80 leading-relaxed font-sans">
                 Real-time phenological growing degree days, 3-source weather fusion, and ICAR-verified agronomic protocols.
               </p>
             </div>
           </div>
 
           {/* Bottom Trust Seal */}
-          <div className="relative z-10 pt-8 border-t border-white/10 space-y-2 text-xs text-white/70">
+          <div className="relative z-10 pt-8 border-t border-white/20 space-y-2 text-xs text-[#f1efdf]/80">
             <div className="flex items-center space-x-2">
               <ShieldCheck size={16} className="text-[#e8fe85]" />
-              <span className="font-medium">Direct Smallholder Empowerment</span>
+              <span className="font-bold text-white">Direct Smallholder Empowerment</span>
             </div>
-            <p className="text-[11px] text-white/50 leading-relaxed">
+            <p className="text-[11px] text-[#f1efdf]/70 leading-relaxed font-mono">
               No sponsored vendor recommendations. Honest data with verified provenance.
             </p>
           </div>
         </div>
 
         {/* Right: Auth Portal Interaction Shell */}
-        <div className="lg:col-span-7 p-6 md:p-10 flex flex-col justify-between space-y-6">
+        <div className="lg:col-span-7 p-6 md:p-10 flex flex-col justify-between space-y-6 bg-white">
           {/* Top Bar with Language Selector */}
-          <div className="flex items-center justify-between pb-4 border-b border-stone-800">
+          <div className="flex items-center justify-between pb-4 border-b border-[#c3cda7]">
             {/* Mode Tabs */}
-            <div className="flex items-center space-x-1 bg-stone-900 p-1 rounded-full border border-stone-800 text-xs">
+            <div className="flex items-center space-x-1 bg-[#f1efdf] p-1 rounded-full border border-[#c3cda7] text-xs">
               <button
                 type="button"
                 onClick={() => { setActiveTab('signin'); setError(null); }}
-                className={`px-4 py-1.5 rounded-full font-medium transition-all ${
+                className={`px-4 py-1.5 rounded-full font-medium transition-all cursor-pointer ${
                   activeTab === 'signin'
-                    ? 'bg-[#07503f] text-[#f1efdf] shadow-sm font-bold'
-                    : 'text-stone-400 hover:text-stone-200'
+                    ? 'bg-[#07503f] text-[#e8fe85] shadow-xs font-bold'
+                    : 'text-[#555e4a] hover:text-[#212529]'
                 }`}
               >
                 Sign In
@@ -352,10 +375,10 @@ export const AuthPortal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setActiveTab('register'); setError(null); }}
-                className={`px-4 py-1.5 rounded-full font-medium transition-all ${
+                className={`px-4 py-1.5 rounded-full font-medium transition-all cursor-pointer ${
                   activeTab === 'register'
-                    ? 'bg-[#07503f] text-[#f1efdf] shadow-sm font-bold'
-                    : 'text-stone-400 hover:text-stone-200'
+                    ? 'bg-[#07503f] text-[#e8fe85] shadow-xs font-bold'
+                    : 'text-[#555e4a] hover:text-[#212529]'
                 }`}
               >
                 New Farmer
@@ -363,17 +386,17 @@ export const AuthPortal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setActiveTab('demo'); setError(null); }}
-                className={`px-3 py-1.5 rounded-full font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer ${
                   activeTab === 'demo'
-                    ? 'bg-[#e8fe85] text-[#07503f] shadow-sm font-bold'
-                    : 'text-stone-400 hover:text-[#e8fe85]'
+                    ? 'bg-[#e8fe85] text-[#07503f] shadow-xs font-bold'
+                    : 'text-[#555e4a] hover:text-[#07503f]'
                 }`}
               >
                 Demo
               </button>
             </div>
 
-            <LanguageSelector />
+            <LanguageSelector variant="light" />
           </div>
 
           {/* Form Alerts */}
@@ -381,7 +404,7 @@ export const AuthPortal: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-start space-x-2"
+              className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start space-x-2 font-mono"
             >
               <span className="font-bold">Error:</span>
               <span>{error}</span>
@@ -392,7 +415,7 @@ export const AuthPortal: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center space-x-2"
+              className="p-3.5 rounded-2xl bg-[#e6ecd5] border border-[#c3cda7] text-[#07503f] text-xs flex items-center space-x-2 font-mono"
             >
               <CheckCircle2 size={16} />
               <span>{success}</span>
@@ -403,22 +426,22 @@ export const AuthPortal: React.FC = () => {
           {activeTab === 'signin' && (
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider text-stone-400">
+                <span className="text-xs font-mono uppercase tracking-wider text-[#555e4a] font-semibold">
                   Authentication
                 </span>
                 <div className="flex space-x-2 text-xs">
                   <button
                     type="button"
                     onClick={() => setAuthMethod('mobile')}
-                    className={`font-semibold ${authMethod === 'mobile' ? 'text-[#e8fe85]' : 'text-stone-500'}`}
+                    className={`font-semibold cursor-pointer ${authMethod === 'mobile' ? 'text-[#07503f] underline' : 'text-[#555e4a]'}`}
                   >
                     Mobile Phone
                   </button>
-                  <span className="text-stone-600">/</span>
+                  <span className="text-[#c3cda7]">/</span>
                   <button
                     type="button"
                     onClick={() => setAuthMethod('email')}
-                    className={`font-semibold ${authMethod === 'email' ? 'text-[#e8fe85]' : 'text-stone-500'}`}
+                    className={`font-semibold cursor-pointer ${authMethod === 'email' ? 'text-[#07503f] underline' : 'text-[#555e4a]'}`}
                   >
                     Email
                   </button>
@@ -427,15 +450,15 @@ export const AuthPortal: React.FC = () => {
 
               {/* Identifier Input */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-300">
+                <label className="text-xs font-medium text-[#555e4a]">
                   {authMethod === 'mobile' ? 'Mobile Number (भारत +91)' : 'Email Address'}
                 </label>
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#555e4a]">
                     {authMethod === 'mobile' ? <Phone size={16} /> : <Mail size={16} />}
                   </div>
                   {authMethod === 'mobile' && (
-                    <span className="absolute left-10 top-1/2 -translate-y-1/2 text-xs font-mono text-stone-400">
+                    <span className="absolute left-10 top-1/2 -translate-y-1/2 text-xs font-mono text-[#555e4a] font-bold">
                       +91
                     </span>
                   )}
@@ -444,7 +467,7 @@ export const AuthPortal: React.FC = () => {
                     value={identifier}
                     onChange={(e) => authMethod === 'mobile' ? handleMobileInput(e.target.value) : setIdentifier(e.target.value)}
                     placeholder={authMethod === 'mobile' ? '98765 43210' : 'farmer@kisan.in'}
-                    className={`w-full bg-stone-900 border border-stone-800 rounded-full py-3 pr-4 text-stone-100 text-sm focus:border-emerald-500 focus:outline-none transition-colors ${
+                    className={`w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-3 pr-4 text-[#212529] text-sm focus:border-[#07503f] focus:bg-white focus:outline-none transition-colors shadow-xs ${
                       authMethod === 'mobile' ? 'pl-20' : 'pl-11'
                     }`}
                     required
@@ -454,11 +477,11 @@ export const AuthPortal: React.FC = () => {
 
               {/* Password Input */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-300">
+                <label className="text-xs font-medium text-[#555e4a]">
                   Password
                 </label>
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#555e4a]">
                     <Lock size={16} />
                   </div>
                   <input
@@ -466,13 +489,13 @@ export const AuthPortal: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter security password"
-                    className="w-full bg-stone-900 border border-stone-800 rounded-full py-3 pl-11 pr-12 text-stone-100 text-sm focus:border-emerald-500 focus:outline-none transition-colors"
+                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-3 pl-11 pr-12 text-[#212529] text-sm focus:border-[#07503f] focus:bg-white focus:outline-none transition-colors shadow-xs"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-200"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#555e4a] hover:text-[#212529] cursor-pointer"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -483,10 +506,10 @@ export const AuthPortal: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-full bg-[#07503f] hover:bg-[#0d6e57] text-[#f1efdf] font-bold text-sm uppercase tracking-wider transition-all shadow-lg shadow-black/40 flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50"
+                  className="w-full py-3.5 rounded-full bg-[#07503f] hover:bg-[#064234] text-[#e8fe85] font-bold text-sm uppercase tracking-wider transition-all shadow-sm flex items-center justify-center space-x-2 cursor-pointer active:scale-98 disabled:opacity-50"
                 >
                   {loading ? (
-                    <Loader2 size={18} className="animate-spin" />
+                    <Loader2 size={18} className="animate-spin text-[#e8fe85]" />
                   ) : (
                     <>
                       <span>Enter Farm Dashboard</span>
@@ -501,37 +524,37 @@ export const AuthPortal: React.FC = () => {
           {/* TAB 2: REGISTER FARMER & FARM PARAMETERS */}
           {activeTab === 'register' && (
             <form onSubmit={handleRegisterFarmer} className="space-y-4 max-h-[460px] overflow-y-auto pr-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-[#e8fe85]">
+              <div className="text-xs font-mono uppercase tracking-wider text-[#07503f] font-bold">
                 Farmer Details & Agronomic Baseline
               </div>
 
               {/* Full Name & Contact */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-stone-300">Farmer Full Name</label>
+                  <label className="text-xs font-medium text-[#555e4a]">Farmer Full Name</label>
                   <div className="relative">
-                    <UserIcon size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                    <UserIcon size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#555e4a]" />
                     <input
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="e.g. Ramesh Patil"
-                      className="w-full bg-stone-900 border border-stone-800 rounded-2xl py-2.5 pl-9 pr-3 text-xs text-stone-100 focus:border-emerald-500 focus:outline-none"
+                      className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 pl-9 pr-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-stone-300">Mobile Number (+91)</label>
+                  <label className="text-xs font-medium text-[#555e4a]">Mobile Number (+91)</label>
                   <div className="relative">
-                    <Phone size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                    <Phone size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#555e4a]" />
                     <input
                       type="tel"
                       value={identifier}
                       onChange={(e) => handleMobileInput(e.target.value)}
                       placeholder="10-digit number"
-                      className="w-full bg-stone-900 border border-stone-800 rounded-2xl py-2.5 pl-9 pr-3 text-xs text-stone-100 focus:border-emerald-500 focus:outline-none"
+                      className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 pl-9 pr-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
                       required
                     />
                   </div>
@@ -540,15 +563,15 @@ export const AuthPortal: React.FC = () => {
 
               {/* Password */}
               <div className="space-y-1">
-                <label className="text-xs font-medium text-stone-300">Create Password</label>
+                <label className="text-xs font-medium text-[#555e4a]">Create Password</label>
                 <div className="relative">
-                  <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#555e4a]" />
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Min 6 characters"
-                    className="w-full bg-stone-900 border border-stone-800 rounded-2xl py-2.5 pl-9 pr-3 text-xs text-stone-100 focus:border-emerald-500 focus:outline-none"
+                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 pl-9 pr-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
                     required
                   />
                 </div>
@@ -557,7 +580,7 @@ export const AuthPortal: React.FC = () => {
               {/* Farm Geography */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-stone-300">State</label>
+                  <label className="text-xs font-medium text-[#555e4a]">State</label>
                   <select
                     value={state}
                     onChange={(e) => {
@@ -565,7 +588,7 @@ export const AuthPortal: React.FC = () => {
                       const districts = INDIAN_STATES_DISTRICTS[e.target.value] || [];
                       if (districts.length > 0) setDistrict(districts[0]);
                     }}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-2xl py-2.5 px-3 text-xs text-stone-100 focus:border-emerald-500 focus:outline-none"
+                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
                   >
                     {Object.keys(INDIAN_STATES_DISTRICTS).map((s) => (
                       <option key={s} value={s}>{s}</option>
@@ -574,11 +597,11 @@ export const AuthPortal: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-stone-300">District</label>
+                  <label className="text-xs font-medium text-[#555e4a]">District</label>
                   <select
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-2xl py-2.5 px-3 text-xs text-stone-100 focus:border-emerald-500 focus:outline-none"
+                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
                   >
                     {(INDIAN_STATES_DISTRICTS[state] || ['Nashik']).map((d) => (
                       <option key={d} value={d}>{d}</option>
@@ -590,7 +613,7 @@ export const AuthPortal: React.FC = () => {
               {/* Farm Field Size & Primary Crop */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-stone-300">Field Size (Acres)</label>
+                  <label className="text-xs font-medium text-[#555e4a]">Field Size (Acres)</label>
                   <input
                     type="number"
                     step="0.5"
@@ -598,17 +621,17 @@ export const AuthPortal: React.FC = () => {
                     max="100"
                     value={fieldSize}
                     onChange={(e) => setFieldSize(e.target.value)}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-2xl py-2.5 px-3 text-xs text-stone-100 focus:border-emerald-500 focus:outline-none"
+                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
                     required
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-stone-300">Primary Crop</label>
+                  <label className="text-xs font-medium text-[#555e4a]">Primary Crop</label>
                   <select
                     value={selectedCrop}
                     onChange={(e) => setSelectedCrop(e.target.value)}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-2xl py-2.5 px-3 text-xs text-stone-100 focus:border-emerald-500 focus:outline-none"
+                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
                   >
                     {CROPS_LIST.map((c) => (
                       <option key={c.name} value={c.name}>{c.label}</option>
@@ -620,11 +643,11 @@ export const AuthPortal: React.FC = () => {
               {/* Soil & Irrigation */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-stone-300">Soil Type</label>
+                  <label className="text-xs font-medium text-[#555e4a]">Soil Type</label>
                   <select
                     value={soilType}
                     onChange={(e) => setSoilType(e.target.value)}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-2xl py-2.5 px-3 text-xs text-stone-100 focus:border-emerald-500 focus:outline-none"
+                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
                   >
                     {SOIL_TYPES.map((st) => (
                       <option key={st} value={st}>{st}</option>
@@ -633,11 +656,11 @@ export const AuthPortal: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-stone-300">Irrigation Facility</label>
+                  <label className="text-xs font-medium text-[#555e4a]">Irrigation Facility</label>
                   <select
                     value={irrigation}
                     onChange={(e) => setIrrigation(e.target.value)}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-2xl py-2.5 px-3 text-xs text-stone-100 focus:border-emerald-500 focus:outline-none capitalize"
+                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none capitalize shadow-xs"
                   >
                     <option value="drip">Drip Irrigation (ड्रिप)</option>
                     <option value="sprinkler">Sprinkler (फव्वारा)</option>
@@ -652,10 +675,10 @@ export const AuthPortal: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-full bg-[#e8fe85] hover:bg-[#d8f06f] text-[#07503f] font-bold text-sm uppercase tracking-wider transition-all shadow-lg shadow-black/40 flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50"
+                  className="w-full py-3.5 rounded-full bg-[#07503f] hover:bg-[#064234] text-[#e8fe85] font-bold text-sm uppercase tracking-wider transition-all shadow-sm flex items-center justify-center space-x-2 cursor-pointer active:scale-98 disabled:opacity-50"
                 >
                   {loading ? (
-                    <Loader2 size={18} className="animate-spin" />
+                    <Loader2 size={18} className="animate-spin text-[#e8fe85]" />
                   ) : (
                     <>
                       <span>Complete Registration & Setup Farm</span>
@@ -671,10 +694,10 @@ export const AuthPortal: React.FC = () => {
           {activeTab === 'demo' && (
             <div className="space-y-4">
               <div className="space-y-1">
-                <span className="text-xs font-mono uppercase tracking-wider text-[#e8fe85]">
+                <span className="text-xs font-mono uppercase tracking-wider text-[#07503f] font-bold">
                   Instant Evaluator Sandbox
                 </span>
-                <p className="text-xs text-stone-400">
+                <p className="text-xs text-[#555e4a]">
                   Select a real pre-configured farm scenario to test personalized agronomic GDD, weather alerts, and schemes with 1 click:
                 </p>
               </div>
@@ -687,7 +710,6 @@ export const AuthPortal: React.FC = () => {
                     crop: 'Cotton & Groundnut',
                     loc: 'Rajkot, Gujarat · 5.5 Acres',
                     soil: 'Black Cotton · Drip',
-                    accent: 'border-amber-500/30 hover:border-amber-500'
                   },
                   {
                     id: 'harpreet' as const,
@@ -695,7 +717,6 @@ export const AuthPortal: React.FC = () => {
                     crop: 'Wheat & Paddy',
                     loc: 'Ludhiana, Punjab · 12.0 Acres',
                     soil: 'Alluvial · Canal',
-                    accent: 'border-emerald-500/30 hover:border-emerald-500'
                   },
                   {
                     id: 'anita' as const,
@@ -703,7 +724,6 @@ export const AuthPortal: React.FC = () => {
                     crop: 'Tomato & Vegetables',
                     loc: 'Nashik, Maharashtra · 3.2 Acres',
                     soil: 'Red Soil · Drip',
-                    accent: 'border-sky-500/30 hover:border-sky-500'
                   }
                 ].map((demo) => (
                   <button
@@ -711,21 +731,21 @@ export const AuthPortal: React.FC = () => {
                     type="button"
                     onClick={() => handleLaunchDemo(demo.id)}
                     disabled={loading}
-                    className={`w-full p-4 rounded-2xl bg-stone-900 border ${demo.accent} text-left transition-all flex items-center justify-between group hover:bg-stone-850 active:scale-98`}
+                    className="w-full p-4 rounded-2xl bg-[#f1efdf] border border-[#c3cda7] hover:border-[#07503f] hover:bg-[#e6ecd5]/50 text-left transition-all flex items-center justify-between group active:scale-98 cursor-pointer shadow-xs"
                   >
                     <div>
-                      <div className="font-bold text-stone-100 text-sm group-hover:text-[#e8fe85] transition-colors">
+                      <div className="font-bold text-[#07503f] text-sm group-hover:text-[#064234] transition-colors">
                         {demo.name}
                       </div>
-                      <div className="text-xs text-emerald-400 font-medium mt-0.5">
+                      <div className="text-xs text-[#07503f] font-medium mt-0.5">
                         {demo.crop}
                       </div>
-                      <div className="text-[11px] text-stone-400 mt-1">
+                      <div className="text-[11px] text-[#555e4a] mt-1 font-mono">
                         {demo.loc} • {demo.soil}
                       </div>
                     </div>
 
-                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-stone-400 group-hover:text-white group-hover:bg-[#07503f] transition-all">
+                    <div className="w-8 h-8 rounded-full bg-white border border-[#c3cda7] flex items-center justify-center text-[#555e4a] group-hover:text-[#07503f] group-hover:bg-[#e8fe85] transition-all shrink-0">
                       <ArrowRight size={14} />
                     </div>
                   </button>
@@ -735,7 +755,7 @@ export const AuthPortal: React.FC = () => {
           )}
 
           {/* Quick Footer */}
-          <div className="pt-2 text-center text-[11px] text-stone-500">
+          <div className="pt-2 text-center text-[11px] text-[#555e4a] font-mono">
             Protected by End-to-End Encryption · ICAR Agronomy Standardized
           </div>
         </div>

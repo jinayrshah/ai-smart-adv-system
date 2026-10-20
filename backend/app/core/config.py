@@ -31,10 +31,11 @@ class Settings(BaseSettings):
 
     # Advisory / AI
     GEMINI_API_KEY: str = ""
+    GEMINI_API_KEYS: str = ""
     # Model ids live in config (Architecture_Advisory.md §20: models get deprecated on a
     # schedule). The first model is tried first; the rest are fallbacks on 404/429/5xx.
-    GEMINI_MODEL: str = "gemini-3.8-flash"
-    GEMINI_FALLBACK_MODELS: str = "gemini-3.5-flash,gemini-3.1-flash-lite,gemini-flash-latest,gemini-flash-lite-latest"
+    GEMINI_MODEL: str = "gemini-flash-lite-latest"
+    GEMINI_FALLBACK_MODELS: str = "gemini-3-flash-preview"
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
 
     # Bhashini (ULCA) — Architecture_Advisory.md §15
@@ -53,7 +54,7 @@ class Settings(BaseSettings):
     # Comma-separated list of proxy IPs whose X-Forwarded-For header is trusted
     # (the Express server that fronts FastAPI runs on the same host).
     TRUSTED_PROXY_IPS: str = "127.0.0.1,::1"
-    RATE_LIMIT_PER_MINUTE: int = 60
+    RATE_LIMIT_PER_MINUTE: int = 300
 
     # Operational
     LOG_LEVEL: str = "INFO"
@@ -70,6 +71,13 @@ class Settings(BaseSettings):
     @property
     def trusted_proxies(self) -> set[str]:
         return {p.strip() for p in self.TRUSTED_PROXY_IPS.split(",") if p.strip()}
+
+    @property
+    def gemini_api_keys(self) -> list[str]:
+        keys = [k.strip() for k in self.GEMINI_API_KEYS.split(",") if k.strip()]
+        if self.GEMINI_API_KEY.strip() and self.GEMINI_API_KEY.strip() not in keys:
+            keys.insert(0, self.GEMINI_API_KEY.strip())
+        return keys
 
     @property
     def gemini_models(self) -> list[str]:

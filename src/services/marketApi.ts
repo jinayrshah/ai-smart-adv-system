@@ -91,6 +91,51 @@ export interface LatestPricesResponse {
 
 const API_BASE = (typeof window !== "undefined" && (window as any).__API_BASE__) || "";
 
+// Client-side cache to eliminate redundant network roundtrips and avoid 429 rate limits
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+const apiCache = new Map<string, CacheEntry<any>>();
+const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+
+async function safeFetchJson<T>(url: string, ttl: number = CACHE_TTL_MS): Promise<T> {
+  const now = Date.now();
+  const cached = apiCache.get(url);
+  if (cached && now - cached.timestamp < ttl) {
+    return cached.data as T;
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch (err: any) {
+    if (cached) return cached.data as T;
+    throw new Error("Unable to connect to market service. Please check your network.");
+  }
+
+  // Handle 429 Rate Limit with backoff retry
+  if (res.status === 429) {
+    if (cached) return cached.data as T;
+    await new Promise((r) => setTimeout(r, 600));
+    try {
+      res = await fetch(url);
+    } catch {
+      if (cached) return cached.data as T;
+      throw new Error("Market data service is busy. Please try again in a moment.");
+    }
+  }
+
+  if (!res.ok) {
+    if (cached) return cached.data as T;
+    throw new Error(`Market service responded with status ${res.status}`);
+  }
+
+  const data = await res.json();
+  apiCache.set(url, { data, timestamp: now });
+  return data;
+}
+
 export async function fetchMarketTrend(
   commodity: string,
   market: string,
@@ -103,11 +148,7 @@ export async function fetchMarketTrend(
     state,
     days: days.toString(),
   });
-  const res = await fetch(`${API_BASE}/api/market/trend?${params.toString()}`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch market trend: HTTP ${res.status}`);
-  }
-  return res.json();
+  return safeFetchJson<MarketTrendResponse>(`${API_BASE}/api/market/trend?${params.toString()}`);
 }
 
 export async function fetchMarketInsight(
@@ -122,11 +163,7 @@ export async function fetchMarketInsight(
     state,
     days: days.toString(),
   });
-  const res = await fetch(`${API_BASE}/api/market/insight?${params.toString()}`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch market insight: HTTP ${res.status}`);
-  }
-  return res.json();
+  return safeFetchJson<MarketInsightResponse>(`${API_BASE}/api/market/insight?${params.toString()}`);
 }
 
 export async function fetchLatestPrices(
@@ -195,4 +232,33 @@ export async function fetchMarketSearch(
     throw new Error(`Failed to search market: HTTP ${res.status}`);
   }
   return res.json();
+}
+
+// ===== Dynamic market list for autocomplete =====
+
+export interface MarketListItem {
+  market: string;
+  district: string;
+  records: number;
+}
+
+export interface MarketListResponse {
+  status: string;
+  state: string;
+  commodity: string;
+  markets: MarketListItem[];
+  total: number;
+  as_of: string;
+}
+
+export async function fetchMarketList(
+  state: string,
+  commodity?: string
+): Promise<MarketListResponse> {
+  const params = new URLSearchParams({ state });
+  if (commodity) params.set("commodity", commodity);
+  return safeFetchJson<MarketListResponse>(
+    `${API_BASE}/api/market/list-markets?${params.toString()}`,
+    5 * 60 * 1000 // 5 minutes cache for market dropdowns
+  );
 }

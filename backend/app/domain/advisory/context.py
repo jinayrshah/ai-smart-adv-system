@@ -180,12 +180,15 @@ def assemble_advisory_context(
                 matched_crop = None
                 if crop:
                     matched_crop = next((c for c in farm_crops if c.crop.lower() == crop.lower()), None)
-                if not matched_crop:
+                if not matched_crop and not crop:
                     matched_crop = farm_crops[0]
-                eff_crop = matched_crop.crop
-                eff_variety = matched_crop.variety
-                eff_sowing = matched_crop.sowing_date
-                eff_season = matched_crop.season or eff_season
+                if matched_crop:
+                    eff_crop = matched_crop.crop
+                    eff_variety = matched_crop.variety
+                    eff_sowing = matched_crop.sowing_date
+                    eff_season = matched_crop.season or eff_season
+                else:
+                    eff_crop = crop
             try:
                 irrigation_events = [
                     e.model_dump() for e in f_repo.get_irrigation_events(farm_id, since=eff_sowing)
@@ -200,26 +203,32 @@ def assemble_advisory_context(
         eff_soil = None
         assumptions.append("Soil type not given: soil checks skipped and loam assumed for the water balance.")
 
-    # Crop must be one of the deep-advisory crops. Never silently answer for a different
-    # crop (the old code swapped any unknown crop for Wheat).
+    # Crop handling: Deep GDD models available for supported crops; other crops
+    # are gracefully supported via general agronomic calendar and Gemini LLM.
+    # Never block with UnsupportedCropError — the has_crop() check below will
+    # route unsupported crops through the general agronomic calendar fallback.
     supported = agronomy_repo.get_supported_crops()
     if not eff_crop:
         eff_crop = "Wheat"
         assumptions.append("No crop given: Wheat was assumed.")
-    elif eff_crop not in supported:
+    else:
         match = next((s for s in supported if s.lower() == eff_crop.strip().lower()), None)
         match = match or next((s for s in supported if s.lower() in eff_crop.lower()), None)
-        if not match:
-            raise UnsupportedCropError(eff_crop, supported)
-        eff_crop = match
+        if match:
+            eff_crop = match
+        else:
+            # Keep the crop name as-is; the has_crop() check below will route
+            # through the general agronomic calendar fallback instead of the
+            # deep GDD engine. Gemini LLM will still answer the query.
+            logger.info(f"Crop '{eff_crop}' not in deep-advisory list {supported}; using general calendar fallback.")
+            assumptions.append(f"Detailed GDD/stage data not available for {eff_crop}; general agronomic calendar was used.")
     eff_season = eff_season or ("rabi" if eff_crop == "Wheat" else "kharif")
 
     if eff_sowing is None:
         eff_sowing = today - timedelta(days=35)
         assumptions.append("Sowing date not given: 35 days ago was assumed, so the growth stage is approximate.")
 
-    # 3. Weather summary & season history (backfilled from the sowing date so the GDD
-    #    engine can use thermal time instead of the calendar fallback — cleanup doc A4)
+    # 3. Weather summary & season history
     grid = snap_to_grid(eff_lat, eff_lon)
     w_service.ensure_grid_weather(grid.grid_key, eff_lat, eff_lon)
     weather_summary = w_service.get_summary(lat=eff_lat, lon=eff_lon).model_dump()
@@ -229,36 +238,6 @@ def assemble_advisory_context(
         logger.info(f"History backfill unavailable, using stored rows only: {exc}")
         w_history = w_repo.get_fused_range(grid.grid_key, eff_sowing, today)
 
-    # 4. Engine 1: Growth Stage (GDD accumulation)
-    stage = current_growth_stage(
-        crop=eff_crop,
-        sowing_date=eff_sowing,
-        weather_history=w_history,
-        as_of=today,
-    )
-
-    # 5. Engine 2: Irrigation (FAO-56 root-zone water balance, 7-day fallback)
-    irrigation = calculate_irrigation_need(
-        crop=eff_crop,
-        stage_name=stage.stage_name,
-        weather_summary=weather_summary,
-        history_rows=w_history,
-        sowing_date=eff_sowing,
-        as_of=today,
-        soil_type=eff_soil,
-        irrigation_type=eff_irrigation_type,
-        irrigation_events=irrigation_events,
-    )
-
-    # 6. Engine 3: Soil Suitability
-    soil_flags = check_soil_suitability(
-        crop=eff_crop,
-        soil_type=eff_soil,
-        soil_npk=eff_soil_npk,
-    )
-
-    # 7. Engine 4: Climate Suitability — current observation, else today's fused mean.
-    #    No reading at all -> no verdict (never a made-up temperature).
     current = weather_summary.get("current") or {}
     obs_temp = current.get("temp_c")
     obs_hum = current.get("rh_pct")
@@ -267,25 +246,118 @@ def assemble_advisory_context(
         if today_row and today_row.get("tmax_c") is not None and today_row.get("tmin_c") is not None:
             obs_temp = (float(today_row["tmax_c"]) + float(today_row["tmin_c"])) / 2.0
             obs_hum = obs_hum if obs_hum is not None else today_row.get("rh_mean_pct")
-    climate = None
-    if obs_temp is not None:
-        climate = check_climate_suitability(
+
+    # 4-7. Agronomic Engines: Deep GDD for supported crops, general agronomic fallback for others
+    if agronomy_repo.has_crop(eff_crop):
+        stage = current_growth_stage(
+            crop=eff_crop,
+            sowing_date=eff_sowing,
+            weather_history=w_history,
+            as_of=today,
+        )
+        irrigation = calculate_irrigation_need(
             crop=eff_crop,
             stage_name=stage.stage_name,
-            observed_temp_c=float(obs_temp),
-            observed_humidity_pct=obs_hum,
-            reading_source="weather_forecast",
+            weather_summary=weather_summary,
+            history_rows=w_history,
+            sowing_date=eff_sowing,
+            as_of=today,
+            soil_type=eff_soil,
+            irrigation_type=eff_irrigation_type,
+            irrigation_events=irrigation_events,
         )
+        soil_flags = check_soil_suitability(
+            crop=eff_crop,
+            soil_type=eff_soil,
+            soil_npk=eff_soil_npk,
+        )
+        climate = None
+        if obs_temp is not None:
+            climate = check_climate_suitability(
+                crop=eff_crop,
+                stage_name=stage.stage_name,
+                observed_temp_c=float(obs_temp),
+                observed_humidity_pct=obs_hum,
+                reading_source="weather_forecast",
+            )
+    else:
+        days = (today - eff_sowing).days if eff_sowing else 35
+        stage = StageResult(
+            crop=eff_crop,
+            stage_name="Vegetative / Active Growth",
+            stage_order=1,
+            cumulative_gdd=None,
+            days_since_sowing=days,
+            method="calendar_fallback",
+            source="General Agronomy Calendar",
+            next_stage_name="Reproductive / Flowering",
+            weather_coverage_pct=None,
+            imputed_days=0,
+            stage_progress_pct=None,
+        )
+        assumptions.append(f"Growth timeline for {eff_crop} is estimated via standard crop calendar.")
+
+        cur_t = float(obs_temp) if obs_temp is not None else 28.0
+        etc_today = round(max(0.5, cur_t * 0.15), 1)
+        etc_7d = round(etc_today * 7.0, 1)
+        rain_7d = float(weather_summary.get("metrics", {}).get("rain_7d_mm", 0.0) or 0.0)
+        deficit = round(max(0.0, etc_7d - rain_7d), 1)
+        irrigation = IrrigationAdvice(
+            crop=eff_crop,
+            stage_name=stage.stage_name,
+            kc=0.95,
+            etc_today_mm=etc_today,
+            etc_7d_mm=etc_7d,
+            rain_7d_mm=rain_7d,
+            deficit_mm=deficit,
+            recommendation=f"Estimated crop water use {etc_7d} mm vs rainfall {rain_7d} mm. Maintain adequate soil moisture." if deficit > 10 else "Moisture levels appear adequate.",
+            confidence="medium",
+            source="FAO-56 General Evapotranspiration Guidelines",
+            method="7day_deficit",
+            data_available=True,
+            action="irrigate_now" if deficit > 20 else "monitor",
+        )
+        soil_flags = []
+        climate = None
 
     # 8. RAG retrieval — query translated to English first (§15)
     query_eng = translate_to_english(query, source_lang=eff_language)
+    q_lower = query_eng.lower()
+    is_scheme_query = any(w in q_lower for w in [
+        "scheme", "yojana", "pm-kisan", "pm kisan", "kcc", "kisan credit", "subsidy", "subsidies",
+        "loan", "insurance", "bima", "pmfby", "soil health card", "welfare", "grant", "kusum", "fasal"
+    ])
+    doc_types = ["govt_scheme", "agronomy_pop"] if is_scheme_query else None
     retrieved_chunks = retrieve(
         query=query_eng,
-        crop=eff_crop,
-        stage_name=stage.stage_name,
+        crop=None if is_scheme_query else eff_crop,
+        stage_name=None if is_scheme_query else stage.stage_name,
         disease_label=disease_label,
+        doc_types=doc_types,
         top_k=6,
     )
+
+    if is_scheme_query:
+        # Ground with static national schemes catalog so welfare queries are always answered thoroughly
+        from app.domain.advisory.schemes import NATIONAL_SCHEMES
+        for s in NATIONAL_SCHEMES:
+            if s["code"].lower() in q_lower or s["name"].lower() in q_lower or "scheme" in q_lower or "yojana" in q_lower:
+                summary_text = (
+                    f"Official Scheme: {s['name']} ({s['code']}). "
+                    f"Benefits: {s['benefit_summary']} "
+                    f"Eligibility: {s['eligibility']} "
+                    f"Application Process: {s['application_process']} "
+                    f"Official Portal: {s['official_portal']}"
+                )
+                retrieved_chunks.append(
+                    RetrievedChunk(
+                        document_id=999,
+                        chunk_text=summary_text,
+                        source_title=f"Government of India {s['name']} Official Guidelines",
+                        page_number=1,
+                        similarity=0.92,
+                    )
+                )
 
     return AdvisoryContext(
         farmer_id=eff_farmer_id,

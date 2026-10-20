@@ -4,7 +4,7 @@ crops:
     aliases: ["Wheat", "WHEAT"]
   - key: rice
     display: Rice
-    aliases: ["Rice", "Paddy(Dhan)(Common)", "Paddy(Dhan)(Grade A)", "RICE", "Paddy"]
+    aliases: ["Rice", "Paddy(Dhan)(Common)", "Paddy(Dhan)(Grade A)", "RICE", "Paddy", "Paddy (Common)"]
   - key: maize
     display: Maize
     aliases: ["Maize", "MAIZE", "Corn"]
@@ -17,15 +17,54 @@ crops:
   - key: cotton
     display: Cotton
     aliases: ["Cotton", "COTTON", "Cotton(Adhiya/Unhusked)"]
+  - key: groundnut
+    display: Groundnut
+    aliases: ["Groundnut", "GROUNDNUT", "Ground Nut Seed"]
+  - key: onion
+    display: Onion
+    aliases: ["Onion", "ONION", "Onion Green"]
+  - key: tomato
+    display: Tomato
+    aliases: ["Tomato", "TOMATO"]
+  - key: chilli
+    display: Chilli
+    aliases: ["Chilli", "CHILLI", "Green Chilli", "Chili Red", "Dry Chillies"]
+  - key: turmeric
+    display: Turmeric
+    aliases: ["Turmeric", "TURMERIC"]
+  - key: banana
+    display: Banana
+    aliases: ["Banana", "BANANA", "Banana - Green"]
+  - key: coconut
+    display: Coconut
+    aliases: ["Coconut", "COCONUT", "Tender Coconut"]
+  - key: arecanut
+    display: Arecanut
+    aliases: ["Arecanut", "ARECANUT", "Arecanut(Betelnut/Supari)"]
+  - key: brinjal
+    display: Brinjal
+    aliases: ["Brinjal", "BRINJAL"]
+  - key: ragi
+    display: Ragi
+    aliases: ["Ragi", "RAGI", "Ragi(Finger Millet)"]
 
 states:
+  - "Andhra Pradesh"
+  - "Bihar"
+  - "Chhattisgarh"
   - "Gujarat"
-  - "Maharashtra"
-  - "Uttar Pradesh"
-  - "Punjab"
-  - "Madhya Pradesh"
+  - "Haryana"
   - "Karnataka"
+  - "Kerala"
+  - "Madhya Pradesh"
+  - "Maharashtra"
+  - "Odisha"
+  - "Punjab"
   - "Rajasthan"
+  - "Tamil Nadu"
+  - "Telangana"
+  - "Uttar Pradesh"
+  - "West Bengal"
 
 priority_markets:
   Maharashtra: ["Lasalgaon", "Pune", "Nashik", "Nagpur"]

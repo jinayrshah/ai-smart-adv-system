@@ -18,7 +18,11 @@ const languages = [
   { code: 'te', name: 'Telugu', nativeName: 'తెలుగు' }
 ];
 
-export const LanguageSelector: React.FC = () => {
+interface LanguageSelectorProps {
+  variant?: 'forest' | 'light';
+}
+
+export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = 'forest' }) => {
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -41,11 +45,18 @@ export const LanguageSelector: React.FC = () => {
     setIsOpen(false);
   };
 
+  const buttonStyle = variant === 'forest'
+    ? 'text-white/90 hover:text-[#e8fe85] hover:bg-white/10 border-white/20 bg-white/5'
+    : 'text-[#212529] hover:bg-[#e6ecd5] border-[#c3cda7] bg-white';
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-1.5 px-3 py-1.5 text-stone-300 hover:text-[#e8fe85] hover:bg-stone-800/80 transition-colors rounded-full border border-stone-800 cursor-pointer font-mono text-xs"
+        className={cn(
+          "flex items-center space-x-1.5 px-3 py-1.5 transition-colors rounded-full border cursor-pointer font-mono text-xs shadow-2xs",
+          buttonStyle
+        )}
         aria-label="Select Language"
       >
         <Languages size={15} />
@@ -60,7 +71,7 @@ export const LanguageSelector: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-52 bg-[#111827] border border-stone-800 rounded-2xl shadow-2xl z-50 overflow-hidden"
+            className="absolute right-0 mt-2 w-52 bg-white border border-[#c3cda7] rounded-2xl shadow-xl z-50 overflow-hidden"
           >
             <div className="p-2 space-y-1">
               {languages.map((lang) => (
@@ -70,8 +81,8 @@ export const LanguageSelector: React.FC = () => {
                   className={cn(
                     "w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all cursor-pointer font-mono",
                     i18n.language.split('-')[0] === lang.code
-                      ? "bg-[#07503f] text-[#e8fe85] border border-[#e8fe85]/30 font-bold"
-                      : "text-stone-400 hover:bg-stone-800/60 hover:text-stone-200"
+                      ? "bg-[#07503f] text-[#e8fe85] font-bold shadow-xs"
+                      : "text-[#212529] hover:bg-[#f1efdf]"
                   )}
                 >
                   <div className="flex flex-col items-start">

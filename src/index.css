@@ -2,37 +2,47 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --font-sans: "Inter", "Noto Sans Devanagari", "Noto Sans Gujarati", "Noto Sans Kannada", "Noto Sans Telugu", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Cormorant Garamond", Georgia, Cambria, "Times New Roman", serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --color-brand-green: #07503f;
-  --color-brand-green-dark: #04362b;
+  /* Arva Palette Tokens from tokens.json, variables.css & DESIGN.md */
+  --color-forest-ink: #07503f;
   --color-forest: #07503f;
   --color-forest-dark: #04362b;
   --color-forest-light: #0d6e57;
+  --color-vivid-lime: #e8fe85;
+  --color-lime-vivid: #e8fe85;
   --color-bone: #f1efdf;
   --color-bone-light: #faf9f2;
   --color-bone-card: #f6f4ea;
   --color-bone-border: #e2dfcb;
-  --color-lime-vivid: #e8fe85;
-  --color-pastel-sky: #d0e6f6;
-  --color-pastel-peach: #f8d4c8;
-  --color-pastel-sage: #d9e2d5;
-  --color-pastel-ash: #d5d8db;
-  --color-dark-bg: #0b0f19;
-  --color-dark-card: #111827;
-  --color-dark-input: #1f2937;
-  --color-dark-border: #1f2937;
-  --color-dark-accent: #e8fe85;
+  --color-pure-white: #ffffff;
+  --color-ash-gray: #efefef;
+  --color-charcoal: #212529;
+  --color-graphite: #353535;
+  --color-pewter: #6d6d6d;
+  --color-sky-card: #b2cee7;
+  --color-peach-card: #fceace;
+  --color-sage-card: #e6ecd5;
+  --color-moss: #c3cda7;
+  --color-pastel-sky: #b2cee7;
+  --color-pastel-peach: #fceace;
+  --color-pastel-sage: #e6ecd5;
+  --color-pastel-ash: #efefef;
+
+  /* Typography */
+  --font-sans: "Inter", "Noto Sans Devanagari", "Noto Sans Gujarati", "Noto Sans Kannada", "Noto Sans Telugu", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, Cambria, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 body {
-  @apply bg-dark-bg text-stone-200 antialiased selection:bg-forest/30 selection:text-white font-sans;
+  @apply bg-bone text-charcoal font-sans antialiased selection:bg-forest-ink/20 selection:text-forest-ink;
+  background-color: #f1efdf;
+  color: #212529;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -40,38 +50,83 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-stone-800 rounded-full hover:bg-stone-700 transition-colors;
+  background-color: #c3cda7;
+  border-radius: 9999px;
 }
 
+::-webkit-scrollbar-thumb:hover {
+  background-color: #07503f;
+}
+
+/* Arva clean inputs */
 input, select, textarea {
-  @apply bg-dark-input border-dark-border text-white focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all;
+  background-color: #ffffff;
+  border-color: #c3cda7;
+  color: #212529;
+  transition: all 0.2s ease-in-out;
 }
 
-.glass-panel {
-  @apply bg-dark-card/80 backdrop-blur-md border border-dark-border;
+input:focus, select:focus, textarea:focus {
+  border-color: #07503f;
+  outline: none;
+  box-shadow: 0 0 0 1px #07503f;
 }
 
-.glass-forest {
-  @apply bg-forest/90 backdrop-blur-md border border-forest-light/30 text-white;
+/* Arva card surfaces */
+.arva-card {
+  background-color: #ffffff;
+  border: 1px solid rgba(195, 205, 167, 0.6);
+  border-radius: 24px;
 }
 
-.nav-item-active {
-  @apply text-lime-vivid bg-forest/40;
+.arva-card-bone {
+  background-color: #faf9f2;
+  border: 1px solid #e2dfcb;
+  border-radius: 24px;
 }
 
-/* 3D transforms */
-.perspective-1000 {
-  perspective: 1000px;
+/* Quilted pastel tiles */
+.tile-sky {
+  background-color: #b2cee7;
+  color: #212529;
 }
 
-.perspective-2000 {
-  perspective: 2000px;
+.tile-peach {
+  background-color: #fceace;
+  color: #212529;
 }
 
-.preserve-3d {
-  transform-style: preserve-3d;
+.tile-sage {
+  background-color: #e6ecd5;
+  color: #212529;
 }
 
-.backface-hidden {
-  backface-visibility: hidden;
+.tile-ash {
+  background-color: #efefef;
+  color: #212529;
+}
+
+/* Pill buttons */
+.pill-btn-forest {
+  background-color: #07503f;
+  color: #ffffff;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.pill-btn-forest:hover {
+  background-color: #0d6e57;
+}
+
+.pill-btn-outline {
+  background-color: transparent;
+  border: 1px solid #353535;
+  color: #212529;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+}
+
+.pill-btn-outline:hover {
+  background-color: rgba(7, 80, 63, 0.08);
 }

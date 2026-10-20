@@ -33,12 +33,28 @@ def filter_market_rows(rows: list[dict[str, Any]], market: str | None) -> list[d
     if not market:
         return rows
     key = market_key(market)
-    return [r for r in rows if market_key(r.get("market")) == key]
+    exact = [r for r in rows if market_key(r.get("market")) == key]
+    if exact:
+        return exact
+    # Fallback to substring match for market variants with suffixes like (Uzhavar Sandhai)
+    return [r for r in rows if key and (key in market_key(r.get("market")) or market_key(r.get("market")) in key)]
 
 
 def chunk_list(items: list[Any], chunk_size: int = 1000):
     for i in range(0, len(items), chunk_size):
         yield items[i : i + chunk_size]
+
+
+STATE_CANONICAL_MAP = {
+    "kerala": "Keralam",
+    "keralam": "Keralam",
+    "kerala (keralam)": "Keralam",
+    "chhattisgarh": "Chattisgarh",
+    "chatishgarh": "Chattisgarh",
+    "chattisgarh": "Chattisgarh",
+    "orissa": "Odisha",
+    "odisha": "Odisha",
+}
 
 
 class MandiRepository:
@@ -139,9 +155,22 @@ class MandiRepository:
         (exactness is restored in Python by `filter_market_rows`)."""
         query = self.client.table(table).select(columns)
         if commodity:
-            query = query.ilike("commodity", commodity.strip())
+            c_clean = commodity.strip()
+            c_lower = c_clean.lower()
+            if c_lower in ("rice", "paddy"):
+                query = query.or_("commodity.ilike.%Rice%,commodity.ilike.%Paddy%")
+            elif c_lower in ("chilli", "green chilli", "chili"):
+                query = query.or_("commodity.ilike.%Chilli%,commodity.ilike.%Chili%")
+            elif c_lower.startswith("bajra"):
+                query = query.ilike("commodity", "%Bajra%")
+            elif c_lower.startswith("jowar"):
+                query = query.ilike("commodity", "%Jowar%")
+            else:
+                query = query.ilike("commodity", f"%{c_clean}%")
         if state:
-            query = query.ilike("state", state.strip())
+            clean_st = state.strip()
+            lookup_st = STATE_CANONICAL_MAP.get(clean_st.lower(), clean_st)
+            query = query.ilike("state", lookup_st)
         if district:
             query = query.ilike("district", district.strip())
         if market:

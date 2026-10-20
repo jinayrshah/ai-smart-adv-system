@@ -109,3 +109,18 @@ class MarketSearchResponse(BaseModel):
     markets: list[MarketSearchResult]
     total_records: int
     as_of: str
+
+
+class MarketListItem(BaseModel):
+    market: str
+    district: str = ""
+    records: int = 0
+
+
+class MarketListResponse(BaseModel):
+    status: str = "ok"
+    state: str
+    commodity: str = ""
+    markets: list[MarketListItem]
+    total: int
+    as_of: str
