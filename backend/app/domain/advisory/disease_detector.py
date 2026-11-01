@@ -324,7 +324,7 @@ class DiseaseDetector:
                 return vision
             return DiseaseCheckResponse(
                 crop=crop_label,
-                label="Diagnosis unavailable",
+                label="Photo not analysed",
                 confidence=0.0,
                 confidence_status="low",
                 advisory_note=(

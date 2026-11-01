@@ -100,7 +100,7 @@ def _discover_groq_models(key: str, vision: bool) -> list[str]:
         return []
     chat = [i for i in ids if not any(t in i.lower() for t in _NOT_CHAT)]
     if vision:
-        picks = [i for i in chat if any(t in i.lower() for t in ("scout", "maverick", "vision", "llama-4"))]
+        picks = [i for i in chat if any(t in i.lower() for t in ("scout", "maverick", "vision", "llama-4", "-vl", "vl-", "gemma", "pixtral", "llava", "omni"))]
     else:
         prefs = ("llama-3.3-70b", "gpt-oss-120b", "llama-4-maverick", "qwen", "llama-3.1-8b", "gpt-oss-20b", "llama")
         picks = sorted(chat, key=lambda i: next((n for n, p in enumerate(prefs) if p in i.lower()), len(prefs)))

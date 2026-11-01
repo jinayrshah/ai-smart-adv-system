@@ -55,8 +55,8 @@ export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEdit
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [thread, busy]);
 
-  const ask = async (q: string) => {
-    if (!q.trim() || busy) return;
+  const ask = async (q: string, force = false) => {
+    if (!q.trim() || (busy && !force)) return;
     setView('ask');
     setThread((t) => [...t, { kind: 'q', text: q }]);
     setText('');
@@ -91,6 +91,13 @@ export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEdit
       const res = await checkCropDisease(file, crop?.name, farm?.id ?? undefined);
       setThread((t) => [...t, { kind: 'dx', res }]);
       if (res.status === 'model' || res.status === 'vision') setLastDisease(res.label);
+      else if (res.status === 'unavailable') {
+        // No model could look at the photo: still answer from the farm's crop, stage and weather.
+        const c = crop?.name || 'crop';
+        await ask(`My ${c} leaves show disease or pest symptoms (the photo could not be analysed automatically). `
+          + `What are the most likely diseases or pests for ${c} at this stage and in this weather, how can I tell them apart by look, and what should I do for each?`, true);
+        return;
+      }
     } catch (e: any) {
       setThread((t) => [...t, { kind: 'err', text: e.message, retry: () => sendPhoto(file) }]);
     } finally {
@@ -232,7 +239,8 @@ function Diagnosis({ res, onAsk }: { res: DiseaseCheckResponse; onAsk: (q: strin
   return (
     <article className="max-w-[92%] rounded-2xl rounded-bl-md bg-surface px-5 py-4">
       <p className="text-sm text-ink-soft">
-        {res.status === 'model' ? `Leaf check · trained model ${res.model_version || ''}`.trim()
+        {res.status === 'unavailable' ? 'Leaf check · photo not analysed'
+          : res.status === 'model' ? `Leaf check · trained model ${res.model_version || ''}`.trim()
           : res.status === 'vision' ? 'Leaf check · AI visual assessment, not a lab test' : 'Leaf check'}
       </p>
       <h3 className="mt-1 text-xl font-semibold text-ink">{res.label}</h3>
@@ -242,7 +250,11 @@ function Diagnosis({ res, onAsk }: { res: DiseaseCheckResponse; onAsk: (q: strin
           Confidence: {res.confidence_status}{res.status === 'model' ? ` (${Math.round(res.confidence * 100)}%)` : ''}
         </p>
       )}
-      <p className="mt-3 text-ink">{res.advisory_note}</p>
+      <p className="mt-3 text-ink">
+        {res.status === 'unavailable'
+          ? 'The photo could not be analysed automatically. The advisor’s answer below lists the most likely problems for your crop right now and how to tell them apart. Show the plant to your KVK to confirm.'
+          : res.advisory_note}
+      </p>
       {res.treatments.length > 0 && (
         <div className="mt-4">
           <h4 className="font-semibold text-ink">What the guidance says</h4>
