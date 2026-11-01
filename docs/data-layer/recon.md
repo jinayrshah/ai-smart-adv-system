@@ -78,7 +78,7 @@
 | 1 | Python Version | System runs Python 3.14.3; GitHub Actions runs Python 3.12 | Standard Python library and FastAPI/Pydantic packages are 100% compatible. `backend/requirements.txt` specifies tested version pins. |
 | 2 | Legacy History Table vs File | Old history is stored in `data/market_price_history.json` rather than a Postgres table | `jobs/migrate_legacy_history.py` will read the JSON file directly and bulk upsert to Supabase via `upsert_mandi_prices` RPC. |
 | 3 | data.gov.in Field Cases | Some responses return capitalized `State`, others `state` | Canonicalizer and adapter use case-insensitive dict access (`dict.get` with lowercased keys). |
-| 4 | OpenWeather API Key | Key in `.env` is `4e5179f6c9c7554a1783e03e3403136e` | Configured as `OPENWEATHER_API_KEY` across `.env` and backend configs. |
+| 4 | OpenWeather API Key | Key in `.env` is `<redacted: rotate and keep in .env>` | Configured as `OPENWEATHER_API_KEY` across `.env` and backend configs. |
 
 ---
 
@@ -86,7 +86,7 @@
 
 1. **6 Advisory Crops:** Wheat, Rice, Maize, Sugarcane, Potato, Cotton.
 2. **Tracked States:** Gujarat, Maharashtra, Uttar Pradesh, Punjab, Madhya Pradesh, Karnataka, Rajasthan.
-3. **Personal data.gov.in key:** Verified (`579b464db66ec23bdd00000169c8a6ecdbc442536f19d90506bd2ee5`).
+3. **Personal data.gov.in key:** Verified (`<redacted: rotate and keep in .env>`).
 4. **FastAPI host:** Railway (stateless persistent server).
 5. **Chart library:** Recharts.
 6. **Tier B rollout:** After Tier A core validation (Phase 2B / 3B).
