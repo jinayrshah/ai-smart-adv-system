@@ -73,7 +73,7 @@ class RagRepository:
                 json.dump({
                     "documents": RagRepository._local_docs,
                     "chunks": RagRepository._local_chunks,
-                }, f, ensure_ascii=False)
+                }, f, ensure_ascii=False, default=str)
         except Exception as exc:
             logger.warning(f"Could not save RAG cache: {exc}")
 

@@ -29,6 +29,7 @@ def main() -> int:
     if keys:
         try:
             ids = groq_available_models(keys[0])
+            print("  models on this account: " + ", ".join(sorted(ids)))
             for want in [m.strip() for m in (s.GROQ_MODELS + "," + s.GROQ_VISION_MODELS).split(",") if m.strip()]:
                 print(f"  configured model {want}: {'available' if want in ids else 'NOT available (will auto-pick another)'}")
         except Exception:

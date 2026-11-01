@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 import time
 from typing import Any
 
@@ -156,7 +157,9 @@ def _groq_try(models: list[str], keys: list[str], messages: list[dict[str, Any]]
                 continue
             if resp.status_code == 200:
                 text = (resp.json().get("choices") or [{}])[0].get("message", {}).get("content") or ""
-                if text.strip():
+                # Reasoning models (qwen3) may prepend their thinking; farmers only get the answer.
+                text = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.S).strip()
+                if text:
                     return text, f"groq/{model}"
                 continue
             if resp.status_code in (401, 403, 429):
