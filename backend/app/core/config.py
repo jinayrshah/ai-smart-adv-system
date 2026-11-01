@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     # Advisory / AI
     GEMINI_API_KEY: str = ""
     GEMINI_API_KEYS: str = ""
+    # Groq (OpenAI-compatible, free tier). When keys are set it is tried before Gemini.
+    GROQ_API_KEYS: str = ""  # comma-separated; GROQ_API_KEY also accepted
+    GROQ_API_KEY: str = ""
+    GROQ_MODELS: str = "llama-3.3-70b-versatile,llama-3.1-8b-instant"
+    GROQ_VISION_MODELS: str = "meta-llama/llama-4-scout-17b-16e-instruct,meta-llama/llama-4-maverick-17b-128e-instruct"
     # Model ids live in config (Architecture_Advisory.md §20: models get deprecated on a
     # schedule). The first model is tried first; the rest are fallbacks on 404/429/5xx.
     GEMINI_MODEL: str = "gemini-flash-lite-latest"
@@ -81,6 +86,11 @@ class Settings(BaseSettings):
         if self.GEMINI_API_KEY.strip() and self.GEMINI_API_KEY.strip() not in keys:
             keys.insert(0, self.GEMINI_API_KEY.strip())
         return keys
+
+    @property
+    def groq_api_keys(self) -> list[str]:
+        keys = [k.strip() for k in f"{self.GROQ_API_KEY},{self.GROQ_API_KEYS}".split(",") if k.strip()]
+        return list(dict.fromkeys(keys))
 
     @property
     def gemini_models(self) -> list[str]:

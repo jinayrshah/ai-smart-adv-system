@@ -74,6 +74,53 @@ class GeminiKeyPool:
 
 key_pool = GeminiKeyPool()
 
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+_groq_index = 0
+
+
+def _groq_generate(
+    prompt: str, system_instruction: str | None, temperature: float, max_output_tokens: int,
+    response_mime_type: str | None, timeout: float, image_b64: str | None, image_mime: str,
+) -> tuple[str, str | None]:
+    """Groq first when configured: keys rotate (one per account), models fall through on 404/decommission."""
+    global _groq_index
+    settings = get_settings()
+    keys = settings.groq_api_keys
+    if not keys:
+        return "", None
+    models = settings.GROQ_VISION_MODELS if image_b64 else settings.GROQ_MODELS
+    content: Any = prompt if not image_b64 else [
+        {"type": "text", "text": prompt},
+        {"type": "image_url", "image_url": {"url": f"data:{image_mime};base64,{image_b64}"}},
+    ]
+    messages = ([{"role": "system", "content": system_instruction}] if system_instruction else []) + [{"role": "user", "content": content}]
+    _groq_index += 1
+    keys = keys[_groq_index % len(keys):] + keys[: _groq_index % len(keys)]
+    for model in [m.strip() for m in models.split(",") if m.strip()]:
+        body: dict[str, Any] = {"model": model, "messages": messages, "temperature": temperature,
+                                "max_tokens": min(max_output_tokens, 8000)}
+        if response_mime_type == "application/json":
+            body["response_format"] = {"type": "json_object"}
+        for key in keys:
+            try:
+                with httpx.Client(timeout=timeout) as client:
+                    resp = client.post(GROQ_URL, json=body, headers={"Authorization": f"Bearer {key}"})
+            except (httpx.TimeoutException, httpx.ConnectError) as exc:
+                logger.warning(f"Groq {model} unreachable with key ...{key[-6:]}: {exc}")
+                continue
+            if resp.status_code == 200:
+                text = (resp.json().get("choices") or [{}])[0].get("message", {}).get("content") or ""
+                if text.strip():
+                    return text, f"groq/{model}"
+                continue
+            if resp.status_code in (401, 403, 429):
+                logger.warning(f"Groq key ...{key[-6:]} returned {resp.status_code}; trying next key")
+                continue
+            # 404 / 400 (model retired or unsupported request): next model
+            logger.warning(f"Groq {model} returned {resp.status_code}: {resp.text[:160]}")
+            break
+    return "", None
+
 
 def _thinking_config(model: str) -> dict[str, Any] | None:
     if model.startswith("gemini-2.5") and "lite" not in model:
@@ -110,6 +157,11 @@ def generate_text(
     Returns (text, model_used). On any failure returns ("", None) so callers
     fall back to their deterministic path.
     """
+    text, model = _groq_generate(prompt, system_instruction, temperature, max_output_tokens,
+                                 response_mime_type, timeout, image_b64, image_mime)
+    if text:
+        return text, model
+
     keys = key_pool.get_candidates()
     if not keys:
         return "", None

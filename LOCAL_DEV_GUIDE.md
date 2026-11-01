@@ -423,6 +423,7 @@ In Claude Code, `/graphify . --update` also re-extracts changed docs. Open `grap
 |---|---|---|
 | `JWT_SECRET` | **Production (Mandatory)** | Signs login tokens in `server.ts`. Set the **same value for the FastAPI backend** so `/api/farmer/*` checks ownership. Express refuses to start in production without it. |
 | `SUPABASE_JWT_SECRET` | Optional (Production recommended) | Supabase Project JWT secret. When set, `/api/farmer/*` routes enforce caller ownership on profile and farm resources. |
+| `GROQ_API_KEYS` | Recommended | Comma-separated Groq keys (free tier at console.groq.com, no billing). Tried before Gemini for advisor answers, market summaries and leaf-photo checks. Models via `GROQ_MODELS` / `GROQ_VISION_MODELS`. |
 | `GEMINI_API_KEY` | Development & Production | Google Gemini API key for grounded market insights and agronomic advisory. |
 | `GEMINI_API_KEYS` | Optional (Recommended) | Comma-separated list of Gemini API keys for the backend multi-key pool. Automatically rotates keys round-robin with auto-cooldown on rate limits (429). |
 | `GEMINI_MODEL` | Optional (default: `gemini-3.8-flash`) | Primary LLM model for generation; fallbacks automatically cascade through `gemini-3.5-flash`, `gemini-3.1-flash-lite`, and `gemini-flash-latest`. |
@@ -436,6 +437,8 @@ In Claude Code, `/graphify . --update` also re-extracts changed docs. Open `grap
 ---
 
 ## 📋 Recent Changes (Nov 1 2026)
+
+- **Groq as the main AI provider**: `backend/app/core/gemini.py` tries Groq first when `GROQ_API_KEYS` is set, then Gemini. Check a key: `curl -s -H "Authorization: Bearer $GROQ_KEY" https://api.groq.com/openai/v1/models | head`.
 
 - **One Advisor**: the floating home chat widget and all browser-side Gemini calls were removed; chat, leaf-photo checks and schemes live in the Advisor tab and go through FastAPI. Vite no longer bundles any API key (`VITE_GEMINI_*` are unused).
 - **Farm profile per account**: loaded from the server, cached per user; Edit farm pre-fills and saves; demo mode removed.
