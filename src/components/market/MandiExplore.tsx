@@ -79,24 +79,24 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect, onCompare 
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 rounded-2xl bg-[#07503f] text-[#e8fe85] flex items-center justify-center font-bold shadow-md">
+        <div className="w-10 h-10 rounded-2xl bg-brand text-accent flex items-center justify-center font-bold">
           <Globe className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold font-serif text-[#07503f]">
+          <h2 className="text-2xl font-bold text-brand">
             Mandi Explorer
           </h2>
-          <p className="text-xs text-[#555e4a] font-mono mt-0.5">
+          <p className="text-sm text-ink-soft mt-0.5">
             Search any crop at any market across India — live prices from APMC mandis
           </p>
         </div>
       </div>
 
       {/* Search Bar */}
-      <div className="bg-white border border-[#c3cda7] rounded-3xl p-6 shadow-sm space-y-4">
+      <div className="bg-surface rounded-2xl p-6 space-y-4">
         <div className="flex flex-wrap items-end gap-3.5">
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-[10px] font-mono font-bold text-[#555e4a] uppercase tracking-widest mb-1.5">
+            <label className="block text-sm font-bold text-ink-soft mb-1.5">
               Crop / Commodity
             </label>
             <div className="relative">
@@ -106,7 +106,7 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect, onCompare 
                 value={commodity}
                 onChange={(e) => setCommodity(e.target.value)}
                 placeholder="Type or select a crop..."
-                className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full px-4 py-2 text-xs font-mono text-[#212529] focus:outline-none focus:ring-2 focus:ring-[#07503f]"
+                className="w-full bg-ground border border-line rounded-full px-4 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand"
               />
               <datalist id="crop-suggestions">
                 {ALL_CROPS.map((c) => (
@@ -117,13 +117,13 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect, onCompare 
           </div>
 
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-[10px] font-mono font-bold text-[#555e4a] uppercase tracking-widest mb-1.5">
+            <label className="block text-sm font-bold text-ink-soft mb-1.5">
               State
             </label>
             <select
               value={state}
               onChange={(e) => setState(e.target.value)}
-              className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full px-4 py-2 text-xs font-mono text-[#212529] focus:outline-none focus:ring-2 focus:ring-[#07503f]"
+              className="w-full bg-ground border border-line rounded-full px-4 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand"
             >
               <option value="">Select state...</option>
               {ALL_STATES.map((s) => (
@@ -133,7 +133,7 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect, onCompare 
           </div>
 
           <div className="flex-1 min-w-[140px]">
-            <label className="block text-[10px] font-mono font-bold text-[#555e4a] uppercase tracking-widest mb-1.5">
+            <label className="block text-sm font-bold text-ink-soft mb-1.5">
               Market (optional)
             </label>
             <input
@@ -141,26 +141,26 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect, onCompare 
               value={market}
               onChange={(e) => setMarket(e.target.value)}
               placeholder="e.g. Vashi, Azadpur"
-              className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full px-4 py-2 text-xs font-mono text-[#212529] focus:outline-none focus:ring-2 focus:ring-[#07503f]"
+              className="w-full bg-ground border border-line rounded-full px-4 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
 
           <button
             onClick={handleSearch}
             disabled={loading}
-            className="flex items-center gap-2 px-6 py-2.5 bg-[#07503f] hover:bg-[#0a624d] text-[#e8fe85] rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-all shadow-md disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-2 px-6 py-2.5 bg-brand hover:bg-brand-dark text-accent rounded-full text-sm font-bold transition-all disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-[#e8fe85]" />
+              <Loader2 className="w-4 h-4 animate-spin text-accent" />
             ) : (
-              <Search className="w-4 h-4 text-[#e8fe85]" />
+              <Search className="w-4 h-4 text-accent" />
             )}
             <span>Search</span>
           </button>
         </div>
 
         {error && (
-          <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs font-mono text-rose-800">
+          <div className="p-3.5 bg-bad-bg rounded-2xl text-bad">
             {error}
           </div>
         )}
@@ -172,33 +172,33 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect, onCompare 
           {/* Result Header */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2.5">
-              <h3 className="text-xl font-bold font-serif text-[#07503f]">
+              <h3 className="text-xl font-bold text-brand">
                 {result.commodity} in {result.state}
                 {result.market_filter && ` — ${result.market_filter}`}
               </h3>
               <span
-                className={`px-3 py-0.5 text-[10px] font-mono font-bold rounded-full uppercase tracking-wider border ${
+                className={`px-3 py-0.5 text-sm font-bold rounded-full border ${
                   result.tier === "advisory"
-                    ? "bg-[#e6ecd5] text-[#3b5921] border-[#c3cda7]"
-                    : "bg-[#f1efdf] text-[#555e4a] border-[#c3cda7]"
+                    ? "bg-tint text-good border-line"
+                    : "bg-ground text-ink-soft border-line"
                 }`}
               >
                 {result.tier === "advisory" ? "Advisory Crop" : "Explore"}
               </span>
             </div>
-            <div className="text-xs font-mono text-[#555e4a]">
+            <div className="text-sm text-ink-soft">
               {result.total_records} records available
             </div>
           </div>
 
           {/* Market Cards */}
           {result.markets.length === 0 ? (
-            <div className="bg-white border border-dashed border-[#c3cda7] rounded-3xl p-10 text-center">
-              <MapPin className="w-8 h-8 text-[#788365] mx-auto mb-3" />
-              <p className="text-sm font-medium text-[#212529] font-mono">
+            <div className="bg-white border border-dashed border-line rounded-2xl p-10 text-center">
+              <MapPin className="w-8 h-8 text-ink-muted mx-auto mb-3" />
+              <p className="text-sm font-medium text-ink">
                 No price reports found for this search
               </p>
-              <p className="text-xs text-[#555e4a] font-mono mt-1">
+              <p className="text-sm text-ink-soft mt-1">
                 This may mean no APMC has filed a report yet today, or the commodity name doesn't match data.gov.in's listing.
               </p>
             </div>
@@ -229,7 +229,7 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect, onCompare 
 
           {/* Tier B disclaimer */}
           {result.tier === "explore" && (
-            <div className="text-[11px] leading-relaxed text-[#555e4a] font-mono mt-4 border-t border-[#e2e8ce] pt-3">
+            <div className="text-sm leading-relaxed text-ink-soft mt-4 border-t border-line pt-3">
               <strong>Explore tier:</strong> Shows today's price as reported to APMCs. 
               For the 6 deep-advisory crops ({DEEP_CROPS.join(", ")}), open a market card to see its
               30/90/180-day trend above.
@@ -245,10 +245,10 @@ export const MandiExplore: React.FC<MandiExploreProps> = ({ onSelect, onCompare 
 // ===== Market Card Sub-Component (Pastel Quilt Rotating Surfaces) =====
 
 const PASTEL_TINTS = [
-  "hover:border-[#b2cee7] hover:bg-[#b2cee7]/10", // Sky
-  "hover:border-[#f5d5b0] hover:bg-[#fceace]/15", // Peach
-  "hover:border-[#c3cda7] hover:bg-[#e6ecd5]/20", // Sage
-  "hover:border-[#d8d8d8] hover:bg-[#efefef]/30", // Ash
+  "hover:border-sky hover:bg-sky/10", // Sky
+  "hover:border-warn-bg hover:bg-warn-bg/15", // Peach
+  "hover:border-line hover:bg-tint/20", // Sage
+  "hover:border-line hover:bg-ash/30", // Ash
 ];
 
 const MarketCard: React.FC<{
@@ -264,8 +264,8 @@ const MarketCard: React.FC<{
 
   return (
     <div
-      className={`bg-white border border-[#c3cda7] rounded-3xl p-5 shadow-sm transition-all duration-300 ${tintClass} ${
-        onOpen ? "cursor-pointer group hover:-translate-y-0.5 hover:shadow-md" : ""
+      className={`bg-surface rounded-2xl p-5 transition-all duration-300 ${tintClass} ${
+        onOpen ? "cursor-pointer group hover:-translate-y-0.5 hover:" : ""
       }`}
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
@@ -280,11 +280,11 @@ const MarketCard: React.FC<{
     >
       <div className="flex items-start justify-between mb-3">
         <div>
-          <div className="flex items-center gap-1.5 text-xs text-[#555e4a] font-mono mb-1">
-            <MapPin className="w-3 h-3 text-[#07503f]" />
+          <div className="flex items-center gap-1.5 text-sm text-ink-soft mb-1">
+            <MapPin className="w-3 h-3 text-brand" />
             <span>{m.district || m.state}</span>
           </div>
-          <h4 className="font-serif font-bold text-lg text-[#07503f] group-hover:text-[#0a624d] transition-colors">
+          <h4 className="font-bold text-lg text-brand group-hover:text-brand-dark transition-colors">
             {m.market}
           </h4>
         </div>
@@ -297,47 +297,47 @@ const MarketCard: React.FC<{
           aria-pressed={isFavorite}
           aria-label={isFavorite ? "Remove from favourites" : "Add to favourites"}
           title={isFavorite ? "Remove from favourites" : "Add to favourites"}
-          className="p-1.5 -m-1 rounded-full hover:bg-[#f1efdf] transition-colors cursor-pointer"
+          className="p-1.5 -m-1 rounded-full hover:bg-ground transition-colors cursor-pointer"
         >
-          <Star className={`w-4 h-4 ${isFavorite ? "text-amber-500 fill-amber-500" : "text-[#a1ab89]"}`} />
+          <Star className={`w-4 h-4 ${isFavorite ? "text-amber-500 fill-amber-500" : "text-line-strong"}`} />
         </button>
       </div>
 
       {m.latest_modal !== null && m.latest_modal !== undefined ? (
         <div className="space-y-2.5">
           <div className="flex flex-wrap items-baseline gap-2">
-            <span className="text-2xl font-bold font-serif text-[#07503f]">
+            <span className="text-2xl font-bold text-brand">
               ₹{Number(m.latest_modal).toLocaleString("en-IN")}
             </span>
-            <span className="text-xs font-mono text-[#555e4a]">/qtl</span>
-            <span className="text-[11px] font-mono font-bold text-[#e8fe85] bg-[#07503f] px-2.5 py-0.5 rounded-full">
+            <span className="text-sm text-ink-soft">/qtl</span>
+            <span className="text-sm font-bold text-accent bg-brand px-2.5 py-0.5 rounded-full">
               ₹{(Number(m.latest_modal) / 100).toFixed(1)} / kg
             </span>
           </div>
 
           {m.latest_min !== null && m.latest_max !== null && (
-            <div className="flex items-center gap-1.5 text-xs font-mono text-[#555e4a]">
-              <TrendingUp className="w-3.5 h-3.5 text-[#07503f]" />
+            <div className="flex items-center gap-1.5 text-sm text-ink-soft">
+              <TrendingUp className="w-3.5 h-3.5 text-brand" />
               <span>Band: ₹{Number(m.latest_min).toLocaleString("en-IN")} – ₹{Number(m.latest_max).toLocaleString("en-IN")}</span>
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs text-[#555e4a] pt-2 border-t border-[#e2e8ce] font-mono">
+          <div className="flex items-center justify-between text-sm text-ink-soft pt-2 border-t border-line">
             <div className="flex items-center gap-1.5">
-              <Clock className="w-3 h-3 text-[#788365]" />
+              <Clock className="w-3 h-3 text-ink-muted" />
               <span>{m.latest_date}</span>
             </div>
-            <span className="text-[10px] text-[#788365]">{m.source}</span>
+            <span className="text-sm text-ink-muted">{m.source}</span>
           </div>
         </div>
       ) : (
-        <div className="text-xs font-mono text-[#788365] py-2">
+        <div className="text-sm text-ink-muted py-2">
           No price data available
         </div>
       )}
 
       {m.records_available > 1 && (
-        <div className="mt-2 text-[10px] font-mono text-[#788365]">
+        <div className="mt-2 text-sm text-ink-muted">
           {m.records_available} recent report{m.records_available === 1 ? "" : "s"} on file{tier === "advisory" ? " • tracked" : ""}
         </div>
       )}
@@ -350,9 +350,9 @@ const MarketCard: React.FC<{
             e.stopPropagation();
             onCompare();
           }}
-          className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full border border-[#c3cda7] hover:border-[#07503f] hover:bg-[#e6ecd5] text-[#07503f] text-[11px] font-mono font-semibold transition-all cursor-pointer"
+          className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full border border-line hover:border-brand hover:bg-tint text-brand text-sm font-semibold transition-all cursor-pointer"
         >
-          <GitCompare className="w-3 h-3 text-[#07503f]" />
+          <GitCompare className="w-3 h-3 text-brand" />
           Add to Compare
         </button>
       )}

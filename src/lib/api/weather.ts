@@ -143,14 +143,8 @@ export interface LocationSearchResult {
 
 export async function searchWeatherLocations(query: string): Promise<LocationSearchResult[]> {
   if (!query || query.trim().length < 2) return [];
-  try {
-    const res = await fetch(`/api/weather/search?query=${encodeURIComponent(query.trim())}`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.results || [];
-  } catch (err) {
-    console.warn('Weather location search failed:', err);
-    return [];
-  }
+  const res = await fetch(`/api/weather/search?query=${encodeURIComponent(query.trim())}`);
+  if (!res.ok) throw new Error('Place search is unavailable right now. Pick your district instead.');
+  const data = await res.json();
+  return data.results || [];
 }
-

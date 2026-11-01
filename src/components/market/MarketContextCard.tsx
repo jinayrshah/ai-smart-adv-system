@@ -77,36 +77,36 @@ export const MarketContextCard: React.FC<MarketContextCardProps> = ({
   const renderStrengthBadge = (strength: "advisory" | "info") => {
     if (strength === "advisory") {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-sm font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
           <AlertCircle className="w-3 h-3" /> Advisory Signal
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-sky-500/10 text-sky-300 border border-sky-500/30">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-sm font-bold bg-sky-500/10 text-sky-300 border border-sky-500/30">
         <Info className="w-3 h-3" /> Factual Context
       </span>
     );
   };
 
   return (
-    <div className="w-full bg-white border border-[#c3cda7] rounded-3xl p-6 space-y-5 text-[#212529]">
+    <div className="w-full bg-surface rounded-2xl p-6 space-y-5 text-ink">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e2e8ce] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-[#07503f] text-[#e8fe85] flex items-center justify-center font-bold">
+          <div className="w-9 h-9 rounded-2xl bg-brand text-accent flex items-center justify-center font-bold">
             <Layers className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold font-serif text-[#07503f] flex items-center gap-2">
+            <h3 className="text-lg font-bold text-brand flex items-center gap-2">
               Context Layer: Market Arrivals & Local Weather
               {data.degraded && (
-                <span className="text-[10px] font-mono bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full font-normal">
+                <span className="text-sm bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full font-normal">
                   Degraded
                 </span>
               )}
             </h3>
-            <p className="text-xs text-[#555e4a] font-mono mt-0.5">
+            <p className="text-sm text-ink-soft mt-0.5">
               Joint observations for {price.commodity} at {price.market} mandi ({weather.district || price.state}, Grid: {weather.grid_key})
             </p>
           </div>
@@ -115,9 +115,9 @@ export const MarketContextCard: React.FC<MarketContextCardProps> = ({
         {/* Confidence & Freshness badges */}
         <div className="flex items-center gap-2">
           <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold border ${
               weather.confidence === "high"
-                ? "bg-[#e6ecd5] text-[#3b5921] border-[#c3cda7]"
+                ? "bg-tint text-good border-line"
                 : weather.confidence === "medium"
                 ? "bg-amber-50 text-amber-800 border-amber-200"
                 : "bg-rose-50 text-rose-800 border-rose-200"
@@ -132,39 +132,39 @@ export const MarketContextCard: React.FC<MarketContextCardProps> = ({
       </div>
 
       {/* Snapshot metrics grid - 4 Quilted Pastel Tiles */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-        <div className="bg-[#b2cee7]/40 border border-[#b2cee7] p-4 rounded-2xl space-y-1">
-          <span className="text-[#18486b] block text-[10px] font-mono font-bold uppercase tracking-wider">Latest Modal Price</span>
-          <span className="text-xl font-bold font-serif text-[#18486b] block">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+        <div className="bg-sky/40 border border-sky p-4 rounded-2xl space-y-1">
+          <span className="text-sky-ink block text-sm font-bold">Latest Modal Price</span>
+          <span className="text-xl font-bold text-sky-ink block">
             {price.latest_modal_price != null ? `₹${price.latest_modal_price}` : "—"}
           </span>
-          <span className="text-[10px] font-mono text-[#18486b]/80">
+          <span className="text-sm text-sky-ink/80">
             {price.change_7d_pct != null ? `${price.change_7d_pct > 0 ? "+" : ""}${price.change_7d_pct}% (7d)` : "7d trend N/A"}
           </span>
         </div>
 
-        <div className="bg-[#fceace]/60 border border-[#f5d5b0] p-4 rounded-2xl space-y-1">
-          <span className="text-[#8a4b12] block text-[10px] font-mono font-bold uppercase tracking-wider">Volatility (30d)</span>
-          <span className="text-xl font-bold font-serif text-[#8a4b12] block">
+        <div className="bg-warn-bg/60 border border-warn-bg p-4 rounded-2xl space-y-1">
+          <span className="text-warn block text-sm font-bold">Volatility (30d)</span>
+          <span className="text-xl font-bold text-warn block">
             {price.volatility_pct != null ? `${price.volatility_pct}%` : "—"}
           </span>
-          <span className="text-[10px] font-mono text-[#8a4b12]/80">
+          <span className="text-sm text-warn/80">
             Coverage: {Math.round(price.coverage_ratio * 100)}% of days
           </span>
         </div>
 
-        <div className="bg-[#e6ecd5]/70 border border-[#c3cda7] p-4 rounded-2xl space-y-1">
-          <span className="text-[#3b5921] block text-[10px] font-mono font-bold uppercase tracking-wider">Recent Rain (7d/30d)</span>
-          <span className="text-xl font-bold font-serif text-[#3b5921] block">
+        <div className="bg-tint/70 border border-line p-4 rounded-2xl space-y-1">
+          <span className="text-good block text-sm font-bold">Recent Rain (7d/30d)</span>
+          <span className="text-xl font-bold text-good block">
             {weather.rain_7d_mm} mm / {weather.rain_30d_mm} mm
           </span>
           <span
-            className={`text-[10px] font-mono ${
+            className={`text-sm ${
               weather.rain_30d_vs_normal_pct == null
-                ? "text-[#555e4a]"
+                ? "text-ink-soft"
                 : weather.rain_30d_vs_normal_pct >= 0
-                ? "text-[#3b5921] font-bold"
-                : "text-[#8a4b12] font-bold"
+                ? "text-good font-bold"
+                : "text-warn font-bold"
             }`}
           >
             {weather.rain_30d_vs_normal_pct != null
@@ -173,12 +173,12 @@ export const MarketContextCard: React.FC<MarketContextCardProps> = ({
           </span>
         </div>
 
-        <div className="bg-[#efefef] border border-[#d8d8d8] p-4 rounded-2xl space-y-1">
-          <span className="text-[#4a4f55] block text-[10px] font-mono font-bold uppercase tracking-wider">Dry Spell / Heat</span>
-          <span className="text-xl font-bold font-serif text-[#212529] block">
+        <div className="bg-ash border border-line p-4 rounded-2xl space-y-1">
+          <span className="text-ink-soft block text-sm font-bold">Dry Spell / Heat</span>
+          <span className="text-xl font-bold text-ink block">
             {weather.dry_spell_days} dry days
           </span>
-          <span className="text-[10px] font-mono text-[#6c757d]">
+          <span className="text-sm text-ink-soft">
             {weather.tmax_7d_anomaly_c != null
               ? `${weather.tmax_7d_anomaly_c > 0 ? "+" : ""}${weather.tmax_7d_anomaly_c}°C anomaly`
               : "Temp: normal"}
@@ -189,17 +189,17 @@ export const MarketContextCard: React.FC<MarketContextCardProps> = ({
       {/* Descriptive Signals */}
       {signals && signals.length > 0 ? (
         <div className="space-y-2.5 pt-2">
-          <span className="text-[10px] font-mono font-bold text-[#555e4a] uppercase tracking-widest block">
+          <span className="text-sm font-bold text-ink-soft block">
             Rule-Based Context Signals (Max 3)
           </span>
           <div className="space-y-2.5">
             {signals.map((sig, idx) => (
               <div
                 key={idx}
-                className="p-4 rounded-2xl bg-[#f1efdf] border border-[#c3cda7] space-y-2"
+                className="p-4 rounded-2xl bg-ground border border-line space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#07503f] flex items-center gap-2">
+                  <span className="text-sm font-bold text-brand flex items-center gap-2">
                     {renderStrengthBadge(sig.strength)}
                     {sig.name}
                   </span>
@@ -208,7 +208,7 @@ export const MarketContextCard: React.FC<MarketContextCardProps> = ({
                       {Object.entries(sig.evidence).map(([k, v]) => (
                         <span
                           key={k}
-                          className="text-[10px] font-mono bg-white border border-[#c3cda7] text-[#555e4a] px-2 py-0.5 rounded-full"
+                          className="text-sm bg-white border border-line text-ink-soft px-2 py-0.5 rounded-full"
                         >
                           {k}: {typeof v === "number" ? (Number.isInteger(v) ? v : v.toFixed(1)) : v}
                         </span>
@@ -216,20 +216,20 @@ export const MarketContextCard: React.FC<MarketContextCardProps> = ({
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-[#212529] leading-relaxed">{sig.text}</p>
+                <p className="text-sm text-ink leading-relaxed">{sig.text}</p>
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <div className="p-3 rounded-2xl bg-[#f1efdf] border border-[#c3cda7] text-xs text-[#555e4a]">
+        <div className="p-3 rounded-2xl bg-ground border border-line text-sm text-ink-soft">
           No abnormal weather anomalies or extreme price volatility flags triggered for this market period.
         </div>
       )}
 
       {/* Non-predictive Disclaimer */}
-      <div className="pt-2 border-t border-[#e2e8ce] text-[11px] text-[#555e4a] leading-relaxed">
-        <span className="text-[#07503f] font-bold">Non-Predictive Notice:</span> Signals above are rule-based descriptive indicators cross-referencing local mandi records with ERA5-Land gridded agro-climatology. They describe observed physical conditions and logistics context, and do not constitute price predictions or financial forecasts.
+      <div className="pt-2 border-t border-line text-sm text-ink-soft leading-relaxed">
+        <span className="text-brand font-bold">Non-Predictive Notice:</span> Signals above are rule-based descriptive indicators cross-referencing local mandi records with ERA5-Land gridded agro-climatology. They describe observed physical conditions and logistics context, and do not constitute price predictions or financial forecasts.
       </div>
     </div>
   );

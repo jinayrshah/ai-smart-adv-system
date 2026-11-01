@@ -177,7 +177,7 @@ def test_weather_search_endpoint(monkeypatch):
             return self
         def __exit__(self, *args):
             pass
-        def get(self, url):
+        def get(self, url, params=None):
             return MockHttpxResponse()
 
     import httpx
@@ -238,3 +238,17 @@ def test_weather_explore_cap_exceeded_serves_nearest_tracked_grid_degraded():
     finally:
         app.dependency_overrides.pop(get_weather_service, None)
 
+
+
+def test_weather_search_outage_is_an_error_not_empty(monkeypatch):
+    """A geocoder outage must not look like 'no such place'."""
+    import httpx
+
+    class Down:
+        def __init__(self, *a, **k): pass
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+        def get(self, url, params=None): raise httpx.ConnectError("down")
+
+    monkeypatch.setattr(httpx, "Client", Down)
+    assert client.get("/api/weather/search?query=Nagpur").status_code == 502

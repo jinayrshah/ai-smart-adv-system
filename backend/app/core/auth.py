@@ -65,7 +65,7 @@ def _decode_supabase_jwt(token: str, secret: str) -> dict:
             token,
             secret,
             algorithms=["HS256"],
-            options={"require": ["sub", "exp", "iat"]},
+            options={"require": ["exp", "iat"]},
         )
         return payload
     except jwt.ExpiredSignatureError:
@@ -99,7 +99,7 @@ def require_self_or_dev(
     against the ``farmer_id`` path parameter and raise 403 if they differ.
     """
     settings = get_settings()
-    secret = settings.SUPABASE_JWT_SECRET.strip()
+    secret = (settings.SUPABASE_JWT_SECRET or settings.JWT_SECRET).strip()
 
     if not secret:
         # Dev / CI: auth not configured, skip all checks.
@@ -113,7 +113,7 @@ def require_self_or_dev(
         )
 
     payload = _decode_supabase_jwt(credentials.credentials, secret)
-    sub = payload.get("sub")
+    sub = payload.get("sub") or payload.get("userId")  # Supabase uses sub; server.ts signs userId
     if not sub:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -39,64 +39,64 @@ export const MandiRecentReportsTable: React.FC<MandiRecentReportsTableProps> = (
   }, [isOpen, commodity, market, state, includeFlagged]);
 
   return (
-    <div className="bg-white border border-[#c3cda7] rounded-3xl p-6 text-[#212529]">
+    <div className="bg-surface rounded-2xl p-6 text-ink">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between gap-4 text-left group cursor-pointer"
       >
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-[#f1efdf] text-[#07503f] rounded-2xl transition-all">
+          <div className="p-2.5 bg-ground text-brand rounded-2xl transition-all">
             <Database className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h4 className="text-base font-bold font-serif text-[#07503f]">
+              <h4 className="text-base font-bold text-brand">
                 Recent Mandi Price Reports & Quality Audit
               </h4>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-[#e6ecd5] text-[#3b5921] border border-[#c3cda7] px-2.5 py-0.5 rounded-full">
+              <span className="text-sm font-bold bg-tint text-good border border-line px-2.5 py-0.5 rounded-full">
                 {records.length > 0 ? `${records.length} reports` : "Inspect"}
               </span>
             </div>
-            <p className="text-xs text-[#555e4a] font-mono mt-0.5">
+            <p className="text-sm text-ink-soft mt-0.5">
               Raw arrival observations from Agmarknet with statistical outlier quality flags
             </p>
           </div>
         </div>
-        <div className="p-1 text-[#555e4a] group-hover:text-[#07503f] transition-colors">
+        <div className="p-1 text-ink-soft group-hover:text-brand transition-colors">
           {isOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
         </div>
       </button>
 
       {isOpen && (
-        <div className="mt-4 pt-4 border-t border-[#e2e8ce] space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-            <div className="text-[#555e4a] flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-[#07503f]" />
+        <div className="mt-4 pt-4 border-t border-line space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+            <div className="text-ink-soft flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-brand" />
               <span>Statistical IQR outlier detector active on all arrival records</span>
             </div>
-            <label className="flex items-center gap-2 cursor-pointer font-medium text-[#212529]">
+            <label className="flex items-center gap-2 cursor-pointer font-medium text-ink">
               <input
                 type="checkbox"
                 checked={includeFlagged}
                 onChange={(e) => setIncludeFlagged(e.target.checked)}
-                className="rounded border-[#c3cda7] bg-[#f1efdf] text-[#07503f] focus:ring-[#07503f]"
+                className="rounded border-line bg-ground text-brand focus:ring-brand"
               />
               <span>Include flagged statistical outliers</span>
             </label>
           </div>
 
           {loading ? (
-            <div className="py-6 text-center text-xs font-mono text-[#555e4a]">Loading reports...</div>
+            <div className="py-6 text-center text-sm text-ink-soft">Loading reports...</div>
           ) : error ? (
-            <div className="py-3 text-xs font-mono text-rose-600">{error}</div>
+            <div className="py-3 text-sm text-rose-600">{error}</div>
           ) : records.length === 0 ? (
-            <div className="py-6 text-center text-xs font-mono text-[#555e4a]">
+            <div className="py-6 text-center text-sm text-ink-soft">
               No recent arrival records found for {commodity} at {market}.
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs font-mono text-left">
-                <thead className="bg-[#f1efdf] text-[#555e4a] text-[10px] uppercase tracking-wider border-b border-[#c3cda7]">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-ground text-ink-soft text-sm border-b border-line">
                   <tr>
                     <th className="py-2.5 px-3">Arrival Date</th>
                     <th className="py-2.5 px-3">Variety / Grade</th>
@@ -107,37 +107,37 @@ export const MandiRecentReportsTable: React.FC<MandiRecentReportsTableProps> = (
                     <th className="py-2.5 px-3">Quality Flag</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8ce] font-medium">
+                <tbody className="divide-y divide-line font-medium">
                   {records.map((r, idx) => (
                     <tr
                       key={r.id || idx}
-                      className="hover:bg-[#f1efdf]/50 transition-colors text-[#212529]"
+                      className="hover:bg-ground/50 transition-colors text-ink"
                     >
                       <td className="py-2.5 px-3 whitespace-nowrap">{r.arrival_date}</td>
                       <td className="py-2.5 px-3">
-                        <span className="font-semibold text-[#07503f]">{r.variety || "Other"}</span>
-                        {r.grade && <span className="text-[#788365] ml-1">({r.grade})</span>}
+                        <span className="font-semibold text-brand">{r.variety || "Other"}</span>
+                        {r.grade && <span className="text-ink-muted ml-1">({r.grade})</span>}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-[#555e4a]">
+                      <td className="py-2.5 px-3 text-right text-ink-soft">
                         {r.min_price !== null ? `₹${r.min_price}` : "—"}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-[#555e4a]">
+                      <td className="py-2.5 px-3 text-right text-ink-soft">
                         {r.max_price !== null ? `₹${r.max_price}` : "—"}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-bold text-[#07503f]">
+                      <td className="py-2.5 px-3 text-right font-bold text-brand">
                         {r.modal_price !== null ? `₹${r.modal_price}` : "—"}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-[#212529]">
+                      <td className="py-2.5 px-3 text-right text-ink">
                         {r.modal_price !== null ? `₹${(r.modal_price / 100).toFixed(1)}` : "—"}
                       </td>
                       <td className="py-2.5 px-3 whitespace-nowrap">
                         {r.quality_flag === "ok" ? (
-                          <span className="inline-flex items-center gap-1 text-[#3b5921] text-[11px] font-bold">
+                          <span className="inline-flex items-center gap-1 text-good text-sm font-bold">
                             <CheckCircle className="w-3.5 h-3.5" />
                             <span>Verified</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-bold bg-rose-50 text-rose-800 border border-rose-200">
                             <AlertTriangle className="w-3 h-3" />
                             <span>{r.quality_flag}</span>
                           </span>

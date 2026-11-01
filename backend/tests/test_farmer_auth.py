@@ -32,6 +32,7 @@ def _make_jwt(sub: str, secret: str = TEST_SECRET, expired: bool = False) -> str
 def test_auth_bypassed_when_secret_unset(monkeypatch):
     """When SUPABASE_JWT_SECRET is empty, all routes allow unauthenticated access (dev mode)."""
     monkeypatch.setattr(get_settings(), "SUPABASE_JWT_SECRET", "")
+    monkeypatch.setattr(get_settings(), "JWT_SECRET", "")
     farmer_id = str(uuid4())
     res = client.post("/api/farmer/profile", json={"id": farmer_id, "full_name": "Dev Farmer"})
     assert res.status_code == 201
@@ -118,3 +119,17 @@ def test_auth_owner_access_allowed(monkeypatch):
     )
     assert res_get.status_code == 200
     assert res_get.json()["full_name"] == "Legit User A"
+
+
+def test_app_login_token_is_owner_checked(monkeypatch):
+    """Tokens signed by server.ts (JWT_SECRET, `userId` claim) are verified; a different farmer is refused."""
+    monkeypatch.setattr(get_settings(), "SUPABASE_JWT_SECRET", "")
+    monkeypatch.setattr(get_settings(), "JWT_SECRET", TEST_SECRET)
+    me, other = str(uuid4()), str(uuid4())
+    now = datetime.now(timezone.utc)
+    token = jwt.encode({"userId": me, "identifier": "+919999999999", "iat": int(now.timestamp()),
+                        "exp": int((now + timedelta(hours=1)).timestamp())}, TEST_SECRET, algorithm="HS256")
+    h = {"Authorization": f"Bearer {token}"}
+    assert client.get(f"/api/farmer/profile/{other}", headers=h).status_code == 403
+    assert client.get(f"/api/farmer/profile/{me}", headers=h).status_code in (200, 404)
+    assert client.get(f"/api/farmer/profile/{me}").status_code == 401

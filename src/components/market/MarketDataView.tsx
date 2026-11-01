@@ -175,16 +175,16 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Arva Controls Bar */}
-      <div className="bg-white border border-[#c3cda7] rounded-3xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-surface rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <div>
-            <label className="block text-[10px] font-mono font-bold text-[#555e4a] uppercase tracking-widest mb-1.5">
+            <label className="block text-sm font-bold text-ink-soft mb-1.5">
               Crop
             </label>
             <select
               value={commodity}
               onChange={(e) => setCommodity(e.target.value)}
-              className="bg-[#f1efdf] border border-[#c3cda7] rounded-full px-4 py-2 text-xs font-mono text-[#212529] focus:outline-none focus:ring-2 focus:ring-[#07503f]"
+              className="bg-ground border border-line rounded-full px-4 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand"
             >
               <option value="">— Select crop —</option>
               <option value="Arecanut">Arecanut</option>
@@ -210,7 +210,7 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
           </div>
 
           <div>
-            <label className="block text-[10px] font-mono font-bold text-[#555e4a] uppercase tracking-widest mb-1.5">
+            <label className="block text-sm font-bold text-ink-soft mb-1.5">
               State
             </label>
             <select
@@ -219,7 +219,7 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
                 setState(e.target.value);
                 setMarket("");
               }}
-              className="bg-[#f1efdf] border border-[#c3cda7] rounded-full px-4 py-2 text-xs font-mono text-[#212529] focus:outline-none focus:ring-2 focus:ring-[#07503f]"
+              className="bg-ground border border-line rounded-full px-4 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand"
             >
               <option value="">— Select state —</option>
               <option value="Andhra Pradesh">Andhra Pradesh</option>
@@ -257,9 +257,9 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
             <button
               onClick={downloadCsv}
               title="Export trend series to CSV"
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#f1efdf] hover:bg-[#e6ecd5] text-[#212529] border border-[#c3cda7] rounded-full text-xs font-mono uppercase tracking-wider transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-ground hover:bg-tint text-ink border border-line rounded-full text-sm transition-all cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5 text-[#07503f]" />
+              <Download className="w-3.5 h-3.5 text-brand" />
               <span>Export CSV</span>
             </button>
           )}
@@ -267,16 +267,16 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
           <button
             onClick={copyShareLink}
             title="Share view URL"
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#f1efdf] hover:bg-[#e6ecd5] text-[#212529] border border-[#c3cda7] rounded-full text-xs font-mono uppercase tracking-wider transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 bg-ground hover:bg-tint text-ink border border-line rounded-full text-sm transition-all cursor-pointer"
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-[#07503f]" />
-                <span className="text-[#07503f] font-bold">Link Copied!</span>
+                <Check className="w-3.5 h-3.5 text-brand" />
+                <span className="text-brand font-bold">Link Copied!</span>
               </>
             ) : (
               <>
-                <Share2 className="w-3.5 h-3.5 text-[#07503f]" />
+                <Share2 className="w-3.5 h-3.5 text-brand" />
                 <span>Share View</span>
               </>
             )}
@@ -286,43 +286,27 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
             onClick={loadTrend}
             disabled={loading || !commodity || !market}
             title={!commodity || !market ? "Select a crop and market first" : "Refresh data"}
-            className="flex items-center gap-2 px-5 py-2 bg-[#07503f] hover:bg-[#0a624d] text-[#e8fe85] rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dark text-accent rounded-full text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-[#e8fe85]" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-accent" : ""}`} />
             <span>Refresh</span>
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-sm text-rose-800">
-          ⚠️ {error}
+        <div className="p-4 bg-bad-bg rounded-2xl text-bad">
+          {error}
           {error.toLowerCase().includes('0 report') || error.toLowerCase().includes('no data') || error.toLowerCase().includes('not found') ? (
-            <p className="mt-1 text-xs text-rose-600">Try a different market in the same state, or switch to a nearby state where this crop is commonly traded.</p>
+            <p className="mt-1 text-sm text-rose-600">Try a different market in the same state, or switch to a nearby state where this crop is commonly traded.</p>
           ) : null}
         </div>
       )}
 
-      {/* Empty state guide — shown when no trend data loaded yet */}
       {!trendData && !loading && !error && (
-        <div className="bg-white border border-[#c3cda7] rounded-3xl p-10 text-center space-y-4">
-          <div className="w-14 h-14 rounded-full bg-[#e6ecd5] text-[#07503f] flex items-center justify-center mx-auto text-2xl font-bold">
-            📈
-          </div>
-          <h3 className="text-[#07503f] font-bold text-2xl font-serif">Live Mandi Price Intelligence</h3>
-          <p className="text-[#555e4a] text-sm max-w-md mx-auto">
-            Select your <span className="text-[#07503f] font-bold">crop</span>, then your <span className="text-[#07503f] font-bold">state</span>, and choose a <span className="text-[#07503f] font-bold">mandi market</span> to see live price trends, multi-source charts, and net profit calculators.
-          </p>
-          <div className="flex flex-wrap justify-center items-center gap-3 text-xs text-[#555e4a] font-mono pt-3">
-            <span className="px-3 py-1 bg-[#f1efdf] rounded-full border border-[#c3cda7]">1 · Pick Crop</span>
-            <span className="text-[#a1ab89]">→</span>
-            <span className="px-3 py-1 bg-[#f1efdf] rounded-full border border-[#c3cda7]">2 · Select State</span>
-            <span className="text-[#a1ab89]">→</span>
-            <span className="px-3 py-1 bg-[#f1efdf] rounded-full border border-[#c3cda7]">3 · Choose Mandi</span>
-            <span className="text-[#a1ab89]">→</span>
-            <span className="px-3 py-1 bg-[#07503f] text-[#e8fe85] rounded-full font-bold">Live Prices Load</span>
-          </div>
-        </div>
+        <p className="bg-surface rounded-2xl px-5 py-6 text-ink-soft">
+          {!commodity ? "Choose a crop to see prices." : !state ? "Choose your state." : "Choose a mandi to see its price trend, calculators and recent reports."}
+        </p>
       )}
 
       {trendData && (

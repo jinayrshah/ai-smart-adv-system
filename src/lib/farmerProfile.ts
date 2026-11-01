@@ -102,3 +102,49 @@ export function formatIsoDate(iso: string | null | undefined): string {
     ? iso
     : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+
+/*
+ * Per-account cache. The profile used to live under one global key, so whoever logged in
+ * next on the same browser saw the previous account's (or the demo's) farm. The server is
+ * the source of truth; the cache only makes the first paint instant.
+ */
+const LEGACY_KEY = 'farmer_onboarding_profile';
+const cacheKey = (userId: string) => `farmer_profile:${userId}`;
+
+export function readCachedProfile(userId: string): any | null {
+  try {
+    localStorage.removeItem(LEGACY_KEY);
+    const raw = localStorage.getItem(cacheKey(userId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function cacheProfile(userId: string, profile: any | null): void {
+  try {
+    if (profile) localStorage.setItem(cacheKey(userId), JSON.stringify(profile));
+    else localStorage.removeItem(cacheKey(userId));
+  } catch {
+    /* storage blocked: the app still works from the server */
+  }
+}
+
+/** Loads { profile, farm, crops } for an account. null = this farmer has not set up a farm yet. */
+export async function loadFarmerProfile(userId: string): Promise<any | null> {
+  const token = localStorage.getItem('agri_auth_token');
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+  const get = async (url: string) => {
+    const res = await fetch(url, { headers });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Could not load your farm (${res.status}).`);
+    return res.json();
+  };
+  const profile = await get(`/api/farmer/profile/${encodeURIComponent(userId)}`);
+  if (!profile) return null;
+  const farms: any[] = (await get(`/api/farmer/farms?farmer_id=${encodeURIComponent(userId)}`)) ?? [];
+  const farm = farms[0] ?? null;
+  if (!farm) return null;
+  const crops = (await get(`/api/farmer/farms/${farm.id}/crops`)) ?? [];
+  return { profile, farm, crops };
+}

@@ -1,6 +1,6 @@
 import logging
 from typing import Any
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 import httpx
 
 from app.data.weather.service import WeatherService
@@ -88,10 +88,11 @@ def search_locations(
     """
     Search any location in India via Open-Meteo geocoding API for Tier B Explore.
     """
-    url = f"https://geocoding-api.open-meteo.com/v1/search?name={query}&count=6&language=en&format=json&country_code=IN"
+    url = "https://geocoding-api.open-meteo.com/v1/search"
+    params = {"name": query, "count": 6, "language": "en", "format": "json", "country_code": "IN"}
     try:
         with httpx.Client(timeout=5.0) as client:
-            resp = client.get(url)
+            resp = client.get(url, params=params)
             if resp.status_code == 200:
                 data = resp.json()
                 results = []
@@ -104,6 +105,8 @@ def search_locations(
                         "lon": item.get("longitude"),
                     })
                 return {"results": results}
+            raise RuntimeError(f"geocoder returned {resp.status_code}")
     except Exception as exc:
         logger.warning(f"Geocoding search failed: {exc}")
-    return {"results": []}
+        # An outage is not "no such village": let the UI say so.
+        raise HTTPException(status_code=502, detail="Place search is temporarily unavailable.")

@@ -128,7 +128,7 @@ async function safeFetchJson<T>(url: string, ttl: number = CACHE_TTL_MS): Promis
 
   if (!res.ok) {
     if (cached) return cached.data as T;
-    throw new Error(`Market service responded with status ${res.status}`);
+    throw new Error(res.status >= 500 ? "Market data is unavailable right now. Please try again shortly." : `Market data request failed (${res.status}).`);
   }
 
   const data = await res.json();

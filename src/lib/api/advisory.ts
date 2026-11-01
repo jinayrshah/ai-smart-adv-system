@@ -307,7 +307,8 @@ export async function askAdvisory(payload: AdvisoryAskRequest): Promise<Advisory
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to get advisory response');
+    const detail = typeof err.detail === 'string' ? err.detail : null;
+    throw new Error(detail || (res.status >= 500 ? 'The advisor is unavailable right now. Please try again in a minute.' : 'Could not get an answer.'));
   }
   return res.json();
 }
@@ -343,7 +344,7 @@ export interface DiseaseCheckResponse {
   advisory_note: string;
   treatments: DiseaseTreatmentExtract[];
   /** 'unavailable' = no trained model installed (no diagnosis given); 'rejected' = photo unusable */
-  status?: 'model' | 'unavailable' | 'rejected';
+  status?: 'model' | 'vision' | 'unavailable' | 'rejected';
   model_version?: string | null;
   top_k?: Array<{ label: string; confidence: number; display_name?: string }>;
 }

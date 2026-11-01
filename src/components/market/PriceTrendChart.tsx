@@ -1,15 +1,8 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
-  ResponsiveContainer,
-  ComposedChart,
-  Line,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
+  Area, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { TrendPoint } from "../../services/marketApi";
+import type { TrendPoint } from "../../services/marketApi";
 
 interface PriceTrendChartProps {
   points: TrendPoint[];
@@ -22,210 +15,125 @@ interface PriceTrendChartProps {
 /** Revisions §2.7: below this many reports a line chart of isolated dots looks broken. */
 export const THIN_DATA_MIN_REPORTS = 3;
 
-const CustomTooltip = ({ active, payload, label, unit }: any) => {
-  if (active && payload && payload.length) {
-    const data: TrendPoint = payload[0].payload;
-    if (data.modal === null || data.modal === undefined) {
-      return (
-        <div className="bg-white border border-[#c3cda7] p-3 rounded-2xl shadow-xl text-xs font-mono text-[#212529]">
-          <p className="font-semibold text-[#07503f] mb-1">{label}</p>
-          <p className="text-amber-700 font-medium">No mandi report filed on this date</p>
-        </div>
-      );
-    }
+const BRAND = "var(--color-brand)";
+const RANGES: { d: 7 | 30 | 90 | 180; l: string }[] = [
+  { d: 7, l: "7 days" }, { d: 30, l: "30 days" }, { d: 90, l: "3 months" }, { d: 180, l: "6 months" },
+];
+const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+const day = (iso: string, year = false) =>
+  new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", ...(year ? { year: "numeric" } : {}) });
 
-    return (
-      <div className="bg-white border border-[#c3cda7] p-4 rounded-2xl shadow-xl text-xs font-mono space-y-1.5 min-w-[170px] text-[#212529]">
-        <p className="font-semibold text-[#07503f] border-b border-[#e2e8ce] pb-1.5">
-          {label}
-        </p>
-        <div className="flex justify-between items-baseline gap-2 text-[#07503f] font-bold text-sm">
-          <span>Modal:</span>
-          <div className="text-right">
-            <span>₹{data.modal.toLocaleString("en-IN")}/qtl</span>
-            <span className="block text-[11px] font-medium text-[#555e4a]">
-              ₹{(data.modal / 100).toFixed(1)}/kg
-            </span>
-          </div>
-        </div>
-        {data.min !== null && data.max !== null && (
-          <div className="flex justify-between items-baseline gap-2 text-[#555e4a]">
-            <span>Band:</span>
-            <div className="text-right">
-              <span>₹{data.min} – ₹{data.max}/qtl</span>
-              <span className="block text-[10px] text-[#788365]">
-                ₹{(data.min / 100).toFixed(1)} – ₹{(data.max / 100).toFixed(1)}/kg
-              </span>
-            </div>
-          </div>
-        )}
-        {data.n_varieties > 0 && (
-          <div className="flex justify-between items-center text-[#555e4a] text-[11px] pt-1 border-t border-[#e2e8ce]">
-            <span>Varieties:</span>
-            <span>{data.n_varieties}</span>
-          </div>
-        )}
-      </div>
-    );
-  }
-  return null;
-};
+function Tip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const p: TrendPoint = payload[0].payload;
+  return (
+    <div className="bg-surface border border-line rounded-xl px-3 py-2 shadow-lg text-sm num">
+      <p className="text-ink-soft">{day(p.date, true)}</p>
+      {p.modal == null ? (
+        <p className="text-ink">No mandi report this day</p>
+      ) : (
+        <>
+          <p className="text-ink font-semibold">{inr(p.modal)} per quintal <span className="font-normal text-ink-soft">({inr(p.modal / 100)}/kg)</span></p>
+          {p.min != null && p.max != null && <p className="text-ink-soft">Lowest {inr(p.min)}, highest {inr(p.max)}</p>}
+        </>
+      )}
+    </div>
+  );
+}
 
-export const PriceTrendChart: React.FC<PriceTrendChartProps> = ({
-  points,
-  unit,
-  rangeDays,
-  onRangeChange,
-  isLoading,
-}) => {
-  const reports = points.filter((p) => p.modal !== null && p.modal !== undefined);
+export const PriceTrendChart: React.FC<PriceTrendChartProps> = ({ points, rangeDays, onRangeChange, isLoading }) => {
+  const [asTable, setAsTable] = useState(false);
+  const reports = points.filter((p) => p.modal != null);
   const hasData = reports.length > 0;
   const isThin = hasData && reports.length < THIN_DATA_MIN_REPORTS;
 
-  // Format data for chart display
-  const chartData = points.map((p) => ({
-    ...p,
-    // Formatted label (e.g. "02 Oct")
-    displayDate: new Date(p.date + "T00:00:00").toLocaleDateString("en-IN", {
-      month: "short",
-      day: "numeric",
-    }),
-    rangeBand: p.min !== null && p.max !== null ? [p.min, p.max] : null,
-  }));
-
-  const ranges: (7 | 30 | 90 | 180)[] = [7, 30, 90, 180];
+  const data = useMemo(
+    () => points.map((p) => ({ ...p, band: p.min != null && p.max != null ? [p.min, p.max] : null })),
+    [points],
+  );
+  const first = reports[0];
+  const last = reports[reports.length - 1];
+  const avg = hasData ? reports.reduce((s, p) => s + (p.modal as number), 0) / reports.length : 0;
+  const change = first && last && first !== last ? (last.modal as number) - (first.modal as number) : null;
+  const changePct = change != null ? (change / (first.modal as number)) * 100 : null;
 
   return (
-    <div className="bg-white border border-[#c3cda7] rounded-3xl p-6 text-[#212529]">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <section className="bg-surface rounded-2xl p-5 sm:p-6 text-ink">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-xl font-bold font-serif text-[#07503f]">
-            Price Trend & Fluctuation
-          </h3>
-          <p className="text-xs text-[#555e4a] font-mono mt-0.5">
-            Modal price line with daily min/max arrival band. Gaps indicate days with no APMC report.
-          </p>
+          <h2 className="text-lg font-semibold">Price trend</h2>
+          {change != null && (
+            <p className={`mt-1 num ${change > 0 ? "text-good" : change < 0 ? "text-bad" : "text-ink-soft"}`}>
+              {change === 0 ? "Unchanged" : `${change > 0 ? "Up" : "Down"} ${inr(Math.abs(change))} (${Math.abs(changePct!).toFixed(1)}%)`}
+              <span className="text-ink-soft"> since {day(first.date)}</span>
+            </p>
+          )}
         </div>
-
-        <div className="inline-flex p-1 bg-[#f1efdf] border border-[#c3cda7] rounded-full">
-          {ranges.map((r) => (
-            <button
-              key={r}
-              onClick={() => onRangeChange(r)}
-              className={`px-3.5 py-1 text-xs font-mono uppercase tracking-wider rounded-full transition-all cursor-pointer ${
-                rangeDays === r
-                  ? "bg-[#07503f] text-[#e8fe85] font-bold shadow-sm"
-                  : "text-[#555e4a] hover:text-[#07503f]"
-              }`}
-            >
-              {r}d
+        <div role="tablist" aria-label="Time range" className="inline-flex self-start rounded-full bg-ash p-1">
+          {RANGES.map((r) => (
+            <button key={r.d} role="tab" aria-selected={rangeDays === r.d} onClick={() => onRangeChange(r.d)}
+              className={`h-9 px-3 rounded-full text-sm ${rangeDays === r.d ? "bg-surface text-ink font-semibold" : "text-ink-soft hover:text-ink"}`}>
+              {r.l}
             </button>
           ))}
         </div>
       </div>
 
       {!hasData && !isLoading ? (
-        <div className="h-64 flex flex-col items-center justify-center text-center p-8 bg-[#f1efdf]/60 rounded-2xl border border-dashed border-[#c3cda7]">
-          <p className="text-sm font-medium text-[#212529]">
-            No price reports available for this commodity/market in this timeframe.
-          </p>
-          <p className="text-xs text-[#555e4a] mt-1 font-mono">
-            Try expanding the date range or selecting another priority mandi.
-          </p>
-        </div>
-      ) : isThin && !isLoading ? (
-        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
-          <p className="text-sm font-medium text-amber-900 mb-3">
-            Only {reports.length} report{reports.length === 1 ? "" : "s"} in the last {rangeDays} days — too few to draw a
-            trend. The reports are listed below.
-          </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left font-mono">
-              <thead className="text-[#555e4a]">
-                <tr>
-                  <th className="py-1.5 pr-4 font-semibold">Date</th>
-                  <th className="py-1.5 pr-4 font-semibold">Modal (₹/qtl)</th>
-                  <th className="py-1.5 pr-4 font-semibold">₹/kg</th>
-                  <th className="py-1.5 font-semibold">Min – Max (₹/qtl)</th>
+        <p className="mt-6 rounded-xl bg-ground px-4 py-6 text-ink-soft">
+          No price reports for this market in the last {rangeDays} days. Try a longer range or another market.
+        </p>
+      ) : isThin || asTable ? (
+        <div className="mt-6 overflow-x-auto">
+          {isThin && <p className="mb-3 text-ink-soft">Only {reports.length} report{reports.length === 1 ? "" : "s"} in this period, too few for a trend line.</p>}
+          <table className="w-full text-left num">
+            <thead className="text-sm text-ink-soft">
+              <tr><th className="py-2 pr-4 font-medium">Date</th><th className="py-2 pr-4 font-medium text-right">Modal ₹/qtl</th><th className="py-2 pr-4 font-medium text-right">₹/kg</th><th className="py-2 font-medium text-right">Low – high ₹/qtl</th></tr>
+            </thead>
+            <tbody>
+              {reports.slice().reverse().map((p) => (
+                <tr key={p.date} className="border-t border-line">
+                  <td className="py-2 pr-4">{day(p.date, true)}</td>
+                  <td className="py-2 pr-4 text-right font-semibold">{(p.modal as number).toLocaleString("en-IN")}</td>
+                  <td className="py-2 pr-4 text-right">{((p.modal as number) / 100).toFixed(2)}</td>
+                  <td className="py-2 text-right">{p.min != null && p.max != null ? `${p.min.toLocaleString("en-IN")} – ${p.max.toLocaleString("en-IN")}` : "–"}</td>
                 </tr>
-              </thead>
-              <tbody className="text-[#212529]">
-                {reports
-                  .slice()
-                  .reverse()
-                  .map((p) => (
-                    <tr key={p.date} className="border-t border-amber-200">
-                      <td className="py-1.5 pr-4">
-                        {new Date(p.date + "T00:00:00").toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </td>
-                      <td className="py-1.5 pr-4 font-semibold">{(p.modal as number).toLocaleString("en-IN")}</td>
-                      <td className="py-1.5 pr-4">{((p.modal as number) / 100).toFixed(2)}</td>
-                      <td className="py-1.5">
-                        {p.min !== null && p.max !== null
-                          ? `${p.min.toLocaleString("en-IN")} – ${p.max.toLocaleString("en-IN")}`
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
-        <div className="h-72 w-full">
+        <div className="mt-6 h-72" role="img" aria-label={`Modal price over the last ${rangeDays} days, latest ${last ? inr(last.modal as number) : ""} per quintal`}>
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <defs>
-                <linearGradient id="priceBandGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#07503f" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#07503f" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8ce" />
-              <XAxis
-                dataKey="displayDate"
-                tick={{ fontSize: 11, fill: '#788365' }}
-                stroke="#c3cda7"
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: '#788365' }}
-                stroke="#c3cda7"
-                tickLine={false}
-                axisLine={false}
-                domain={["auto", "auto"]}
-                tickFormatter={(val) => `₹${val}`}
-              />
-              <Tooltip content={<CustomTooltip unit={unit} />} />
-              {/* Min-Max Band */}
-              <Area
-                type="monotone"
-                dataKey="max"
-                stroke="transparent"
-                fill="url(#priceBandGradient)"
-                isAnimationActive={false}
-                connectNulls={true}
-              />
-              {/* Modal Price Line */}
-              <Line
-                type="monotone"
-                dataKey="modal"
-                stroke="#07503f"
-                strokeWidth={2.5}
-                dot={{ r: 3.5, fill: "#07503f", stroke: "#e8fe85", strokeWidth: 1.5 }}
-                activeDot={{ r: 6, fill: "#07503f", stroke: "#e8fe85", strokeWidth: 2 }}
-                connectNulls={true}
-                isAnimationActive={false}
-              />
+            <ComposedChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke="var(--color-line)" strokeOpacity={0.6} />
+              <XAxis dataKey="date" tickFormatter={(d) => day(d)} minTickGap={40} tickLine={false} axisLine={false}
+                tick={{ fontSize: 13, fill: "var(--color-ink-soft)" }} />
+              <YAxis width={64} tickCount={4} domain={["auto", "auto"]} tickFormatter={inr} tickLine={false} axisLine={false}
+                tick={{ fontSize: 13, fill: "var(--color-ink-soft)" }} />
+              <Tooltip content={<Tip />} cursor={{ stroke: "var(--color-ink-muted)", strokeWidth: 1 }} />
+              <Area dataKey="band" stroke="none" fill={BRAND} fillOpacity={0.1} isAnimationActive={false} connectNulls={false} activeDot={false} />
+              <ReferenceLine y={avg} stroke="var(--color-ink-muted)" strokeDasharray="4 4"
+                label={{ value: `Average ${inr(avg)}`, position: "insideTopLeft", fill: "var(--color-ink-soft)", fontSize: 13 }} />
+              <Line dataKey="modal" stroke={BRAND} strokeWidth={2} isAnimationActive={false} connectNulls={false}
+                dot={reports.length <= 20 ? { r: 4, fill: BRAND, stroke: "var(--color-surface)", strokeWidth: 2 } : false}
+                activeDot={{ r: 5, fill: BRAND, stroke: "var(--color-surface)", strokeWidth: 2 }} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
       )}
-    </div>
+
+      {hasData && !isThin && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-ink-soft">
+          <p>
+            Line: the most common (modal) price each day. Shaded: lowest to highest price that day.
+            Breaks in the line are days with no report.
+          </p>
+          <button onClick={() => setAsTable(!asTable)} className="text-brand font-medium underline underline-offset-4">
+            {asTable ? "Show chart" : "Show as table"}
+          </button>
+        </div>
+      )}
+    </section>
   );
 };

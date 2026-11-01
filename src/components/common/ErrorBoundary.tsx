@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
               {this.props.fallbackTitle || "Something went wrong rendering this component"}
             </h3>
           </div>
-          <p className="text-xs text-rose-300/80 font-mono break-all">
+          <p className="text-xs text-rose-300/80 break-all">
             {this.state.error?.message || "An unexpected error occurred."}
           </p>
           <button

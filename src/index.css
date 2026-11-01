@@ -1,132 +1,111 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/*
+ * Design tokens. Components use these names (bg-brand, text-ink-soft, border-line...),
+ * never raw hex. Colour belongs on data and the one primary action; surfaces are
+ * separated by a tone step, not shadows.
+ */
 @theme {
-  /* Arva Palette Tokens from tokens.json, variables.css & DESIGN.md */
-  --color-forest-ink: #07503f;
-  --color-forest: #07503f;
-  --color-forest-dark: #04362b;
-  --color-forest-light: #0d6e57;
-  --color-vivid-lime: #e8fe85;
-  --color-lime-vivid: #e8fe85;
-  --color-bone: #f1efdf;
-  --color-bone-light: #faf9f2;
-  --color-bone-card: #f6f4ea;
-  --color-bone-border: #e2dfcb;
-  --color-pure-white: #ffffff;
-  --color-ash-gray: #efefef;
-  --color-charcoal: #212529;
-  --color-graphite: #353535;
-  --color-pewter: #6d6d6d;
-  --color-sky-card: #b2cee7;
-  --color-peach-card: #fceace;
-  --color-sage-card: #e6ecd5;
-  --color-moss: #c3cda7;
-  --color-pastel-sky: #b2cee7;
-  --color-pastel-peach: #fceace;
-  --color-pastel-sage: #e6ecd5;
-  --color-pastel-ash: #efefef;
+  --color-ground: #f4f3ec;      /* page background: field off-white */
+  --color-surface: #ffffff;     /* panels */
+  --color-ash: #eceee6;         /* quiet secondary surface / pressed */
+  --color-tint: #e6ecd5;        /* sage tint for selected / soft emphasis */
+  --color-line: #d9dccb;        /* hairline borders on panels, fields */
+  --color-line-strong: #a1ab89;
 
-  /* Typography */
-  --font-sans: "Inter", "Noto Sans Devanagari", "Noto Sans Gujarati", "Noto Sans Kannada", "Noto Sans Telugu", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Cormorant Garamond", Georgia, Cambria, "Times New Roman", serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-ink: #1d2320;         /* body text */
+  --color-ink-soft: #4d5645;    /* secondary text, AA on surface and ground */
+  --color-ink-muted: #66705a;   /* tertiary text, still AA on surface */
+
+  --color-brand: #07503f;       /* forest: brand, primary action */
+  --color-brand-dark: #053b2e;
+  --color-accent: #e8fe85;      /* lime: active state and the one highlight on dark */
+
+  --color-good: #2f6b2a;
+  --color-warn: #8a4b12;
+  --color-warn-bg: #fbecd2;
+  --color-bad: #b42318;
+  --color-bad-bg: #fde7e4;
+  --color-sky: #cfe0ef;
+  --color-sky-ink: #18486b;
+
+  /* Legacy aliases kept so older class names still resolve to the same palette */
+  --color-forest: var(--color-brand);
+  --color-forest-ink: var(--color-brand);
+  --color-forest-dark: var(--color-brand-dark);
+  --color-vivid-lime: var(--color-accent);
+  --color-bone: var(--color-ground);
+  --color-charcoal: var(--color-ink);
+  --color-pewter: var(--color-ink-soft);
+  --color-moss: var(--color-line);
+
+  --font-sans: "Instrument Sans", "Noto Sans Devanagari", "Noto Sans Gujarati", "Noto Sans Kannada",
+    "Noto Sans Telugu", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  color-scheme: light;
 }
 
 body {
-  @apply bg-bone text-charcoal font-sans antialiased selection:bg-forest-ink/20 selection:text-forest-ink;
-  background-color: #f1efdf;
-  color: #212529;
+  @apply bg-ground text-ink font-sans antialiased;
+  font-size: 16px;
+  line-height: 1.5;
 }
 
-/* Custom scrollbar */
+::selection {
+  background: color-mix(in srgb, var(--color-brand) 18%, transparent);
+  color: var(--color-ink);
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+  letter-spacing: -0.015em;
+}
+
+/* Numbers that line up in columns and readouts */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Visible keyboard focus everywhere; mouse clicks stay clean */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+input, select, textarea {
+  background-color: var(--color-surface);
+  border-color: var(--color-line);
+  color: var(--color-ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-brand);
+  outline: none;
+  box-shadow: 0 0 0 1px var(--color-brand);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background-color: #c3cda7;
+  background-color: var(--color-line-strong);
   border-radius: 9999px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background-color: #07503f;
-}
-
-/* Arva clean inputs */
-input, select, textarea {
-  background-color: #ffffff;
-  border-color: #c3cda7;
-  color: #212529;
-  transition: all 0.2s ease-in-out;
-}
-
-input:focus, select:focus, textarea:focus {
-  border-color: #07503f;
-  outline: none;
-  box-shadow: 0 0 0 1px #07503f;
-}
-
-/* Arva card surfaces */
-.arva-card {
-  background-color: #ffffff;
-  border: 1px solid rgba(195, 205, 167, 0.6);
-  border-radius: 24px;
-}
-
-.arva-card-bone {
-  background-color: #faf9f2;
-  border: 1px solid #e2dfcb;
-  border-radius: 24px;
-}
-
-/* Quilted pastel tiles */
-.tile-sky {
-  background-color: #b2cee7;
-  color: #212529;
-}
-
-.tile-peach {
-  background-color: #fceace;
-  color: #212529;
-}
-
-.tile-sage {
-  background-color: #e6ecd5;
-  color: #212529;
-}
-
-.tile-ash {
-  background-color: #efefef;
-  color: #212529;
-}
-
-/* Pill buttons */
-.pill-btn-forest {
-  background-color: #07503f;
-  color: #ffffff;
-  border-radius: 9999px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.pill-btn-forest:hover {
-  background-color: #0d6e57;
-}
-
-.pill-btn-outline {
-  background-color: transparent;
-  border: 1px solid #353535;
-  color: #212529;
-  border-radius: 9999px;
-  transition: all 0.2s ease;
-}
-
-.pill-btn-outline:hover {
-  background-color: rgba(7, 80, 63, 0.08);
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

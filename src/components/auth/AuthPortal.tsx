@@ -1,766 +1,186 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Phone, 
-  Mail, 
-  Lock, 
-  User as UserIcon, 
-  Eye, 
-  EyeOff, 
-  ArrowRight, 
-  CheckCircle2, 
-  Sprout, 
-  Layers, 
-  ShieldCheck, 
-  Compass, 
-  Globe2, 
-  Sparkles,
-  MapPin,
-  ChevronDown,
-  Droplet,
-  Loader2
-} from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Eye, EyeOff, Loader2, Sprout } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { submitOnboarding, OnboardingPayload } from '../../lib/api/farmer';
 import { LanguageSelector } from '../LanguageSelector';
 
-const INDIAN_STATES_DISTRICTS: Record<string, string[]> = {
-  'Maharashtra': ['Nashik', 'Pune', 'Nagpur', 'Aurangabad', 'Solapur', 'Kolhapur', 'Amravati'],
-  'Gujarat': ['Rajkot', 'Ahmedabad', 'Surat', 'Vadodara', 'Junagadh', 'Bhavnagar', 'Mehsana'],
-  'Punjab': ['Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda', 'Sangrur'],
-  'Madhya Pradesh': ['Indore', 'Bhopal', 'Ujjain', 'Jabalpur', 'Gwalior', 'Hoshangabad'],
-  'Uttar Pradesh': ['Varanasi', 'Lucknow', 'Kanpur', 'Agra', 'Prayagraj', 'Meerut'],
-  'Karnataka': ['Bangalore', 'Belagavi', 'Mysuru', 'Dharwad', 'Ballari', 'Shivamogga'],
-  'Haryana': ['Karnal', 'Hisar', 'Ambala', 'Sirsa', 'Rohtak', 'Kurukshetra'],
-  'Rajasthan': ['Jaipur', 'Jodhpur', 'Kota', 'Bikaner', 'Udaipur', 'Sri Ganganagar'],
-};
+type Mode = 'signin' | 'register';
+type Method = 'mobile' | 'email';
 
-const CROPS_LIST = [
-  { name: 'Wheat', label: 'Wheat (गेहूं)' },
-  { name: 'Rice', label: 'Rice / Paddy (धान)' },
-  { name: 'Cotton', label: 'Cotton (कपास)' },
-  { name: 'Soybean', label: 'Soybean (सोयाबीन)' },
-  { name: 'Tomato', label: 'Tomato (टमाटर)' },
-  { name: 'Maize', label: 'Maize (मक्का)' },
-  { name: 'Mustard', label: 'Mustard (सरसों)' },
-  { name: 'Onion', label: 'Onion (प्याज़)' },
-  { name: 'Groundnut', label: 'Groundnut (मूंगफली)' },
-];
-
-const SOIL_TYPES = [
-  'Black Cotton (काली मिट्टी)',
-  'Loamy (दोमट मिट्टी)',
-  'Sandy Loam (बलुई दोमट)',
-  'Alluvial (जलोढ़ मिट्टी)',
-  'Red Soil (लाल मिट्टी)',
-  'Clay (चिकनी मिट्टी)',
-];
-
+/**
+ * Sign in / create account. Farm details are collected once, after sign-up, by the farm
+ * setup screen (real district or village coordinates, the real sowing date), not here.
+ */
 export const AuthPortal: React.FC = () => {
-  const { t, i18n } = useTranslation();
   const { login, register, updateProfile } = useAuth();
-
-  const [activeTab, setActiveTab] = useState<'signin' | 'register' | 'demo'>('signin');
-  const [authMethod, setAuthMethod] = useState<'mobile' | 'email'>('mobile');
-  
-  // Credentials
+  const [mode, setMode] = useState<Mode>('signin');
+  const [method, setMethod] = useState<Method>('mobile');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-
-  // Farmer Details (Registration & Setup)
   const [fullName, setFullName] = useState('');
-  const [state, setState] = useState('Maharashtra');
-  const [district, setDistrict] = useState('Nashik');
-  const [village, setVillage] = useState('');
-  const [fieldSize, setFieldSize] = useState('3.5');
-  const [selectedCrop, setSelectedCrop] = useState('Tomato');
-  const [soilType, setSoilType] = useState('Black Cotton (काली मिट्टी)');
-  const [irrigation, setIrrigation] = useState('drip');
-
-  // UI state
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
-  const handleMobileInput = (val: string) => {
-    let digits = val.replace(/\D/g, '');
-    if (digits.startsWith('91') && digits.length > 10) {
-      digits = digits.slice(2);
-    }
-    setIdentifier(digits.slice(0, 10));
+  const contact = method === 'mobile' ? `+91${identifier}` : identifier.trim();
+
+  const onMobile = (v: string) => {
+    let d = v.replace(/\D/g, '');
+    if (d.startsWith('91') && d.length > 10) d = d.slice(2);
+    setIdentifier(d.slice(0, 10));
   };
 
-  const getFormattedIdentifier = () => {
-    if (authMethod === 'mobile') {
-      return `+91${identifier}`;
-    }
-    return identifier.trim();
-  };
-
-  // Sign In Flow
-  const handleSignIn = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
-
+    if (method === 'mobile' && identifier.length !== 10) return setError('Enter your 10-digit mobile number.');
+    if (method === 'email' && !/^\S+@\S+\.\S+$/.test(identifier.trim())) return setError('Enter a valid email address.');
+    if (password.length < 6) return setError('Password needs at least 6 characters.');
+    if (mode === 'register' && !fullName.trim()) return setError('Enter your name.');
+    setBusy(true);
     try {
-      const formatted = getFormattedIdentifier();
-      if (!formatted || !password) {
-        throw new Error('Please enter your contact and password');
-      }
-      const authRes = await login(formatted, password);
-
-      // After login, fetch the user's own farm profile from backend
-      // to replace any stale data from a previous session
-      const userId = authRes.user?.id;
-      if (userId) {
-        try {
-          const { fetchFarmerProfile, fetchFarmerFarms, fetchFarmCrops } = await import('../../lib/api/farmer');
-          const profile = await fetchFarmerProfile(userId);
-          const farms = await fetchFarmerFarms(userId);
-          const farm = farms?.[0];
-          let crops: any[] = [];
-          if (farm?.id) {
-            crops = await fetchFarmCrops(farm.id);
-          }
-          localStorage.setItem('farmer_onboarding_profile', JSON.stringify({
-            profile,
-            farm: farm || null,
-            crops: crops || [],
-          }));
-        } catch (fetchErr) {
-          // If backend profile fetch fails (e.g., new user who hasn't onboarded yet),
-          // clear stale profile to prevent data leaking between accounts
-          console.warn('Could not fetch farm profile after login:', fetchErr);
-          localStorage.removeItem('farmer_onboarding_profile');
-        }
+      if (mode === 'signin') {
+        await login(contact, password);
       } else {
-        // No user ID — clear any stale profile data
-        localStorage.removeItem('farmer_onboarding_profile');
+        await register(contact, password, method);
+        await updateProfile({ name: fullName.trim(), location: '', farmType: '' });
       }
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      setError(err?.message || (mode === 'signin' ? 'Sign in failed. Check your details.' : 'Could not create the account.'));
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
-  // Farmer Registration + Farm Details Flow
-  const handleRegisterFarmer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      const formatted = getFormattedIdentifier();
-      if (!formatted) {
-        throw new Error('Please provide a mobile number or email');
-      }
-      if (!fullName.trim()) {
-        throw new Error('Please provide your full name');
-      }
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters');
-      }
-
-      // 1. Create User
-      const authRes = await register(formatted, password, authMethod);
-      const user = authRes.user;
-
-      // 2. Update basic profile
-      await updateProfile({
-        name: fullName.trim(),
-        location: `${district}, ${state}`,
-        farmType: selectedCrop,
-      });
-
-      // 3. Submit complete Farm Onboarding payload
-      const onboardingPayload: OnboardingPayload = {
-        farmer_id: user?.id,
-        full_name: fullName.trim(),
-        preferred_language: i18n.language || 'hi',
-        phone: authMethod === 'mobile' ? formatted : undefined,
-        farm_name: `${fullName.trim()}'s Farm`,
-        lat: 19.9975, // Reasonable default coordinates for district
-        lon: 73.7898,
-        state,
-        district,
-        soil_type: soilType,
-        irrigation_type: irrigation,
-        field_size_acres: parseFloat(fieldSize) || 3.0,
-        crops: [
-          {
-            crop: selectedCrop,
-            variety: 'Standard High-Yield',
-            sowing_date: new Date(Date.now() - 35 * 24 * 3600 * 1000).toISOString().split('T')[0],
-            season: 'kharif',
-          }
-        ],
-      };
-
-      try {
-        const farmResult = await submitOnboarding(onboardingPayload);
-        localStorage.setItem('farmer_onboarding_profile', JSON.stringify(farmResult));
-      } catch (onboardingErr) {
-        console.warn('Backend onboarding sync notice:', onboardingErr);
-        // Fallback local storage so farmer has seamless UX even if offline
-        localStorage.setItem('farmer_onboarding_profile', JSON.stringify({
-          profile: { id: user?.id, full_name: fullName.trim(), preferred_language: i18n.language, phone: formatted },
-          farm: { id: 1, name: `${fullName.trim()}'s Farm`, state, district, field_size_acres: parseFloat(fieldSize) || 3.0, soil_type: soilType, irrigation_type: irrigation },
-          crops: [{ id: 1, crop: selectedCrop, sowing_date: new Date().toISOString().split('T')[0], status: 'active' }]
-        }));
-      }
-
-      setSuccess('Account created and farm parameters registered successfully!');
-    } catch (err: any) {
-      setError(err.message || 'Registration failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Instant Demo Profiles
-  const handleLaunchDemo = async (profileType: 'rajesh' | 'harpreet' | 'anita') => {
-    setError(null);
-    setLoading(true);
-
-    try {
-      const demoData = {
-        rajesh: {
-          id: 'demo-user-rajesh',
-          name: 'Rajesh Patel',
-          location: 'Rajkot, Gujarat',
-          state: 'Gujarat',
-          district: 'Rajkot',
-          crop: 'Cotton',
-          acres: 5.5,
-          soil: 'Black Cotton (काली मिट्टी)',
-          irrigation: 'drip'
-        },
-        harpreet: {
-          id: 'demo-user-harpreet',
-          name: 'Harpreet Singh',
-          location: 'Ludhiana, Punjab',
-          state: 'Punjab',
-          district: 'Ludhiana',
-          crop: 'Wheat',
-          acres: 12.0,
-          soil: 'Alluvial (जलोढ़ मिट्टी)',
-          irrigation: 'canal'
-        },
-        anita: {
-          id: 'demo-user-anita',
-          name: 'Anita Sharma',
-          location: 'Nashik, Maharashtra',
-          state: 'Maharashtra',
-          district: 'Nashik',
-          crop: 'Tomato',
-          acres: 3.2,
-          soil: 'Red Soil (लाल मिट्टी)',
-          irrigation: 'drip'
-        }
-      }[profileType];
-
-      // Simulate instantaneous login by setting token
-      localStorage.setItem('agri_auth_token', `demo-token-${profileType}`);
-      
-      const farmPayload = {
-        profile: {
-          id: demoData.id,
-          full_name: demoData.name,
-          preferred_language: i18n.language || 'en',
-          phone: '+919876543210'
-        },
-        farm: {
-          id: 101,
-          name: `${demoData.name}'s Field`,
-          state: demoData.state,
-          district: demoData.district,
-          field_size_acres: demoData.acres,
-          soil_type: demoData.soil,
-          irrigation_type: demoData.irrigation,
-          lat: 20.0,
-          lon: 73.8
-        },
-        crops: [
-          {
-            id: 201,
-            farm_id: 101,
-            crop: demoData.crop,
-            variety: 'Improved Hybrid',
-            sowing_date: new Date(Date.now() - 40 * 24 * 3600 * 1000).toISOString().split('T')[0],
-            status: 'active' as const
-          }
-        ]
-      };
-
-      localStorage.setItem('farmer_onboarding_profile', JSON.stringify(farmPayload));
-      
-      // Auto-reload auth state
-      window.location.reload();
-    } catch (err: any) {
-      setError('Failed to launch demo mode');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const field = 'w-full h-12 rounded-xl border border-line bg-surface px-4 text-base text-ink placeholder:text-ink-muted';
 
   return (
-    <div className="min-h-screen bg-[#f1efdf] text-[#212529] flex items-center justify-center p-4 md:p-8 selection:bg-[#07503f] selection:text-[#e8fe85]">
-      <div className="relative z-10 w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 rounded-[36px] bg-white border border-[#c3cda7] shadow-xl overflow-hidden">
-        
-        {/* Left: Atmospheric Brand & Science Panel */}
-        <div className="lg:col-span-5 bg-[#07503f] p-8 md:p-10 flex flex-col justify-between text-[#f1efdf] border-b lg:border-b-0 lg:border-r border-[#0d6e57] relative overflow-hidden">
-          <div className="relative z-10 space-y-6">
-            {/* Header Lockup */}
-            <div className="flex items-center space-x-3">
-              <div className="w-11 h-11 rounded-2xl bg-[#e8fe85] text-[#07503f] flex items-center justify-center font-bold shadow-md">
-                <Sprout size={24} />
-              </div>
-              <div>
-                <h2 className="font-serif text-2xl font-bold tracking-tight text-white leading-none">
-                  Smart Agriculture
-                </h2>
-                <span className="text-[10px] uppercase font-mono tracking-widest text-[#e8fe85] mt-1 block">
-                  AI PRECISION AGRONOMY
-                </span>
-              </div>
-            </div>
-
-            {/* Editorial Statement */}
-            <div className="space-y-3 pt-4">
-              <div className="inline-block px-3 py-1 rounded-full bg-[#e8fe85]/20 border border-[#e8fe85]/40 text-[#e8fe85] text-xs font-mono font-semibold">
-                Sovereign Farm Portal
-              </div>
-              <h1 className="font-serif text-2xl md:text-3xl font-bold leading-tight text-white">
-                Scientific intelligence tailored to your soil, crop and microclimate.
-              </h1>
-              <p className="text-xs md:text-sm text-[#f1efdf]/80 leading-relaxed font-sans">
-                Real-time phenological growing degree days, 3-source weather fusion, and ICAR-verified agronomic protocols.
-              </p>
-            </div>
-          </div>
-
-          {/* Bottom Trust Seal */}
-          <div className="relative z-10 pt-8 border-t border-white/20 space-y-2 text-xs text-[#f1efdf]/80">
-            <div className="flex items-center space-x-2">
-              <ShieldCheck size={16} className="text-[#e8fe85]" />
-              <span className="font-bold text-white">Direct Smallholder Empowerment</span>
-            </div>
-            <p className="text-[11px] text-[#f1efdf]/70 leading-relaxed font-mono">
-              No sponsored vendor recommendations. Honest data with verified provenance.
-            </p>
-          </div>
+    <div className="min-h-screen bg-ground grid lg:grid-cols-[1.1fr_1fr]">
+      <section className="bg-brand text-white px-6 py-10 sm:px-12 lg:py-16 flex flex-col justify-between gap-10">
+        <div className="flex items-center gap-3">
+          <span className="w-10 h-10 rounded-xl bg-accent text-brand flex items-center justify-center">
+            <Sprout size={22} aria-hidden />
+          </span>
+          <span className="text-xl font-semibold">Smart Agriculture</span>
         </div>
+        <div className="max-w-lg">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight">
+            Advice for your field, your crop and this week’s weather.
+          </h1>
+          <p className="mt-5 text-lg text-white/80 leading-relaxed">
+            Crop stage, water need, mandi prices and disease checks in one place, grounded in ICAR guidance.
+            When data is missing, we say so instead of guessing.
+          </p>
+        </div>
+        <p className="text-sm text-white/70">No sponsored products. Your farm data is used only for your advice.</p>
+      </section>
 
-        {/* Right: Auth Portal Interaction Shell */}
-        <div className="lg:col-span-7 p-6 md:p-10 flex flex-col justify-between space-y-6 bg-white">
-          {/* Top Bar with Language Selector */}
-          <div className="flex items-center justify-between pb-4 border-b border-[#c3cda7]">
-            {/* Mode Tabs */}
-            <div className="flex items-center space-x-1 bg-[#f1efdf] p-1 rounded-full border border-[#c3cda7] text-xs">
-              <button
-                type="button"
-                onClick={() => { setActiveTab('signin'); setError(null); }}
-                className={`px-4 py-1.5 rounded-full font-medium transition-all cursor-pointer ${
-                  activeTab === 'signin'
-                    ? 'bg-[#07503f] text-[#e8fe85] shadow-xs font-bold'
-                    : 'text-[#555e4a] hover:text-[#212529]'
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => { setActiveTab('register'); setError(null); }}
-                className={`px-4 py-1.5 rounded-full font-medium transition-all cursor-pointer ${
-                  activeTab === 'register'
-                    ? 'bg-[#07503f] text-[#e8fe85] shadow-xs font-bold'
-                    : 'text-[#555e4a] hover:text-[#212529]'
-                }`}
-              >
-                New Farmer
-              </button>
-              <button
-                type="button"
-                onClick={() => { setActiveTab('demo'); setError(null); }}
-                className={`px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer ${
-                  activeTab === 'demo'
-                    ? 'bg-[#e8fe85] text-[#07503f] shadow-xs font-bold'
-                    : 'text-[#555e4a] hover:text-[#07503f]'
-                }`}
-              >
-                Demo
-              </button>
+      <section className="px-6 py-10 sm:px-12 flex items-center justify-center">
+        <div className="w-full max-w-md">
+          <div className="flex items-center justify-between mb-8">
+            <div role="tablist" aria-label="Account" className="inline-flex rounded-full bg-ash p-1">
+              {(['signin', 'register'] as Mode[]).map((m) => (
+                <button
+                  key={m}
+                  role="tab"
+                  aria-selected={mode === m}
+                  type="button"
+                  onClick={() => { setMode(m); setError(null); }}
+                  className={`h-10 px-5 rounded-full text-sm font-semibold transition-colors ${
+                    mode === m ? 'bg-surface text-ink' : 'text-ink-soft hover:text-ink'
+                  }`}
+                >
+                  {m === 'signin' ? 'Sign in' : 'Create account'}
+                </button>
+              ))}
             </div>
-
             <LanguageSelector variant="light" />
           </div>
 
-          {/* Form Alerts */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start space-x-2 font-mono"
-            >
-              <span className="font-bold">Error:</span>
-              <span>{error}</span>
-            </motion.div>
-          )}
+          <h2 className="text-2xl font-semibold text-ink">
+            {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+          </h2>
+          <p className="mt-1 text-ink-soft">
+            {mode === 'signin' ? 'Sign in with your mobile number or email.' : 'Next, you’ll add your farm and crop.'}
+          </p>
 
-          {success && (
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3.5 rounded-2xl bg-[#e6ecd5] border border-[#c3cda7] text-[#07503f] text-xs flex items-center space-x-2 font-mono"
-            >
-              <CheckCircle2 size={16} />
-              <span>{success}</span>
-            </motion.div>
-          )}
-
-          {/* TAB 1: SIGN IN */}
-          {activeTab === 'signin' && (
-            <form onSubmit={handleSignIn} className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider text-[#555e4a] font-semibold">
-                  Authentication
-                </span>
-                <div className="flex space-x-2 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setAuthMethod('mobile')}
-                    className={`font-semibold cursor-pointer ${authMethod === 'mobile' ? 'text-[#07503f] underline' : 'text-[#555e4a]'}`}
-                  >
-                    Mobile Phone
-                  </button>
-                  <span className="text-[#c3cda7]">/</span>
-                  <button
-                    type="button"
-                    onClick={() => setAuthMethod('email')}
-                    className={`font-semibold cursor-pointer ${authMethod === 'email' ? 'text-[#07503f] underline' : 'text-[#555e4a]'}`}
-                  >
-                    Email
-                  </button>
-                </div>
+          <form onSubmit={submit} className="mt-8 space-y-5" noValidate>
+            {mode === 'register' && (
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-ink mb-1.5">Your name</label>
+                <input id="name" className={field} value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
               </div>
+            )}
 
-              {/* Identifier Input */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#555e4a]">
-                  {authMethod === 'mobile' ? 'Mobile Number (भारत +91)' : 'Email Address'}
+            <div>
+              <div className="flex items-baseline justify-between mb-1.5">
+                <label htmlFor="contact" className="text-sm font-medium text-ink">
+                  {method === 'mobile' ? 'Mobile number' : 'Email'}
                 </label>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#555e4a]">
-                    {authMethod === 'mobile' ? <Phone size={16} /> : <Mail size={16} />}
-                  </div>
-                  {authMethod === 'mobile' && (
-                    <span className="absolute left-10 top-1/2 -translate-y-1/2 text-xs font-mono text-[#555e4a] font-bold">
-                      +91
-                    </span>
-                  )}
+                <button
+                  type="button"
+                  className="text-sm text-brand font-medium underline underline-offset-4"
+                  onClick={() => { setMethod(method === 'mobile' ? 'email' : 'mobile'); setIdentifier(''); }}
+                >
+                  Use {method === 'mobile' ? 'email' : 'mobile'} instead
+                </button>
+              </div>
+              {method === 'mobile' ? (
+                <div className="flex">
+                  <span className="h-12 px-3 flex items-center rounded-l-xl border border-r-0 border-line bg-ash text-ink-soft num">+91</span>
                   <input
-                    type={authMethod === 'mobile' ? 'tel' : 'email'}
+                    id="contact"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    className={`${field} rounded-l-none num`}
                     value={identifier}
-                    onChange={(e) => authMethod === 'mobile' ? handleMobileInput(e.target.value) : setIdentifier(e.target.value)}
-                    placeholder={authMethod === 'mobile' ? '98765 43210' : 'farmer@kisan.in'}
-                    className={`w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-3 pr-4 text-[#212529] text-sm focus:border-[#07503f] focus:bg-white focus:outline-none transition-colors shadow-xs ${
-                      authMethod === 'mobile' ? 'pl-20' : 'pl-11'
-                    }`}
-                    required
+                    onChange={(e) => onMobile(e.target.value)}
                   />
                 </div>
-              </div>
-
-              {/* Password Input */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#555e4a]">
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#555e4a]">
-                    <Lock size={16} />
-                  </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter security password"
-                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-3 pl-11 pr-12 text-[#212529] text-sm focus:border-[#07503f] focus:bg-white focus:outline-none transition-colors shadow-xs"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#555e4a] hover:text-[#212529] cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 rounded-full bg-[#07503f] hover:bg-[#064234] text-[#e8fe85] font-bold text-sm uppercase tracking-wider transition-all shadow-sm flex items-center justify-center space-x-2 cursor-pointer active:scale-98 disabled:opacity-50"
-                >
-                  {loading ? (
-                    <Loader2 size={18} className="animate-spin text-[#e8fe85]" />
-                  ) : (
-                    <>
-                      <span>Enter Farm Dashboard</span>
-                      <ArrowRight size={16} />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* TAB 2: REGISTER FARMER & FARM PARAMETERS */}
-          {activeTab === 'register' && (
-            <form onSubmit={handleRegisterFarmer} className="space-y-4 max-h-[460px] overflow-y-auto pr-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-[#07503f] font-bold">
-                Farmer Details & Agronomic Baseline
-              </div>
-
-              {/* Full Name & Contact */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#555e4a]">Farmer Full Name</label>
-                  <div className="relative">
-                    <UserIcon size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#555e4a]" />
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="e.g. Ramesh Patil"
-                      className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 pl-9 pr-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#555e4a]">Mobile Number (+91)</label>
-                  <div className="relative">
-                    <Phone size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#555e4a]" />
-                    <input
-                      type="tel"
-                      value={identifier}
-                      onChange={(e) => handleMobileInput(e.target.value)}
-                      placeholder="10-digit number"
-                      className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 pl-9 pr-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-[#555e4a]">Create Password</label>
-                <div className="relative">
-                  <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#555e4a]" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min 6 characters"
-                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 pl-9 pr-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Farm Geography */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#555e4a]">State</label>
-                  <select
-                    value={state}
-                    onChange={(e) => {
-                      setState(e.target.value);
-                      const districts = INDIAN_STATES_DISTRICTS[e.target.value] || [];
-                      if (districts.length > 0) setDistrict(districts[0]);
-                    }}
-                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
-                  >
-                    {Object.keys(INDIAN_STATES_DISTRICTS).map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#555e4a]">District</label>
-                  <select
-                    value={district}
-                    onChange={(e) => setDistrict(e.target.value)}
-                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
-                  >
-                    {(INDIAN_STATES_DISTRICTS[state] || ['Nashik']).map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Farm Field Size & Primary Crop */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#555e4a]">Field Size (Acres)</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0.5"
-                    max="100"
-                    value={fieldSize}
-                    onChange={(e) => setFieldSize(e.target.value)}
-                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#555e4a]">Primary Crop</label>
-                  <select
-                    value={selectedCrop}
-                    onChange={(e) => setSelectedCrop(e.target.value)}
-                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
-                  >
-                    {CROPS_LIST.map((c) => (
-                      <option key={c.name} value={c.name}>{c.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Soil & Irrigation */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#555e4a]">Soil Type</label>
-                  <select
-                    value={soilType}
-                    onChange={(e) => setSoilType(e.target.value)}
-                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none shadow-xs"
-                  >
-                    {SOIL_TYPES.map((st) => (
-                      <option key={st} value={st}>{st}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#555e4a]">Irrigation Facility</label>
-                  <select
-                    value={irrigation}
-                    onChange={(e) => setIrrigation(e.target.value)}
-                    className="w-full bg-[#f1efdf] border border-[#c3cda7] rounded-full py-2.5 px-3 text-xs text-[#212529] focus:border-[#07503f] focus:bg-white focus:outline-none capitalize shadow-xs"
-                  >
-                    <option value="drip">Drip Irrigation (ड्रिप)</option>
-                    <option value="sprinkler">Sprinkler (फव्वारा)</option>
-                    <option value="canal">Canal / Flood (नहर)</option>
-                    <option value="borewell">Tube-well / Borewell</option>
-                    <option value="rainfed">Rainfed (वर्षा आधारित)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 rounded-full bg-[#07503f] hover:bg-[#064234] text-[#e8fe85] font-bold text-sm uppercase tracking-wider transition-all shadow-sm flex items-center justify-center space-x-2 cursor-pointer active:scale-98 disabled:opacity-50"
-                >
-                  {loading ? (
-                    <Loader2 size={18} className="animate-spin text-[#e8fe85]" />
-                  ) : (
-                    <>
-                      <span>Complete Registration & Setup Farm</span>
-                      <ArrowRight size={16} />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* TAB 3: INSTANT DEMO EVALUATION */}
-          {activeTab === 'demo' && (
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <span className="text-xs font-mono uppercase tracking-wider text-[#07503f] font-bold">
-                  Instant Evaluator Sandbox
-                </span>
-                <p className="text-xs text-[#555e4a]">
-                  Select a real pre-configured farm scenario to test personalized agronomic GDD, weather alerts, and schemes with 1 click:
-                </p>
-              </div>
-
-              <div className="space-y-2.5">
-                {[
-                  {
-                    id: 'rajesh' as const,
-                    name: 'Rajesh Patel',
-                    crop: 'Cotton & Groundnut',
-                    loc: 'Rajkot, Gujarat · 5.5 Acres',
-                    soil: 'Black Cotton · Drip',
-                  },
-                  {
-                    id: 'harpreet' as const,
-                    name: 'Harpreet Singh',
-                    crop: 'Wheat & Paddy',
-                    loc: 'Ludhiana, Punjab · 12.0 Acres',
-                    soil: 'Alluvial · Canal',
-                  },
-                  {
-                    id: 'anita' as const,
-                    name: 'Anita Sharma',
-                    crop: 'Tomato & Vegetables',
-                    loc: 'Nashik, Maharashtra · 3.2 Acres',
-                    soil: 'Red Soil · Drip',
-                  }
-                ].map((demo) => (
-                  <button
-                    key={demo.id}
-                    type="button"
-                    onClick={() => handleLaunchDemo(demo.id)}
-                    disabled={loading}
-                    className="w-full p-4 rounded-2xl bg-[#f1efdf] border border-[#c3cda7] hover:border-[#07503f] hover:bg-[#e6ecd5]/50 text-left transition-all flex items-center justify-between group active:scale-98 cursor-pointer shadow-xs"
-                  >
-                    <div>
-                      <div className="font-bold text-[#07503f] text-sm group-hover:text-[#064234] transition-colors">
-                        {demo.name}
-                      </div>
-                      <div className="text-xs text-[#07503f] font-medium mt-0.5">
-                        {demo.crop}
-                      </div>
-                      <div className="text-[11px] text-[#555e4a] mt-1 font-mono">
-                        {demo.loc} • {demo.soil}
-                      </div>
-                    </div>
-
-                    <div className="w-8 h-8 rounded-full bg-white border border-[#c3cda7] flex items-center justify-center text-[#555e4a] group-hover:text-[#07503f] group-hover:bg-[#e8fe85] transition-all shrink-0">
-                      <ArrowRight size={14} />
-                    </div>
-                  </button>
-                ))}
-              </div>
+              ) : (
+                <input id="contact" type="email" autoComplete="email" className={field} value={identifier} onChange={(e) => setIdentifier(e.target.value)} />
+              )}
             </div>
-          )}
 
-          {/* Quick Footer */}
-          <div className="pt-2 text-center text-[11px] text-[#555e4a] font-mono">
-            Protected by End-to-End Encryption · ICAR Agronomy Standardized
-          </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-ink mb-1.5">Password</label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                  aria-describedby={mode === 'register' ? 'pw-rule' : undefined}
+                  className={`${field} pr-12`}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-1 top-1 w-10 h-10 flex items-center justify-center text-ink-soft hover:text-ink"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {mode === 'register' && <p id="pw-rule" className="mt-1.5 text-sm text-ink-muted">At least 6 characters.</p>}
+            </div>
+
+            {error && (
+              <p role="alert" className="rounded-xl bg-bad-bg text-bad px-4 py-3 text-sm">{error}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full h-12 rounded-full bg-brand text-white font-semibold hover:bg-brand-dark disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+            >
+              {busy && <Loader2 size={18} className="animate-spin" aria-hidden />}
+              {mode === 'signin' ? (busy ? 'Signing in…' : 'Sign in') : (busy ? 'Creating account…' : 'Create account')}
+            </button>
+          </form>
         </div>
-
-      </div>
+      </section>
     </div>
   );
 };

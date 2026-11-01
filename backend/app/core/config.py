@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     # JWT secret from Supabase dashboard → Settings → API → JWT Secret.
     # When set, /api/farmer/* routes enforce ownership checks.
     SUPABASE_JWT_SECRET: str = ""
+    # Secret the Express login server (server.ts) signs its tokens with; used when
+    # SUPABASE_JWT_SECRET is unset so farmer routes are owner-checked with the app's own logins.
+    JWT_SECRET: str = ""
 
     # Market Data
     DATA_GOV_IN_KEY: str = ""

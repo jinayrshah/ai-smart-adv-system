@@ -8,197 +8,6 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
-import { GoogleGenAI } from "@google/genai";
-
-const MARKET_CACHE_TIME = 10 * 60 * 1000;
-const MARKET_RESOURCE_ID = '9ef84268-d588-465a-a308-a864a43d0070';
-const MARKET_HISTORY_FILE = path.join(process.cwd(), 'data', 'market_price_history.json');
-
-const loadMarketHistory = () => {
-  try {
-    if (fs.existsSync(MARKET_HISTORY_FILE)) {
-      return JSON.parse(fs.readFileSync(MARKET_HISTORY_FILE, 'utf-8'));
-    }
-  } catch (e) {
-    console.error('Error loading market history', e);
-  }
-  return [];
-};
-
-const saveMarketHistory = (records: any[]) => {
-  try {
-    let history = loadMarketHistory();
-    // Append new records, avoiding exact duplicates
-    for (const record of records) {
-      const exists = history.some((h: any) => h.state === record.state && h.district === record.district && h.market === record.market && h.commodity === record.commodity && h.arrival_date === record.arrival_date);
-      if (!exists) {
-        history.push(record);
-      }
-    }
-    fs.writeFileSync(MARKET_HISTORY_FILE, JSON.stringify(history, null, 2));
-  } catch (e) {
-    console.error('Error saving market history', e);
-  }
-};
-
-type MarketApiRecord = {
-  state: string;
-  district: string;
-  market: string;
-  commodity: string;
-  variety: string;
-  arrival_date: string;
-  min_price: string;
-  max_price: string;
-  modal_price: string;
-};
-
-type MarketApiResponse = {
-  records: MarketApiRecord[];
-  count?: number;
-  source?: 'live' | 'cache' | 'backup';
-  fallback?: boolean;
-  message?: string;
-};
-
-let marketCache = new Map<string, { data: MarketApiResponse; fetchedAt: number }>();
-
-const LOCAL_MARKET_BACKUP: MarketApiRecord[] = [
-  {
-    state: 'Karnataka',
-    district: 'Bangalore',
-    market: 'Binny Mill (F&V)',
-    commodity: 'Tomato',
-    variety: 'Local',
-    arrival_date: '2026-04-15',
-    min_price: '1100',
-    max_price: '1400',
-    modal_price: '1250',
-  },
-  {
-    state: 'Punjab',
-    district: 'Ludhiana',
-    market: 'Ludhiana',
-    commodity: 'Wheat',
-    variety: 'Kanak',
-    arrival_date: '2026-04-15',
-    min_price: '2100',
-    max_price: '2200',
-    modal_price: '2125',
-  },
-  {
-    state: 'Maharashtra',
-    district: 'Nashik',
-    market: 'Lasalgaon',
-    commodity: 'Onion',
-    variety: 'Red',
-    arrival_date: '2026-04-15',
-    min_price: '1700',
-    max_price: '1900',
-    modal_price: '1800',
-  },
-  {
-    state: 'Uttar Pradesh',
-    district: 'Agra',
-    market: 'Agra',
-    commodity: 'Potato',
-    variety: 'Desi',
-    arrival_date: '2026-04-15',
-    min_price: '900',
-    max_price: '1000',
-    modal_price: '950',
-  },
-  {
-    state: 'Telangana',
-    district: 'Warangal',
-    market: 'Warangal',
-    commodity: 'Cotton',
-    variety: 'Other',
-    arrival_date: '2026-04-15',
-    min_price: '6800',
-    max_price: '7200',
-    modal_price: '7000',
-  },
-];
-
-const buildMarketCacheKey = (params: {
-  state?: string | null;
-  district?: string | null;
-  commodity?: string | null;
-  limit?: string | number | null;
-}) => JSON.stringify({
-  state: params.state || '',
-  district: params.district || '',
-  commodity: params.commodity || '',
-  limit: params.limit || 100,
-});
-
-const filterBackupMarketData = (params: {
-  state?: string | null;
-  district?: string | null;
-  commodity?: string | null;
-}) =>
-  LOCAL_MARKET_BACKUP.filter((record) => {
-    if (params.state && params.state !== 'All States' && record.state !== params.state) {
-      return false;
-    }
-
-    if (params.district && params.district !== 'All Districts' && record.district !== params.district) {
-      return false;
-    }
-
-    if (params.commodity && !record.commodity.toLowerCase().includes(params.commodity.toLowerCase())) {
-      return false;
-    }
-
-    return true;
-  });
-
-const fetchMarketWithRetry = async (url: string, retries: number = 3): Promise<MarketApiResponse> => {
-  try {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`API failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (!data || !Array.isArray(data.records)) {
-      throw new Error('Market API returned invalid payload');
-    }
-
-    return {
-      ...data,
-      source: 'live',
-    };
-  } catch (error) {
-    if (retries > 1) {
-      await new Promise((resolve) => setTimeout(resolve, (4 - retries) * 1000));
-      return fetchMarketWithRetry(url, retries - 1);
-    }
-
-    throw error;
-  }
-};
-
-const getCachedMarketData = (cacheKey: string): MarketApiResponse | null => {
-  const cached = marketCache.get(cacheKey);
-  if (!cached) {
-    return null;
-  }
-
-  if (Date.now() - cached.fetchedAt > MARKET_CACHE_TIME) {
-    marketCache.delete(cacheKey);
-    return null;
-  }
-
-  return {
-    ...cached.data,
-    source: 'cache',
-    fallback: true,
-    message: 'Using cached market data.',
-  };
-};
 
 const getRuntimeDataFile = (fileName: string, defaultValue: unknown) => {
   if (!process.env.VERCEL) {
@@ -248,18 +57,50 @@ export async function createApp() {
     fs.writeFileSync(usersFile, JSON.stringify({}));
   }
 
-  const getUsers = () => {
+  // Accounts live in Supabase when it is configured. The JSON file is for local dev only:
+  // on Vercel it sits in /tmp, which is wiped on cold starts, so accounts (and the farm
+  // keyed by their id) used to vanish.
+  const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+  const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const sbHeaders = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+  const readUserFile = (): Record<string, any> => {
     try {
       const data = fs.readFileSync(usersFile, 'utf-8');
-      console.log(`[DEBUG] Reading users.json: ${data.substring(0, 50)}...`);
-      if (!data || data.trim() === '') return {};
-      return JSON.parse(data);
+      return data.trim() ? JSON.parse(data) : {};
     } catch (error) {
-      console.error('[ERROR] Failed to parse users.json:', error);
+      console.error('[AUTH] Failed to read users file:', error);
       return {};
     }
   };
-  const saveUsers = (users: any) => fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+  const findUser = async (by: { identifier?: string; id?: string }): Promise<any | null> => {
+    if (SB_URL && SB_KEY) {
+      const q = by.identifier ? `identifier=eq.${encodeURIComponent(by.identifier)}` : `id=eq.${encodeURIComponent(by.id || '')}`;
+      const r = await fetch(`${SB_URL}/rest/v1/app_users?${q}&select=data&limit=1`, { headers: sbHeaders });
+      if (!r.ok) throw new Error(`user store read failed (${r.status})`);
+      const rows = await r.json();
+      if (rows[0]) return rows[0].data;
+      // One-time move of an account created before Supabase was configured.
+      const local = by.identifier ? readUserFile()[by.identifier] : Object.values(readUserFile()).find((u: any) => u.id === by.id);
+      if (local) await saveUser(local);
+      return local ?? null;
+    }
+    const users = readUserFile();
+    return by.identifier ? users[by.identifier] ?? null : Object.values(users).find((u: any) => u.id === by.id) ?? null;
+  };
+  const saveUser = async (user: any): Promise<void> => {
+    if (SB_URL && SB_KEY) {
+      const r = await fetch(`${SB_URL}/rest/v1/app_users?on_conflict=identifier`, {
+        method: 'POST',
+        headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ identifier: user.identifier, id: user.id, data: user, updated_at: new Date().toISOString() }),
+      });
+      if (!r.ok) throw new Error(`user store write failed (${r.status})`);
+      return;
+    }
+    const users = readUserFile();
+    users[user.identifier] = user;
+    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+  };
 
   // In-memory OTP store (identifier -> { hashedOtp, expiresAt, attempts })
   const otpStore = new Map<string, { hashedOtp: string; expiresAt: number; attempts: number }>();
@@ -312,8 +153,7 @@ export async function createApp() {
         return res.status(400).json({ status: 'error', error: 'Identifier, password and type are required' });
       }
 
-      const users = getUsers();
-      if (users[identifier]) {
+      if (await findUser({ identifier })) {
         return res.status(400).json({ status: 'error', error: 'User already exists' });
       }
 
@@ -327,8 +167,7 @@ export async function createApp() {
         createdAt: new Date().toISOString()
       };
 
-      users[identifier] = user;
-      saveUsers(users);
+      await saveUser(user);
 
       const token = jwt.sign(
         { userId: user.id, identifier: user.identifier, role: user.role },
@@ -352,8 +191,7 @@ export async function createApp() {
         return res.status(400).json({ status: 'error', error: 'Identifier and password are required' });
       }
 
-      const users = getUsers();
-      const user = users[identifier];
+      const user = await findUser({ identifier });
 
       if (!user || !user.password) {
         return res.status(401).json({ status: 'error', error: 'Invalid credentials' });
@@ -386,8 +224,7 @@ export async function createApp() {
         return res.status(400).json({ status: 'error', error: 'Old and new passwords are required' });
       }
 
-      const users = getUsers();
-      const user = Object.values(users).find((u: any) => u.id === req.user.userId) as any;
+      const user = await findUser({ id: req.user.userId });
 
       if (!user || !user.password) {
         return res.status(404).json({ status: 'error', error: 'User not found' });
@@ -399,8 +236,7 @@ export async function createApp() {
       }
 
       user.password = await bcrypt.hash(newPassword, 10);
-      users[user.identifier] = user;
-      saveUsers(users);
+      await saveUser(user);
 
       res.json({ status: 'ok', message: 'Password changed successfully' });
     } catch (error) {
@@ -415,8 +251,7 @@ export async function createApp() {
       const { identifier } = req.body;
       if (!identifier) return res.status(400).json({ status: 'error', error: 'Identifier is required' });
 
-      const users = getUsers();
-      if (!users[identifier]) {
+      if (!(await findUser({ identifier }))) {
         return res.status(404).json({ status: 'error', error: 'User not found' });
       }
 
@@ -469,12 +304,11 @@ export async function createApp() {
 
       otpStore.delete(identifier);
 
-      const users = getUsers();
-      const user = users[identifier];
+      const user = await findUser({ identifier });
       if (!user) return res.status(404).json({ status: 'error', error: 'User not found' });
 
       user.password = await bcrypt.hash(newPassword, 10);
-      saveUsers(users);
+      await saveUser(user);
 
       res.json({ status: 'ok', message: 'Password reset successfully' });
     } catch (error) {
@@ -508,8 +342,7 @@ export async function createApp() {
 
     otpStore.delete(identifier);
 
-    const users = getUsers();
-    let user = users[identifier];
+    let user = await findUser({ identifier });
     let isNewUser = false;
 
     if (!user) {
@@ -521,8 +354,7 @@ export async function createApp() {
         role: 'farmer',
         createdAt: new Date().toISOString()
       };
-      users[identifier] = user;
-      saveUsers(users);
+      await saveUser(user);
     }
 
     const token = jwt.sign(
@@ -534,10 +366,9 @@ export async function createApp() {
     res.json({ status: 'ok', user, token, isNewUser });
   });
 
-  app.get('/api/auth/profile', authenticateToken, (req: any, res) => {
+  app.get('/api/auth/profile', authenticateToken, async (req: any, res) => {
     try {
-      const users = getUsers();
-      const user = Object.values(users).find((u: any) => u.id === req.user.userId);
+      const user = await findUser({ id: req.user.userId });
       if (!user) return res.status(404).json({ status: 'error', error: 'User not found' });
       res.json({ status: 'ok', ...(user as any) });
     } catch (error) {
@@ -546,11 +377,10 @@ export async function createApp() {
     }
   });
 
-  app.post('/api/auth/update-profile', authenticateToken, (req: any, res) => {
+  app.post('/api/auth/update-profile', authenticateToken, async (req: any, res) => {
     try {
       const { name, location, farmType, role } = req.body;
-      const users = getUsers();
-      const user = Object.values(users).find((u: any) => u.id === req.user.userId);
+      const user = await findUser({ id: req.user.userId });
 
       if (!user) return res.status(404).json({ status: 'error', error: 'User not found' });
 
@@ -562,8 +392,7 @@ export async function createApp() {
         role: role || (user as any).role || 'farmer'
       };
 
-      users[(user as any).identifier] = updatedUser;
-      saveUsers(users);
+      await saveUser(updatedUser);
 
       res.json({ status: 'ok', ...updatedUser });
     } catch (error) {
@@ -649,409 +478,6 @@ export async function createApp() {
     '/api/weather/search',
     '/api/context/market-weather',
   ], proxyToFastApi);
-
-  // Weather API Route
-  app.get('/api/weather/:city', async (req, res) => {
-    const { city } = req.params;
-    const { lat, lon } = req.query;
-    const apiKey = process.env.WEATHER_API_KEY || '';
-
-    const fallbackData = {
-      status: 'ok',
-      city: city || 'Unknown',
-      temp: 25,
-      humidity: 60,
-      windSpeed: 5,
-      condition: 'Clear',
-      description: 'Clear sky (Fallback)',
-      icon: '01d',
-      uvIndex: 'Moderate',
-      insights: ["Weather data currently unavailable. Showing seasonal averages."],
-      forecast: [],
-      fallback: true
-    };
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    // If OpenWeatherMap key is not provided, seamlessly fetch from Open-Meteo (free, keyless)
-    if (!apiKey || apiKey === 'YOUR_OPENWEATHERMAP_API_KEY') {
-      try {
-        const resolvedLat = lat || 12.9716;
-        const resolvedLon = lon || 77.5946;
-        const omUrl = `https://api.open-meteo.com/v1/forecast?latitude=${resolvedLat}&longitude=${resolvedLon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
-        const omRes = await fetch(omUrl, { signal: controller.signal });
-        if (omRes.ok) {
-          clearTimeout(timeoutId);
-          const omData = await omRes.json();
-          const current = omData.current || {};
-          const daily = omData.daily || {};
-          const temp = Math.round(current.temperature_2m ?? 25);
-          const humidity = Math.round(current.relative_humidity_2m ?? 60);
-          const windSpeed = Math.round(current.wind_speed_10m ?? 5);
-          const wCode = current.weather_code ?? 0;
-
-          let condition = 'Clear';
-          let description = 'Clear sky';
-          let icon = '01d';
-          if (wCode >= 1 && wCode <= 3) {
-            condition = 'Clouds'; description = 'Partly cloudy'; icon = '02d';
-          } else if (wCode >= 45 && wCode <= 48) {
-            condition = 'Fog'; description = 'Foggy'; icon = '50d';
-          } else if (wCode >= 51 && wCode <= 67) {
-            condition = 'Rain'; description = 'Rain showers'; icon = '10d';
-          } else if (wCode >= 71 && wCode <= 82) {
-            condition = 'Rain'; description = 'Precipitation'; icon = '09d';
-          } else if (wCode >= 95) {
-            condition = 'Thunderstorm'; description = 'Thunderstorms'; icon = '11d';
-          }
-
-          const insights: string[] = [];
-          if (humidity > 70 && (condition === 'Rain' || condition === 'Thunderstorm')) {
-            insights.push("High humidity & rainfall detected. Suitable for water-intensive crops like Rice or Sugarcane.");
-            insights.push("High fungal risk due to moisture. Avoid Tomato or Potato exposure if possible.");
-          } else if (temp > 30 && humidity < 40) {
-            insights.push("Low humidity & high temperature. Suitable for drought-resistant crops like Millet or Cotton.");
-            insights.push("Ensure adequate irrigation to prevent soil moisture depletion.");
-          } else if (temp < 15) {
-            insights.push("Cooler temperatures detected. Suitable for Rabi crops like Wheat or Mustard.");
-          } else {
-            insights.push("Moderate weather conditions. Good for a variety of seasonal vegetables.");
-          }
-          if (windSpeed > 20) {
-            insights.push("Strong winds detected. Secure young saplings and avoid spraying pesticides.");
-          }
-
-          const forecastDays = (daily.time || []).slice(0, 5).map((d: string, idx: number) => ({
-            date: d,
-            temp: Math.round(daily.temperature_2m_max?.[idx] ?? temp),
-            condition,
-            icon
-          }));
-
-          return res.json({
-            status: 'ok',
-            city: city || 'Local Area',
-            temp,
-            humidity,
-            windSpeed,
-            condition,
-            description,
-            icon,
-            uvIndex: "Moderate",
-            insights,
-            forecast: forecastDays
-          });
-        }
-      } catch (e) {
-        // Fall back gracefully
-      }
-      clearTimeout(timeoutId);
-      return res.json(fallbackData);
-    }
-
-    try {
-      let currentUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
-      let forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`;
-
-      if (lat && lon) {
-        currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
-        forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
-      }
-
-      // Fetch current weather
-      const currentRes = await fetch(currentUrl, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-      });
-
-      if (!currentRes.ok) {
-        clearTimeout(timeoutId);
-        console.warn(`[API] Weather API responded with ${currentRes.status}`);
-        return res.json(fallbackData);
-      }
-      const currentData = await currentRes.json();
-
-      // Fetch 5-day forecast
-      const forecastRes = await fetch(forecastUrl, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-      });
-      const forecastData = await forecastRes.json();
-      clearTimeout(timeoutId);
-
-      // Simple AI Advisory Logic (Rule-based as requested)
-      const insights: string[] = [];
-      const temp = currentData.main.temp;
-      const humidity = currentData.main.humidity;
-      const weatherMain = currentData.weather[0].main.toLowerCase();
-
-      if (humidity > 70 && (weatherMain.includes('rain') || weatherMain.includes('drizzle'))) {
-        insights.push("High humidity & rainfall detected. Suitable for water-intensive crops like Rice or Sugarcane.");
-        insights.push("High fungal risk due to moisture. Avoid Tomato or Potato exposure if possible.");
-      } else if (temp > 30 && humidity < 40) {
-        insights.push("Low humidity & high temperature. Suitable for drought-resistant crops like Millet or Cotton.");
-        insights.push("Ensure adequate irrigation to prevent soil moisture depletion.");
-      } else if (temp < 15) {
-        insights.push("Cooler temperatures detected. Suitable for Rabi crops like Wheat or Mustard.");
-      } else {
-        insights.push("Moderate weather conditions. Good for a variety of seasonal vegetables.");
-      }
-
-      if (currentData.wind.speed > 20) {
-        insights.push("Strong winds detected. Secure young saplings and avoid spraying pesticides.");
-      }
-
-      // Process forecast to get daily highs/lows (simplified)
-      const dailyForecast = forecastData.list ? forecastData.list.filter((_: any, index: number) => index % 8 === 0).map((item: any) => ({
-        date: item.dt_txt.split(' ')[0],
-        temp: Math.round(item.main.temp),
-        condition: item.weather[0].main,
-        icon: item.weather[0].icon
-      })) : [];
-
-      res.json({
-        status: 'ok',
-        city: currentData.name,
-        temp: Math.round(currentData.main.temp),
-        humidity: currentData.main.humidity,
-        windSpeed: currentData.wind.speed,
-        condition: currentData.weather[0].main,
-        description: currentData.weather[0].description,
-        icon: currentData.weather[0].icon,
-        uvIndex: "Moderate",
-        insights,
-        forecast: dailyForecast
-      });
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      console.warn('[API] Weather API error:', error.message);
-      res.json(fallbackData);
-    }
-  });
-
-  // Market API Route (Data.gov.in Proxy)
-  app.get('/api/market', async (req, res) => {
-    try {
-      console.log(`[API] Fetching market data: ${req.url}`);
-      const apiKey = process.env.MARKET_API_KEY || '';
-      const { state, district, commodity, limit = 100 } = req.query;
-      const cacheKey = buildMarketCacheKey({
-        state: state as string | undefined,
-        district: district as string | undefined,
-        commodity: commodity as string | undefined,
-        limit: limit as string | undefined,
-      });
-
-      const baseUrl = new URL(`https://api.data.gov.in/resource/${MARKET_RESOURCE_ID}`);
-      baseUrl.searchParams.set('api-key', apiKey);
-      baseUrl.searchParams.set('format', 'json');
-      baseUrl.searchParams.set('limit', '100');
-      baseUrl.searchParams.set('offset', '0');
-
-      if (state && state !== 'All States') {
-        baseUrl.searchParams.set('filters[state]', state as string);
-      }
-      if (district && district !== 'All Districts' && district !== state) {
-        baseUrl.searchParams.set('filters[district]', district as string);
-      }
-      if (commodity) {
-        baseUrl.searchParams.set('filters[commodity]', commodity as string);
-      }
-
-      console.log('FINAL API URL:', baseUrl.toString());
-
-      try {
-        const liveData = await fetchMarketWithRetry(baseUrl.toString(), 3);
-
-        if (!liveData.records || liveData.records.length === 0) {
-          throw new Error('Market API returned empty records');
-        }
-
-        marketCache.set(cacheKey, {
-          data: liveData,
-          fetchedAt: Date.now(),
-        });
-
-        // Save fresh records for history tracking
-        saveMarketHistory(liveData.records);
-
-        return res.json({
-          status: 'ok',
-          ...liveData,
-        });
-      } catch (error: any) {
-        console.warn('[API] Live market fetch failed:', error.message);
-
-        const cachedData = getCachedMarketData(cacheKey);
-        if (cachedData) {
-          return res.json({
-            status: 'ok',
-            ...cachedData,
-          });
-        }
-
-        const backupRecords = filterBackupMarketData({
-          state: state as string | undefined,
-          district: district as string | undefined,
-          commodity: commodity as string | undefined,
-        });
-
-        return res.json({
-          status: 'ok',
-          records: backupRecords,
-          count: backupRecords.length,
-          source: 'backup',
-          fallback: true,
-          message: 'Using local backup market data.',
-        });
-      }
-    } catch (error) {
-      console.error('[API] Market route critical error:', error);
-      const backupRecords = filterBackupMarketData({});
-      res.json({
-        status: 'ok',
-        records: backupRecords,
-        count: backupRecords.length,
-        source: 'backup',
-        fallback: true,
-        message: 'Critical error in market route. Using local backup market data.',
-      });
-    }
-  });
-
-  // Market Insight API Route (Combines Raw Data + Gemini Summary)
-  app.get('/api/market/insight', async (req, res) => {
-    try {
-      const apiKey = process.env.MARKET_API_KEY || '';
-      const geminiApiKey = process.env.GEMINI_API_KEY || '';
-      const { state, district, commodity } = req.query;
-
-      // 1. Fetch current price from the data.gov.in (via direct call like the standard /api/market endpoint)
-      const baseUrl = new URL(`https://api.data.gov.in/resource/${MARKET_RESOURCE_ID}`);
-      baseUrl.searchParams.set('api-key', apiKey);
-      baseUrl.searchParams.set('format', 'json');
-      baseUrl.searchParams.set('limit', '10');
-      baseUrl.searchParams.set('offset', '0');
-      
-      if (state && state !== 'All States') baseUrl.searchParams.set('filters[state]', state as string);
-      if (district && district !== 'All Districts' && district !== state) baseUrl.searchParams.set('filters[district]', district as string);
-      if (commodity) baseUrl.searchParams.set('filters[commodity]', commodity as string);
-
-      let currentData: any = null;
-      let rawData: any[] = [];
-      try {
-        const liveData = await fetchMarketWithRetry(baseUrl.toString(), 2);
-        if (liveData.records && liveData.records.length > 0) {
-          saveMarketHistory(liveData.records);
-          rawData = liveData.records;
-          currentData = liveData.records[0];
-        }
-      } catch (err: any) {
-        console.warn('[API] Insight route live fetch failed:', err.message);
-        rawData = filterBackupMarketData({
-          state: state as string | undefined,
-          district: district as string | undefined,
-          commodity: commodity as string | undefined,
-        });
-        if (rawData.length > 0) currentData = rawData[0];
-      }
-
-      if (!currentData) {
-        return res.json({
-          status: 'ok',
-          raw_data: [],
-          history: [],
-          ai_summary: "No market data found for the selected criteria."
-        });
-      }
-
-      // 2. Fetch history from local db
-      const historyAll = loadMarketHistory();
-      let historyFiltered = historyAll.filter((h: any) => 
-        h.state === currentData.state && 
-        h.district === currentData.district && 
-        h.market === currentData.market && 
-        h.commodity === currentData.commodity
-      );
-
-      // Removed dummy historical data generation as per PRD requirements.
-      // History will now naturally build up as data is collected day-by-day.
-      
-      // Sort history by date assuming format dd/mm/yyyy
-      historyFiltered.sort((a: any, b: any) => {
-        const parseDate = (d: string) => {
-          const parts = d.split('/');
-          return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
-        };
-        return parseDate(a.arrival_date) - parseDate(b.arrival_date);
-      });
-
-      // Calculate pre-processing numbers
-      const startPrice = Number(historyFiltered[0]?.modal_price || 0);
-      const currentPrice = Number(currentData.modal_price || 0);
-      let changePercent = 0;
-      if (startPrice > 0) {
-        changePercent = Number((((currentPrice - startPrice) / startPrice) * 100).toFixed(1));
-      }
-      const prices = historyFiltered.map((h: any) => Number(h.modal_price)).filter((p: number) => !isNaN(p));
-      const highest = Math.max(...prices, currentPrice);
-      const lowest = Math.min(...prices, currentPrice);
-
-      // 3. Generate Gemini Insight
-      let ai_summary = "";
-      if (!geminiApiKey) {
-        ai_summary = "AI insights are unavailable because Gemini API key is missing. Review the listed market prices directly.";
-      } else {
-        try {
-          const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-          const prompt = `Here is a summary of ${currentData.commodity} prices at ${currentData.market} over the last ${historyFiltered.length} recorded days:
-Starting price: ₹${startPrice}/quintal, Current price: ₹${currentPrice}/quintal, Change: ${changePercent}%,
-Period high: ₹${highest}, Period low: ₹${lowest}.
-Summarize this trend factually in plain language for a farmer, and note any significant pattern. Do not give direct financial advice on whether to sell — describe the pattern factually and let the farmer decide.`;
-
-          const candidateModels = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
-          let generatedSummary: string | null = null;
-          for (const model of candidateModels) {
-            try {
-              const response = await ai.models.generateContent({
-                model,
-                contents: prompt,
-                config: {
-                  thinkingConfig: { thinkingBudget: 0 }
-                }
-              });
-              if (response.text) {
-                generatedSummary = response.text;
-                break;
-              }
-            } catch (modelErr: any) {
-              console.warn(`[API] Gemini insight with model ${model} failed: ${modelErr?.message || modelErr}`);
-            }
-          }
-          ai_summary = generatedSummary || "Market trend analysis currently unavailable.";
-        } catch (err: any) {
-          console.error('[API] Gemini insight generation failed', err.message);
-          ai_summary = "AI insights could not be generated at this time.";
-        }
-      }
-
-      return res.json({
-        status: 'ok',
-        raw_data: rawData,
-        history: historyFiltered,
-        ai_summary
-      });
-
-    } catch (error: any) {
-      console.error('[API] Market insight route error:', error);
-      res.status(500).json({ status: 'error', error: error.message });
-    }
-  });
 
   // Catch-all for API routes that don't match
   app.all('/api/*', (req, res) => {
