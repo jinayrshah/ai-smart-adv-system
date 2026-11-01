@@ -1,4 +1,5 @@
 import argparse
+import re
 import csv
 import logging
 from pathlib import Path
@@ -14,6 +15,23 @@ from app.data.types import MandiRecord
 logger = setup_logger("load_ceda_csv")
 
 
+_ALIASES = {
+    "price_date": "date", "reported_date": "date", "arrival_date": "arrival_date",
+    "state": "state_name", "district": "district_name", "market": "market_name", "apmc": "market_name",
+    "commodity": "commodity_name", "min_price": "min_price", "max_price": "max_price", "modal_price": "modal_price",
+}
+
+
+def _normalise(row: dict) -> dict:
+    """Accept Agmarknet / CEDA export headers ("State Name", "Modal Price (Rs./Quintal)", "Price Date")."""
+    out = {}
+    for k, v in row.items():
+        key = re.sub(r"\(.*?\)", "", (k or "")).strip().lower()
+        key = re.sub(r"[^a-z]+", "_", key).strip("_")
+        out[_ALIASES.get(key, key)] = (v or "").replace(",", "").strip() if "price" in key else (v or "").strip()
+    return out
+
+
 def load_ceda_csv(csv_path: str | Path, dry_run: bool = False) -> int:
     path = Path(csv_path)
     if not path.exists():
@@ -27,7 +45,8 @@ def load_ceda_csv(csv_path: str | Path, dry_run: bool = False) -> int:
     records: list[MandiRecord] = []
     with open(path, mode="r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
-        for row in reader:
+        for raw in reader:
+            row = _normalise(raw)
             try:
                 date_str = row.get("date") or row.get("arrival_date") or ""
                 if not date_str:

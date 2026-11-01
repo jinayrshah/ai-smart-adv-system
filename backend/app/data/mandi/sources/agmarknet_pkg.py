@@ -140,6 +140,8 @@ class AgmarknetPkgSource:
             return self._convert_df_to_records(df)
         except Exception as exc:
             logger.warning(f"agmarknet query failed for {state} / {commodity} ({start} to {end}): {exc}")
+            if "400" in str(exc) or "Bad Request" in str(exc):
+                self._rejected = getattr(self, "_rejected", 0) + 1
             return []
 
     async def fetch(
@@ -157,5 +159,12 @@ class AgmarknetPkgSource:
                 for state in scope.states:
                     recs = self.fetch_window(chunk_start, chunk_end, state=state, commodity=crop.display)
                     results.extend(recs)
+                    # Every query rejected: the Agmarknet API changed under the agmarknet package.
+                    if not results and getattr(self, "_rejected", 0) >= 5:
+                        raise RuntimeError(
+                            "Agmarknet rejected every request (HTTP 400): the agmarknet package no longer matches "
+                            "the government API. Use the daily data.gov.in job for new days, or load a CEDA/Agmarknet "
+                            "CSV export with: python -m jobs.load_ceda_csv --csv <file>"
+                        )
 
         return results

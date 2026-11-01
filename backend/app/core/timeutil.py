@@ -32,6 +32,14 @@ def parse_date_ist(date_str: str) -> date:
             # DD/MM/YYYY
             day, month, year = int(parts[0]), int(parts[1]), int(parts[2])
             return date(year, month, day)
-    elif "-" in date_str:
-        return date.fromisoformat(date_str)
+    try:
+        return date.fromisoformat(date_str[:10])
+    except ValueError:
+        pass
+    # Agmarknet / CEDA exports: "15 Oct 2026", "15-Oct-2026", "15-10-2026"
+    for fmt in ("%d %b %Y", "%d-%b-%Y", "%d %B %Y", "%d-%m-%Y", "%d.%m.%Y"):
+        try:
+            return datetime.strptime(date_str, fmt).date()
+        except ValueError:
+            continue
     raise ValueError(f"Unrecognized date format: {date_str}")
