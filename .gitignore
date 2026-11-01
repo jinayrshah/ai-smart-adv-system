@@ -24,3 +24,4 @@ scratch_gemini.ts
 supabase/.temp/
 users.json
 graphify-out/cache/ast/
+graphify-out/cache/last_query_stamp
