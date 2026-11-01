@@ -38,6 +38,13 @@ def main() -> int:
     text, model = generate_text("Reply with exactly: advisor online", max_output_tokens=20, timeout=30.0)
     if text:
         print(f"\nAI answer test: OK via {model}: {text.strip()[:80]}")
+        # 8x8 green PNG: can the configured vision model read an image at all?
+        import base64, io
+        from PIL import Image
+        buf = io.BytesIO(); Image.new("RGB", (64, 64), (40, 160, 40)).save(buf, "PNG")
+        vt, vm = generate_text("What colour is this image? One word.", max_output_tokens=20, timeout=30.0,
+                               image_b64=base64.b64encode(buf.getvalue()).decode(), image_mime="image/png")
+        print(f"Photo (vision) test: {'OK via ' + vm + ': ' + vt.strip()[:40] if vt else 'FAILED - no model here can read images; leaf photos will get the AI fallback answer'}")
         return 0
     print("\nAI answer test: FAILED - no provider answered. See the log lines above for the reason.")
     return 1

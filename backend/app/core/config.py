@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     GROQ_API_KEYS: str = ""  # comma-separated; GROQ_API_KEY also accepted
     GROQ_API_KEY: str = ""
     GROQ_MODELS: str = "openai/gpt-oss-120b,qwen/qwen3.8-27b,openai/gpt-oss-20b"
-    GROQ_VISION_MODELS: str = "meta-llama/llama-4-scout-17b-16e-instruct,meta-llama/llama-4-maverick-17b-128e-instruct"
+    GROQ_VISION_MODELS: str = "qwen/qwen3.8-27b"
     # Model ids live in config (Architecture_Advisory.md §20: models get deprecated on a
     # schedule). The first model is tried first; the rest are fallbacks on 404/429/5xx.
     GEMINI_MODEL: str = "gemini-flash-lite-latest"
