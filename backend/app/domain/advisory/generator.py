@@ -112,7 +112,7 @@ def build_system_prompt(ctx: AdvisoryContext, user_query: str) -> str:
     assumptions = "\n".join(f"- {a}" for a in (ctx.assumptions + ctx.irrigation.assumptions)) or "- none"
 
     return f"""CONTEXT:
-Farm: {ctx.district}, {ctx.state}. Soil: {ctx.soil_type} (soil flags: {soil_flags_str}).
+Farm: {ctx.district or "district not given"}, {ctx.state or "state not given"} (lat {ctx.lat}, lon {ctx.lon}). Soil: {ctx.soil_type} (soil flags: {soil_flags_str}).
 Crop: {ctx.crop}{f' ({ctx.variety})' if ctx.variety else ''}, sown {ctx.sowing_date.isoformat()} ({ctx.season}).
 STAGE: {stage_line}.
 WEATHER: {_weather_line(ctx)}.
@@ -145,7 +145,9 @@ def _generate_offline_synthesis(ctx: AdvisoryContext, user_query: str) -> str:
     q = user_query.lower()
     stage = ctx.stage.stage_name
     soil_note = f" Soil note: {ctx.soil_flags[0].notes}" if ctx.soil_flags and ctx.soil_flags[0].notes else ""
-    top = ctx.retrieved_chunks[0] if ctx.retrieved_chunks else None
+    # Only quote a passage that is about this crop; the top hit can be a different crop (or fish) entirely.
+    crop_l = (ctx.crop or "").lower()
+    top = next((c for c in ctx.retrieved_chunks if crop_l and crop_l in c.chunk_text.lower()), None)
 
     if any(w in q for w in ["water", "irrigat", "rain", "moisture"]):
         text = f"Your {ctx.crop} crop is in the {stage} stage. {ctx.irrigation.recommendation}"
@@ -168,13 +170,13 @@ def _generate_offline_synthesis(ctx: AdvisoryContext, user_query: str) -> str:
             )
     elif top and top.chunk_text.strip():
         excerpt = top.chunk_text.strip()
-        text = f"For your {ctx.crop} in {ctx.district} ({stage} stage):\n\n{excerpt}\n\n{cite}".strip()
+        text = f"For your {ctx.crop} in {ctx.district or "your area"} ({stage} stage):\n\n{excerpt}\n\n{cite}".strip()
         weather = _weather_line(ctx)
         if not weather.startswith("no current"):
             text += f"\n\nCurrent local weather: {weather}."
     else:
         # No relevant retrieved chunks — provide a helpful summary from computed context
-        text = f"**Advisory for {ctx.crop} in {ctx.district}:**\n\n"
+        text = f"**Advisory for {ctx.crop} in {ctx.district or "your area"}:**\n\n"
         text += f"• **Growth Stage:** Your crop is currently in the **{stage}** stage"
         if ctx.stage.days_since_sowing:
             text += f" (day {ctx.stage.days_since_sowing} since sowing)"

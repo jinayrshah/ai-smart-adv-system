@@ -132,8 +132,8 @@ def assemble_advisory_context(
     eff_farm_name = "My Farm"
     eff_lat = lat
     eff_lon = lon
-    eff_state = "Maharashtra"
-    eff_district = "Nashik"
+    eff_state = ""
+    eff_district = ""
     eff_soil = soil_type_str
     eff_soil_npk = None
     eff_irrigation_type: str | None = None
@@ -198,6 +198,7 @@ def assemble_advisory_context(
 
     if eff_lat is None or eff_lon is None:
         eff_lat, eff_lon = 20.0, 73.8
+        eff_state, eff_district = "Maharashtra", "Nashik"
         assumptions.append("No farm location given: weather for Nashik, Maharashtra was used.")
     if not eff_soil:
         eff_soil = None

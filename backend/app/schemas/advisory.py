@@ -211,8 +211,9 @@ class DiseaseCheckResponse(BaseModel):
     advisory_note: str
     treatments: list[DiseaseTreatmentExtract] = Field(default_factory=list)
     # 'model' = trained classifier; 'unavailable' = no trained model installed (no
-    # diagnosis is invented); 'rejected' = image unusable / outside known classes.
-    status: Literal["model", "unavailable", "rejected"] = "model"
+    # diagnosis is invented); 'rejected' = image unusable / outside known classes;
+    # 'vision' = no trained model, Gemini visual assessment (capped at moderate confidence).
+    status: Literal["model", "vision", "unavailable", "rejected"] = "model"
     model_version: str | None = None
     top_k: list[dict[str, Any]] = Field(default_factory=list)
 

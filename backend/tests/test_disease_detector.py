@@ -71,8 +71,10 @@ def _detector_with_stub(probs, classes):
     return det
 
 
-def test_no_model_gives_no_diagnosis():
-    """Without a trained model the API must not invent a disease (README §9: no fake data)."""
+def test_no_model_gives_no_diagnosis(monkeypatch):
+    """Without a trained model (and no Gemini) the API must not invent a disease (README §9: no fake data)."""
+    import app.core.gemini as gem
+    monkeypatch.setattr(gem, "generate_text", lambda *a, **k: ("", None))
     det = DiseaseDetector(model_path="/nonexistent/model.keras")
     assert det.available is False
     key, conf, status = det.predict(_create_sample_leaf_image(), crop_hint="Tomato")
@@ -184,3 +186,17 @@ def test_temperature_fit_reduces_overconfidence():
     t = fit_temperature(probs, labels)
     assert t > 1.0
     assert expected_calibration_error(apply_temperature(probs, t), labels) < expected_calibration_error(probs, labels)
+
+
+def test_vision_fallback_is_capped_and_labelled(monkeypatch):
+    """No trained model: Gemini vision answers, but never with 'high' confidence and always status='vision'."""
+    import json as _json
+    import app.core.gemini as gem
+    reply = {"is_plant_leaf": True, "crop": "Tomato", "healthy": False, "disease": "Tomato Early Blight",
+             "scientific_name": "Alternaria solani", "certainty": "high", "symptoms_seen": "target-board spots"}
+    monkeypatch.setattr(gem, "generate_text", lambda *a, **k: (_json.dumps(reply), "stub-model"))
+    res = DiseaseDetector(model_path="/nonexistent/model.keras").diagnose(_create_sample_leaf_image(), crop="Tomato")
+    assert res.status == "vision" and res.confidence_status == "low"  # 'high' is not an allowed vision certainty
+    assert "not a lab test" in res.advisory_note
+    reply.update(is_plant_leaf=False)
+    assert DiseaseDetector(model_path="/nonexistent/model.keras").diagnose(_create_sample_leaf_image()).status == "rejected"

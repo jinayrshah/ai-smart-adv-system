@@ -319,6 +319,9 @@ class DiseaseDetector:
                 status="rejected",
             )
         if r["status"] == "unavailable":
+            vision = _gemini_vision_diagnosis(image_bytes, crop)
+            if vision:
+                return vision
             return DiseaseCheckResponse(
                 crop=crop_label,
                 label="Diagnosis unavailable",
@@ -382,6 +385,59 @@ class DiseaseDetector:
                 for t in r["top_k"]
             ],
         )
+
+
+_VISION_PROMPT = """You are a plant pathologist looking at a farmer's photo{crop_hint}.
+Return ONLY JSON: {{"is_plant_leaf": bool, "crop": str, "healthy": bool, "disease": str,
+"scientific_name": str|null, "certainty": "moderate"|"low", "symptoms_seen": str}}.
+Use "low" unless the symptoms are textbook-clear. Never invent a disease for a healthy or unclear leaf."""
+
+
+def _gemini_vision_diagnosis(image_bytes: bytes, crop: str | None) -> DiseaseCheckResponse | None:
+    """Fallback when no trained model is installed: Gemini looks at the photo. Never 'high' confidence."""
+    import base64
+    from app.core.gemini import generate_text
+
+    hint = f" of a {crop} plant" if crop else ""
+    text, model = generate_text(
+        _VISION_PROMPT.format(crop_hint=hint), temperature=0.1, max_output_tokens=400,
+        response_mime_type="application/json", timeout=30.0,
+        image_b64=base64.b64encode(image_bytes).decode(), image_mime=_sniff_mime(image_bytes),
+    )
+    if not text:
+        return None
+    try:
+        v = json.loads(text)
+    except ValueError:
+        logger.warning("Gemini vision returned non-JSON; treating as unavailable")
+        return None
+    eff_crop = crop or v.get("crop") or "Unknown crop"
+    if not v.get("is_plant_leaf", True):
+        return DiseaseCheckResponse(crop=eff_crop, label="Photo not usable", confidence=0.0, confidence_status="low",
+            advisory_note="This does not look like a crop leaf. Take a close-up of one affected leaf in daylight.",
+            status="rejected", model_version=model)
+    status = "moderate" if v.get("certainty") == "moderate" else "low"
+    healthy = bool(v.get("healthy"))
+    label = f"{eff_crop} healthy" if healthy else (v.get("disease") or "Unclear symptoms")
+    note = (f"AI visual assessment (not a lab test): {v.get('symptoms_seen') or ''} ".strip() + " "
+            + ("No disease symptoms seen." if healthy else "Confirm with your local KVK before spraying."))
+    treatments: list[DiseaseTreatmentExtract] = []
+    if not healthy and status == "moderate":
+        for c in retrieve(query=f"{eff_crop} {label} management control", crop=eff_crop,
+                          disease_label=label, doc_types=["disease_treatment"], top_k=3):
+            treatments.append(DiseaseTreatmentExtract(source_title=c.source_title or "Untitled source",
+                page_number=c.page_number, treatment_text=c.chunk_text, similarity=c.similarity))
+    return DiseaseCheckResponse(crop=eff_crop, label=label, scientific_name=v.get("scientific_name"),
+        confidence=0.6 if status == "moderate" else 0.3, confidence_status=status, advisory_note=note,
+        treatments=treatments, status="vision", model_version=model)
+
+
+def _sniff_mime(b: bytes) -> str:
+    if b[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if b[:4] == b"RIFF" and b[8:12] == b"WEBP":
+        return "image/webp"
+    return "image/jpeg"
 
 
 _detector_instance: DiseaseDetector | None = None

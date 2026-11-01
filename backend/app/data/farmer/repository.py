@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID, uuid4
 from supabase import Client
+from fastapi import HTTPException
+from app.core.config import get_settings
 
 from app.data.mandi.repository import get_supabase_client
 from app.data.locations.grid import snap_to_grid
@@ -41,9 +43,19 @@ class FarmerRepository:
         except Exception as e:
             logger.warning(f"Could not initialize Supabase client for FarmerRepository: {e}")
             self._client = None
+        # Memory fallback only when Supabase is not configured (offline dev / tests).
+        # With Supabase configured, a failed write must surface instead of vanishing on restart.
+        settings = get_settings()
+        self._persistent = client is None and bool(settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY)
         self._profiles = FarmerRepository._shared_profiles
         self._farms = FarmerRepository._shared_farms
         self._crops = FarmerRepository._shared_crops
+
+    def _db_failed(self, exc: Exception, op: str) -> None:
+        if self._persistent:
+            logger.error(f"Supabase {op} failed: {exc}")
+            raise HTTPException(status_code=503, detail="Farm data service is unavailable; your changes were not saved. Please retry.")
+        logger.warning(f"Supabase {op} failed; using in-memory store: {exc}")
 
     @property
     def client(self) -> Client:
@@ -74,7 +86,7 @@ class FarmerRepository:
                     created_at=datetime.fromisoformat(row["created_at"]),
                 )
         except Exception as exc:
-            logger.warning(f"Supabase profile upsert fallback to memory: {exc}")
+            self._db_failed(exc, "profile upsert fallback to memory")
 
         # In-memory store
         self._profiles[farmer_id] = payload
@@ -99,7 +111,7 @@ class FarmerRepository:
                     created_at=datetime.fromisoformat(row["created_at"]),
                 )
         except Exception as exc:
-            logger.warning(f"Supabase get_profile failed, checking memory: {exc}")
+            self._db_failed(exc, "get_profile failed, checking memory")
 
         if farmer_id in self._profiles:
             row = self._profiles[farmer_id]
@@ -136,7 +148,7 @@ class FarmerRepository:
                     created_at=datetime.fromisoformat(row["created_at"]),
                 )
         except Exception as exc:
-            logger.warning(f"Supabase update_profile fallback to memory: {exc}")
+            self._db_failed(exc, "update_profile fallback to memory")
 
         if farmer_id in self._profiles:
             self._profiles[farmer_id].update(update_data)
@@ -191,7 +203,7 @@ class FarmerRepository:
                     created_at=datetime.fromisoformat(row["created_at"]),
                 )
         except Exception as exc:
-            logger.warning(f"Supabase create_farm fallback to memory: {exc}")
+            self._db_failed(exc, "create_farm fallback to memory")
 
         FarmerRepository._shared_farm_id_counter += 1
         farm_id = FarmerRepository._shared_farm_id_counter
@@ -238,7 +250,7 @@ class FarmerRepository:
                     for row in res.data
                 ]
         except Exception as exc:
-            logger.warning(f"Supabase get_farms fallback: {exc}")
+            self._db_failed(exc, "get_farms fallback")
 
         results: list[FarmResponse] = []
         for row in self._farms.values():
@@ -285,7 +297,7 @@ class FarmerRepository:
                     created_at=datetime.fromisoformat(row["created_at"]),
                 )
         except Exception as exc:
-            logger.warning(f"Supabase get_farm fallback: {exc}")
+            self._db_failed(exc, "get_farm fallback")
 
         if farm_id in self._farms:
             row = self._farms[farm_id]
@@ -362,7 +374,7 @@ class FarmerRepository:
                     created_at=datetime.fromisoformat(row["created_at"]),
                 )
         except Exception as exc:
-            logger.warning(f"Supabase update_farm fallback to memory: {exc}")
+            self._db_failed(exc, "update_farm fallback to memory")
 
         if farm_id in self._farms:
             self._farms[farm_id].update(update_data)
@@ -412,7 +424,7 @@ class FarmerRepository:
                     status=row.get("status", "active"),
                 )
         except Exception as exc:
-            logger.warning(f"Supabase add_crop fallback to memory: {exc}")
+            self._db_failed(exc, "add_crop fallback to memory")
 
         FarmerRepository._shared_crop_id_counter += 1
         crop_id = FarmerRepository._shared_crop_id_counter
@@ -448,7 +460,7 @@ class FarmerRepository:
                     for row in res.data
                 ]
         except Exception as exc:
-            logger.warning(f"Supabase get_crops fallback: {exc}")
+            self._db_failed(exc, "get_crops fallback")
 
         results: list[FarmCropResponse] = []
         for row in self._crops.values():
@@ -492,7 +504,7 @@ class FarmerRepository:
                     status=row.get("status", "active"),
                 )
         except Exception as exc:
-            logger.warning(f"Supabase get_crop fallback: {exc}")
+            self._db_failed(exc, "get_crop fallback")
 
         if crop_id in self._crops:
             row = self._crops[crop_id]
@@ -546,7 +558,7 @@ class FarmerRepository:
                     status=row.get("status", "active"),
                 )
         except Exception as exc:
-            logger.warning(f"Supabase update_crop fallback: {exc}")
+            self._db_failed(exc, "update_crop fallback")
 
         if crop_id in self._crops:
             self._crops[crop_id].update(update_data)
@@ -584,7 +596,7 @@ class FarmerRepository:
             if res.data:
                 return self._irrigation_row(res.data[0])
         except Exception as exc:
-            logger.warning(f"Supabase irrigation insert fallback to memory: {exc}")
+            self._db_failed(exc, "irrigation insert fallback to memory")
         FarmerRepository._shared_irrigation_id_counter += 1
         payload["id"] = FarmerRepository._shared_irrigation_id_counter
         FarmerRepository._shared_irrigation[payload["id"]] = payload
@@ -599,7 +611,7 @@ class FarmerRepository:
             res = q.order("irrigated_on", desc=True).execute()
             return [self._irrigation_row(r) for r in (res.data or [])]
         except Exception as exc:
-            logger.debug(f"Supabase irrigation query fallback: {exc}")
+            self._db_failed(exc, "irrigation query fallback")
         rows = [
             r for r in FarmerRepository._shared_irrigation.values()
             if r["farm_id"] == farm_id and (not since_iso or r["irrigated_on"] >= since_iso)
