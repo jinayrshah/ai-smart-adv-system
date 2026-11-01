@@ -335,10 +335,8 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
             <div className="lg:col-span-2 bg-ground border border-line rounded-2xl p-6 flex flex-col justify-between space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-sm font-bold bg-brand text-accent mb-1">
-                    <span>Agro-Climatology Metrics</span>
-                  </div>
-                  <p className="text-sm text-ink-soft">Calculated over actual rainfall &amp; 15-year ERA5-Land agricultural normals</p>
+                  <h2 className="text-lg font-semibold text-ink">Rain and heat so far</h2>
+                  <p className="text-sm text-ink-soft">Compared with 15-year normals (ERA5-Land)</p>
                 </div>
                 <div className="shrink-0">
                   {renderConfidenceBadge(data.metrics.confidence, false)}
@@ -422,9 +420,9 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
           {/* 7-Day Forecast & Recent Strip (Pastel Quilt Strip) */}
           <div>
             <div className="flex items-center justify-between mb-3.5">
-              <h3 className="text-lg font-bold text-brand flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-brand" /> Multi-Source Daily Horizon (Past actuals + 7-Day Forecast)
-              </h3>
+              <h2 className="text-lg font-semibold text-ink flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-brand" /> Day by day: last 7 days and next 7
+              </h2>
               <span className="text-sm text-ink-soft">Click a day to inspect model consensus</span>
             </div>
 
@@ -621,13 +619,8 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line/60 pb-4">
                   <div>
-                    <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-sm font-bold bg-brand text-accent mb-1">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Agrometeorological Summary &amp; Field Insights</span>
-                    </div>
-                    <p className="text-sm text-ink-soft">
-                      7-day agronomic horizon synthesized from FAO-56 crop water demand, historical rainfall anomalies, and microclimate consensus.
-                    </p>
+                    <h2 className="text-lg font-semibold text-ink">What this week means for field work</h2>
+                    <p className="text-sm text-ink-soft">From the 7-day forecast, crop water demand (FAO-56) and recent rain.</p>
                   </div>
                   <div className="shrink-0">
                     <span className="text-sm font-bold bg-tint text-brand border border-line px-3 py-1.5 rounded-full">
@@ -781,7 +774,7 @@ export const WeatherStrip: React.FC<WeatherStripProps> = ({
                   </div>
                   <div className="space-y-1 text-sm">
                     <h4 className="font-bold text-white text-sm">
-                      Weekly Agronomy Takeaway for {displayName}
+                      This week at {isExplore ? displayName : "your farm"}
                     </h4>
                     <p className="text-ground/85 leading-relaxed">
                       Over the upcoming 7 days, maximum temperatures will hover near {highestTmax}°C with {forecastRainTotal > 1 ? `${forecastRainTotal} mm expected precipitation` : `${drySpellDays} cumulative dry days`}. {isIrrigationNeeded ? "Focus on maintaining root-zone moisture through targeted irrigation and surface mulching." : "Utilize favorable clear skies to complete scheduled weeding and preventative crop protection."} All field activities can proceed safely during morning hours.

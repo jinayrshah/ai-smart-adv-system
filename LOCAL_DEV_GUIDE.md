@@ -248,8 +248,7 @@ PYTHONPATH=backend cd backend && .venv/bin/python -m jobs.ingest_document --max-
 
 ### 15. Phase 4 Personalized Advisory Generation (Grounded Q&A & Audit)
 > **Model & Generation Specs**: Uses pooled multi-key rotation with `gemini-flash-lite-latest` (primary, 1.1s–2.5s fast generation) and `gemini-3-flash-preview` (fallback). Generation limits are set to `max_output_tokens=3500` with a `25.0s` client timeout to guarantee complete, unabridged agronomic schedules and government scheme details without mid-sentence truncations.
-> **Advisory UI Components (`AdvisoryChatCard.tsx`, `GovernmentSchemesCard.tsx`, `ChatWidget.tsx`)**: Input boxes use client-controlled keyboard (`Enter` key interception) and click dispatching with explicit `type="button"` handlers, completely eliminating browser `<form>` native GET submissions so typing questions never triggers a page reload or state reset.
-> **General Advisory Chat Widget (`ChatWidget.tsx`)**: The floating circular assistant widget at the bottom-right supports direct agricultural queries, disease troubleshooting, and government scheme routing (`/api/advisory/schemes/ask`). It safely validates crops against the GDD engine and offers quick inquiry chips.
+> **Advisory UI (`src/components/advisor/AdvisorView.tsx`)**: One Advisor tab. The chat sends the farm (crop, sowing date, soil, coordinates) with every question to `/api/advisory/ask`; the camera button in the same composer posts a leaf photo to `/api/advisory/disease-check`; a "Schemes" view hosts `GovernmentSchemesCard`. No Gemini call is made from the browser. When Gemini is unreachable the answer is marked "built only from your farm's computed data".
 
 ```bash
 # 1. Ask crop advisory with personalized agronomic context (via Express port 3000 or FastAPI port 8000):
@@ -289,6 +288,7 @@ curl -s -X POST "http://127.0.0.1:8000/api/advisory/queries/1001/feedback" \
 ```
 
 ### 16. Phase 5 Crop Disease Detection & RAG Treatment Linking
+> No trained model ships in the repo. Without `backend/models/disease_mobilenetv2_v1.keras` the endpoint falls back to a server-side Gemini visual assessment (`status: "vision"`, confidence capped at moderate, labelled "not a lab test"); with Gemini also down it returns `status: "unavailable"` and no diagnosis.
 ```bash
 # 1. Analyze crop leaf photo (multipart upload with verified ICAR treatment extracts):
 # Note: Returns {"status": "unavailable"} safely if no trained .keras model exists in models/
@@ -364,37 +364,20 @@ npm run build
 
 ### 20. Farmer Ownership & Authentication Verification
 ```bash
-# When SUPABASE_JWT_SECRET is set, requests without Authorization header or with mismatched sub return 401/403.
-# In dev/CI (when SUPABASE_JWT_SECRET is empty), routes operate in open mode for backward compatibility.
+# Farmer routes verify the caller token with SUPABASE_JWT_SECRET, or else JWT_SECRET (the same secret server.ts signs logins with; set it identically for both servers).
+# With neither set (local dev/CI) routes are open. Tokens: Supabase `sub` claim or server.ts `userId` claim.
 curl -s -X GET "http://127.0.0.1:8000/api/farmer/profile/00000000-0000-0000-0000-000000000001" \
   -H "Authorization: Bearer <SUPABASE_JWT_TOKEN>"
 ```
 
 ---
 
-### 21. Frontend Architecture & Design System (Universal Arva Design System Rollout)
-- **Design Tokens**: Forest Ink (`#07503f`), Dark Card Canvas (`#111827`), Canvas Ground (`#0b0f19`), Vivid Lime (`#e8fe85`), and Pastel Quilt cards (Sky `#d0e6f6`, Peach `#f8d4c8`, Sage `#d9e2d5`, Ash `#d5d8db`).
-- **Typography**: Cormorant Garamond display serif headers (`font-serif`) paired with Inter sans-serif and monospace technical metadata (`font-mono`) plus Noto Sans Devanagari / Gujarati scripts for Indic multilingual rendering.
-- **Shape Language**: 100px pill action buttons (`rounded-full`), 24px-36px card radii (`rounded-3xl`), and 33px rounded input fields (`rounded-full px-4 py-2 bg-stone-900 border border-stone-800 text-stone-200 text-xs font-mono`).
-- **Universal View Rollout**:
-  - **Cinematic Home Page (`src/components/home/CinematicHome.tsx`)**: Kinetic typography with staggered word/character reveal springs, 3D perspective stage with mouse parallax, 3 virtual camera sequences (Subsurface, Canopy, Phenology), MandiLens live dataset integrity telemetry, and task-first command launchpad.
-  - **Mandi Price Trends & Intelligence (`src/components/market/`)**:
-    - `MandiAutocomplete.tsx`: 33px rounded bone input, white container dropdowns, and high-contrast chips for tracked mandis.
-    - `MarketDataView.tsx`: Pure white rounded-3xl control container, 33px bone select dropdowns, and Forest/Lime pill action buttons.
-    - `PriceTrendChart.tsx`: Pure white card, Cormorant Garamond title, segmented pill range switcher, high-contrast Forest Ink `#07503f` price line with lime active dots and custom white tooltip.
-    - `MarketInsightCard.tsx`: Pure white container, Cormorant Garamond header, Forest Ink badges, and grounded AI Gemini synthesis tag.
-    - `MarketContextCard.tsx`: Pure white card with 4 Quilted Pastel metric tiles (Sky `#b2cee7`, Peach `#fceace`, Sage `#e6ecd5`, Ash `#efefef`), Cormorant Garamond serif numbers, and high-contrast charcoal signals.
-    - `MarketCalculators.tsx`: Crop Margin Calculator (DES benchmark), Storage Estimator (WDRA benchmark with honest non-storable refusal), and Mandi Logistics arrival strip in clean white cards, 33px bone inputs, and Forest Ink `#07503f` / Lime `#e8fe85` summary banners.
-    - `MandiRecentReportsTable.tsx`: Pure white rounded-3xl container, Cormorant Garamond header, bone table header with high-contrast `#212529` rows and Forest Ink verified badges.
-    - `MandiExplore.tsx`: Search controls in white card, 33px rounded bone inputs, and rotating Quilted Pastel market cards with Cormorant Garamond prices and high-contrast badges.
-    - `MandiCompareView.tsx`: Side-by-side multi-mandi comparison in a pure white container, bone inputs, Forest Ink, Blue, and Amber high-contrast Recharts lines, and clear delta tables.
-  - **Weather Intelligence (`src/components/weather/WeatherStrip.tsx`)**: Pure white container, 3 pastel observation chips, 4 Quilted Pastel agro-climatology tiles, 7-day forecast strip, Forest Ink biological inspection card, and **Agrometeorological Summary & Field Insights** (7-day rain expectation, FAO-56 cumulative ET₀ vs rain deficit, thermal envelope, spray window check, root-zone irrigation guidance, foliar disease index, and weekly action takeaway). Zero text overlaps.
-  - **Precision Agronomic Advisor (`src/components/farmer/`)**: `FarmDiagnosticCard` (GDD phenology & FAO-56 root-zone water balance in Quilted Pastel tiles), `AdvisoryChatCard` (ICAR grounded Q&A with 33px bone input and Forest/Lime pill submit button), and `GovernmentSchemesCard` (central welfare schemes with 33px search and category pills).
-  - **Sign-In & Farmer Portal (`src/components/auth/AuthPortal.tsx`)**: 6 Indic languages, credentials authentication, comprehensive farm parameter onboarding, and 1-click instant demo profiles in a pastoral editorial shell (Forest Ink `#07503f` brand side, pure white interaction side).
-  - **Farmer Onboarding & Settings (`src/components/farmer/FarmerOnboardingModal.tsx`, `ProfileSettings.tsx`, `ProfileSetup.tsx`)**: Cormorant Garamond serif headers, 33px rounded bone inputs, Forest Ink `#07503f` pill save actions, and clean profile administration on white/bone cards.
-  - **Farmer AI Assistant Widget (`src/components/ChatWidget.tsx` & `CinematicHome.tsx`)**: Floating `#07503f` circular launcher with `#e8fe85` icon, direct hero action button on Home (`Ask General Agri Questions` with `open-general-chat` event dispatcher), pure white rounded-3xl chat window, bone user/bot speech bubbles, and 33px rounded chat input.
-  - **Design Foundation (`tokens.json`, `theme.css`, `src/index.css`)**: Arva Pastoral Editorial Magazine design system — Bone `#f1efdf` canvas, Forest Ink `#07503f` text/headers, Vivid Lime `#e8fe85` accents, and Quilted Pastel surfaces (`#b2cee7`, `#fceace`, `#e6ecd5`, `#efefef`). Zero text overlapping or clashing dark/white elements.
-  - **Streamlined Navigation**: 5-tab pill shell (`Home`, `Advisor`, `Prices`, `Weather`, and `Profile`). Legacy removed tabs (`fertilizer`, `marketplace`, `disease`, `learn`, `history`) remain completely omitted from active navigation.
+### 21. Frontend Structure & Design System
+- **Tabs** (`src/App.tsx`, bottom nav): **Today** (`home/TodayView.tsx`: crop stage + season line, water advice, weather, nearest price, soil), **Advisor** (`advisor/AdvisorView.tsx`: chat, leaf photo, schemes), **Prices** (`market/`), **Weather** (`weather/WeatherStrip.tsx`), **Farm** (`farmer/FarmView.tsx`: field, crop, account, sign out).
+- **Accounts & farm**: sign in / create account in `auth/AuthPortal.tsx` (no demo mode). A new account is taken straight to farm setup (`farmer/FarmerOnboardingModal.tsx`: village search, "I'm at the field" GPS or district, crop, real sowing date, optional soil/irrigation). The farm is loaded from `/api/farmer/*` per account and cached in `localStorage` under `farmer_profile:<userId>`.
+- **Location**: the farm's saved coordinates drive Today, Advisor and Weather. The app never prompts for GPS on load; Weather has "Use my location" / search and "Back to my farm".
+- **Design tokens** (`src/index.css` `@theme`): `ground`, `surface`, `ash`, `tint`, `line`, `ink`, `ink-soft`, `ink-muted`, `brand` (forest `#07503f`), `accent` (lime, active states only), `good`/`warn`/`bad` (+`-bg`), `sky`/`sky-ink`. Components use these names, not hex. One typeface (Instrument Sans + Noto Indic fallbacks), no monospace, body ≥16px, controls ≥44px, flat panels (no shadows at rest).
+- **Price chart** (`market/PriceTrendChart.tsx`): modal line, shaded low–high band per day, dashed window average, breaks where no report was filed, "Show as table" view.
 
 ### 22. Codebase Knowledge Graph (graphify — dev tooling, no runtime/port impact)
 A queryable knowledge graph of the project's code + docs lives in `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`, interactive `graph.html`). Built with [graphify](https://github.com/Graphify-Labs/graphify); scope is controlled by `.graphifyignore` (raw data dumps in `data/mandilens/`, `docs/advisory/sources/`, embedding caches and vendored `.agents/` skills are excluded).
@@ -410,7 +393,7 @@ In Claude Code, `/graphify . --update` also re-extracts changed docs. Open `grap
 ---
 
 ## 📁 Key Source Directories
-- `src/components/home/CinematicHome.tsx` — Cinematic 3D motion graphics sequence, kinetic typography & MandiLens telemetry
+- `src/components/home/TodayView.tsx` — Today dashboard (season line, water, weather, price, soil)
 - `src/components/auth/AuthPortal.tsx` — Comprehensive sign-in portal & farmer farm parameters registration
 - `backend/app/core/auth.py` — Supabase HS256 JWT authorization & farmer ownership verification dependency (`require_self_or_dev`)
 - `src/components/farmer/` — `FarmerOnboardingModal`, `FarmDiagnosticCard`, and `GovernmentSchemesCard` UI
@@ -430,6 +413,7 @@ In Claude Code, `/graphify . --update` also re-extracts changed docs. Open `grap
   - `20261011000000_irrigation_events.sql` — Irrigation log table & RLS policies
   - `20261011000001_farm_crop_status.sql` — Daily growth stage & water balance cache
   - `20261011000002_mandi_market_name_cleanup.sql` — APMC market duplicate cleanup migration
+  - `20261101000000_app_users.sql` — Login accounts for server.ts (replaces the /tmp JSON file on Vercel)
 
 ---
 
@@ -437,22 +421,31 @@ In Claude Code, `/graphify . --update` also re-extracts changed docs. Open `grap
 
 | Variable | Required In | Description |
 |---|---|---|
-| `JWT_SECRET` | **Production (Mandatory)** | HMAC secret for session authentication tokens. Express server refuses to start in production without it. |
+| `JWT_SECRET` | **Production (Mandatory)** | Signs login tokens in `server.ts`. Set the **same value for the FastAPI backend** so `/api/farmer/*` checks ownership. Express refuses to start in production without it. |
 | `SUPABASE_JWT_SECRET` | Optional (Production recommended) | Supabase Project JWT secret. When set, `/api/farmer/*` routes enforce caller ownership on profile and farm resources. |
 | `GEMINI_API_KEY` | Development & Production | Google Gemini API key for grounded market insights and agronomic advisory. |
 | `GEMINI_API_KEYS` | Optional (Recommended) | Comma-separated list of Gemini API keys for the backend multi-key pool. Automatically rotates keys round-robin with auto-cooldown on rate limits (429). |
-| `VITE_GEMINI_API_KEYS` | Optional (Recommended) | Comma-separated list of Gemini API keys for frontend direct calls (`aiService`, `ragService`) with automatic quota failover. |
 | `GEMINI_MODEL` | Optional (default: `gemini-3.8-flash`) | Primary LLM model for generation; fallbacks automatically cascade through `gemini-3.5-flash`, `gemini-3.1-flash-lite`, and `gemini-flash-latest`. |
 | `BHASHINI_USER_ID` | Optional | MeitY Bhashini User ID for Indic language translations (hi, mr, gu, etc.). |
 | `BHASHINI_API_KEY` | Optional | MeitY Bhashini ULCA API key. |
 | `SUPABASE_URL` | Recommended | Supabase database instance URL. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Recommended | Supabase backend service key for migrations, RAG vectors, and farm persistence. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Recommended | Supabase backend service key for migrations, RAG vectors, and farm persistence. | Also stores login accounts (`app_users`, migration `20261101000000_app_users.sql`); without Supabase, accounts go to a local `users.json` (dev only).
 | `FASTAPI_URL` | Optional (default: `http://127.0.0.1:8000`) | Backend URL used by Express proxy routes. |
 | `CORS_ALLOW_ORIGINS` | Optional | Comma-separated allowed origins for FastAPI backend. |
 
 ---
 
-## 📋 Recent Changes (Oct 19 2026)
+## 📋 Recent Changes (Nov 1 2026)
+
+- **One Advisor**: the floating home chat widget and all browser-side Gemini calls were removed; chat, leaf-photo checks and schemes live in the Advisor tab and go through FastAPI. Vite no longer bundles any API key (`VITE_GEMINI_*` are unused).
+- **Farm profile per account**: loaded from the server, cached per user; Edit farm pre-fills and saves; demo mode removed.
+- **No silent data loss**: with Supabase configured, a failed farm write returns 503 instead of being kept in process memory.
+- **Accounts persist on Vercel**: `server.ts` stores accounts in Supabase `app_users` (run the new migration).
+- **Advisor fallback**: when Gemini fails, answers only quote passages about the farmer's crop and are labelled as such.
+- **Backend deps**: `numpy`, `Pillow`, `python-multipart`, `pypdf` added to `backend/requirements.txt` (a fresh install crashed without them).
+- **Removed fabricated data**: hard-coded ₹2,450 benchmark, legacy `/api/weather/:city` (fake 25 °C fallback), `/api/market` backup prices.
+
+## 📋 Earlier Changes (Oct 19 2026)
 
 ### 1. Profile Page — Full Redesign (`ProfileSettings.tsx`)
 The profile page was completely rebuilt as a structured, multi-section layout:

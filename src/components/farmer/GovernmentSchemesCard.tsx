@@ -221,7 +221,7 @@ export const GovernmentSchemesCard: React.FC = () => {
               <div className="pt-3 border-t border-line flex items-center gap-2.5 text-sm text-ink bg-surface p-3.5 rounded-2xl border border-line">
                 <Sparkles size={16} className="text-brand shrink-0" />
                 <span>
-                  Have questions about eligibility, application deadlines, or subsidies? Ask our <strong className="text-brand">AI Advisor</strong> directly in the chat below.
+                  Questions about eligibility or deadlines? Switch to <strong className="text-brand">Ask</strong> above and ask the Advisor.
                 </span>
               </div>
             </div>
