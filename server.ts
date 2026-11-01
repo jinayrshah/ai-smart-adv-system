@@ -62,7 +62,12 @@ export async function createApp() {
   // keyed by their id) used to vanish.
   const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
   const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  const sbHeaders = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+  // Legacy service_role keys are JWTs and go in both headers; new sb_secret_ keys must not be
+  // sent as a Bearer token (Supabase rejects them there), only as apikey.
+  const sbHeaders: Record<string, string> = {
+    apikey: SB_KEY, 'Content-Type': 'application/json',
+    ...(SB_KEY.startsWith('eyJ') ? { Authorization: `Bearer ${SB_KEY}` } : {}),
+  };
   const readUserFile = (): Record<string, any> => {
     try {
       const data = fs.readFileSync(usersFile, 'utf-8');
@@ -74,17 +79,32 @@ export async function createApp() {
   };
   // Set once Supabase says app_users does not exist, so logins keep working from the
   // local file until the migration (supabase/migrations/20261101000000_app_users.sql) is run.
-  let sbUsersTableMissing = false;
-  const useSb = () => !!(SB_URL && SB_KEY) && !sbUsersTableMissing;
-  const sbFailed = async (r: Response, op: string): Promise<never | void> => {
-    const body = await r.text();
-    if (r.status === 404 || /PGRST205|42P01|does not exist|Could not find the table/i.test(body)) {
-      sbUsersTableMissing = true;
-      console.warn(`[AUTH] Supabase table app_users not found; using local users.json. Run supabase/migrations/20261101000000_app_users.sql in the Supabase SQL editor. (${op})`);
-      return;
+  // Once Supabase fails for accounts (table missing, bad key, unreachable), this process
+  // serves accounts from the local users.json so sign-in keeps working; the reason is logged.
+  let sbUsersOff = false;
+  const useSb = () => !!(SB_URL && SB_KEY) && !sbUsersOff;
+  const sbOff = (why: string) => {
+    sbUsersOff = true;
+    console.warn(`[AUTH] Supabase account store disabled for this run: ${why}. Using local users.json. Fix the cause and restart.`);
+  };
+  const sbFailed = async (r: Response, op: string): Promise<void> => {
+    const body = await r.text().catch(() => '');
+    const hint = r.status === 404 || /PGRST205|42P01|does not exist|Could not find the table/i.test(body)
+      ? 'table app_users not found (run supabase/migrations/20261101000000_app_users.sql in the SQL editor)'
+      : r.status === 401 || r.status === 403
+        ? 'SUPABASE_SERVICE_ROLE_KEY was rejected (check it matches this project; use the service_role / secret key)'
+        : `HTTP ${r.status}`;
+    sbOff(`${op}: ${hint}. Response: ${body.slice(0, 200)}`);
+  };
+  const sbFetch = async (url: string, init: RequestInit, op: string): Promise<Response | null> => {
+    try {
+      const r = await fetch(url, init);
+      if (r.ok) return r;
+      await sbFailed(r, op);
+    } catch (err: any) {
+      sbOff(`${op}: cannot reach ${SB_URL} (${err?.cause?.code || err?.message})`);
     }
-    console.error(`[AUTH] Supabase ${op} failed: ${r.status} ${body.slice(0, 300)}`);
-    throw new Error(`user store ${op} failed (${r.status})`);
+    return null;
   };
   const findInFile = (by: { identifier?: string; id?: string }) => {
     const users = readUserFile();
@@ -93,8 +113,8 @@ export async function createApp() {
   const findUser = async (by: { identifier?: string; id?: string }): Promise<any | null> => {
     if (useSb()) {
       const q = by.identifier ? `identifier=eq.${encodeURIComponent(by.identifier)}` : `id=eq.${encodeURIComponent(by.id || '')}`;
-      const r = await fetch(`${SB_URL}/rest/v1/app_users?${q}&select=data&limit=1`, { headers: sbHeaders });
-      if (r.ok) {
+      const r = await sbFetch(`${SB_URL}/rest/v1/app_users?${q}&select=data&limit=1`, { headers: sbHeaders }, 'read');
+      if (r) {
         const rows = await r.json();
         if (rows[0]) return rows[0].data;
         // One-time move of an account created before Supabase was configured.
@@ -102,19 +122,17 @@ export async function createApp() {
         if (local) await saveUser(local);
         return local;
       }
-      await sbFailed(r, 'read');
     }
     return findInFile(by);
   };
   const saveUser = async (user: any): Promise<void> => {
     if (useSb()) {
-      const r = await fetch(`${SB_URL}/rest/v1/app_users?on_conflict=identifier`, {
+      const r = await sbFetch(`${SB_URL}/rest/v1/app_users?on_conflict=identifier`, {
         method: 'POST',
         headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify({ identifier: user.identifier, id: user.id, data: user, updated_at: new Date().toISOString() }),
-      });
-      if (r.ok) return;
-      await sbFailed(r, 'write');
+      }, 'write');
+      if (r) return;
     }
     const users = readUserFile();
     users[user.identifier] = user;
