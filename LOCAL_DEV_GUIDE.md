@@ -459,6 +459,7 @@ In Claude Code, `/graphify . --update` also re-extracts changed docs. Open `grap
 
 ## 📋 Recent Changes (Nov 1 2026)
 
+- **Check the AI**: `PYTHONPATH=backend backend/.venv/bin/python -m jobs.check_ai` shows the Groq keys found, whether each works, which models are available, and a live answer test. Retired Groq model ids are replaced automatically from the account's model list.
 - **Groq as the main AI provider**: `backend/app/core/gemini.py` tries Groq first when `GROQ_API_KEYS` is set, then Gemini. Check a key: `curl -s -H "Authorization: Bearer $GROQ_KEY" https://api.groq.com/openai/v1/models | head`.
 
 - **One Advisor**: the floating home chat widget and all browser-side Gemini calls were removed; chat, leaf-photo checks and schemes live in the Advisor tab and go through FastAPI. Vite no longer bundles any API key (`VITE_GEMINI_*` are unused).

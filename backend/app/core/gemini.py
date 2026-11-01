@@ -75,7 +75,37 @@ class GeminiKeyPool:
 key_pool = GeminiKeyPool()
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODELS_URL = "https://api.groq.com/openai/v1/models"
 _groq_index = 0
+_groq_discovered: dict[bool, list[str]] = {}
+_NOT_CHAT = ("whisper", "guard", "tts", "playai", "orpheus", "distil", "embed", "prompt")
+
+
+def groq_available_models(key: str) -> list[str]:
+    with httpx.Client(timeout=15.0) as client:
+        r = client.get(GROQ_MODELS_URL, headers={"Authorization": f"Bearer {key}"})
+    r.raise_for_status()
+    return [m["id"] for m in r.json().get("data", []) if m.get("active", True)]
+
+
+def _discover_groq_models(key: str, vision: bool) -> list[str]:
+    """When the configured model ids are retired, pick live ones from the account's model list."""
+    if vision in _groq_discovered:
+        return _groq_discovered[vision]
+    try:
+        ids = groq_available_models(key)
+    except Exception as exc:
+        logger.warning(f"Groq model list unavailable: {exc}")
+        return []
+    chat = [i for i in ids if not any(t in i.lower() for t in _NOT_CHAT)]
+    if vision:
+        picks = [i for i in chat if any(t in i.lower() for t in ("scout", "maverick", "vision", "llama-4"))]
+    else:
+        prefs = ("llama-3.3-70b", "gpt-oss-120b", "llama-4-maverick", "qwen", "llama-3.1-8b", "gpt-oss-20b", "llama")
+        picks = sorted(chat, key=lambda i: next((n for n, p in enumerate(prefs) if p in i.lower()), len(prefs)))
+    _groq_discovered[vision] = picks[:3]
+    logger.warning(f"Groq: configured models unavailable; using {picks[:3]} (set GROQ_MODELS / GROQ_VISION_MODELS to pin)")
+    return _groq_discovered[vision]
 
 
 def _groq_generate(
@@ -96,7 +126,23 @@ def _groq_generate(
     messages = ([{"role": "system", "content": system_instruction}] if system_instruction else []) + [{"role": "user", "content": content}]
     _groq_index += 1
     keys = keys[_groq_index % len(keys):] + keys[: _groq_index % len(keys)]
-    for model in [m.strip() for m in models.split(",") if m.strip()]:
+    configured = [m.strip() for m in models.split(",") if m.strip()]
+    tried: set[str] = set()
+    for model in configured + ["__discover__"]:
+        if model == "__discover__":
+            extra = [m for m in _discover_groq_models(keys[0], bool(image_b64)) if m not in tried]
+            text, used = _groq_try(extra, keys, messages, temperature, max_output_tokens, response_mime_type, timeout)
+            return text, used
+        tried.add(model)
+        text, used = _groq_try([model], keys, messages, temperature, max_output_tokens, response_mime_type, timeout)
+        if text:
+            return text, used
+    return "", None
+
+
+def _groq_try(models: list[str], keys: list[str], messages: list[dict[str, Any]], temperature: float,
+              max_output_tokens: int, response_mime_type: str | None, timeout: float) -> tuple[str, str | None]:
+    for model in models:
         body: dict[str, Any] = {"model": model, "messages": messages, "temperature": temperature,
                                 "max_tokens": min(max_output_tokens, 8000)}
         if response_mime_type == "application/json":

@@ -15,6 +15,7 @@ double-translates and garbles the reply.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from app.core.gemini import generate_text
@@ -136,6 +137,23 @@ def _citation(ctx: AdvisoryContext) -> str:
     return f"Source: [{top.source_title or 'Untitled source'}{page}]"
 
 
+_CROP_WORDS = {"wheat": ["wheat"], "rice": ["rice", "paddy"], "cotton": ["cotton"], "soybean": ["soybean", "soyabean"],
+               "maize": ["maize", "corn"], "tomato": ["tomato"]}
+
+
+def _about_crop(chunk: Any, crop: str | None) -> bool:
+    """Tagged with this crop, or names it (whole word) more often than any other crop."""
+    if not crop:
+        return False
+    c = crop.lower()
+    if (getattr(chunk, "crop", None) or "").lower() == c:
+        return True
+    text = (chunk.chunk_text or "").lower()
+    counts = {k: sum(len(re.findall(rf"\b{w}\b", text)) for w in ws) for k, ws in _CROP_WORDS.items()}
+    mine = counts.get(c, len(re.findall(rf"\b{re.escape(c)}\b", text)))
+    return mine > 0 and all(mine > n for k, n in counts.items() if k != c)
+
+
 def _generate_offline_synthesis(ctx: AdvisoryContext, user_query: str) -> str:
     """
     Deterministic answer used when Gemini is unavailable or its answer failed the
@@ -146,8 +164,7 @@ def _generate_offline_synthesis(ctx: AdvisoryContext, user_query: str) -> str:
     stage = ctx.stage.stage_name
     soil_note = f" Soil note: {ctx.soil_flags[0].notes}" if ctx.soil_flags and ctx.soil_flags[0].notes else ""
     # Only quote a passage that is about this crop; the top hit can be a different crop (or fish) entirely.
-    crop_l = (ctx.crop or "").lower()
-    top = next((c for c in ctx.retrieved_chunks if crop_l and crop_l in c.chunk_text.lower()), None)
+    top = next((c for c in ctx.retrieved_chunks if _about_crop(c, ctx.crop)), None)
 
     if any(w in q for w in ["water", "irrigat", "rain", "moisture"]):
         text = f"Your {ctx.crop} crop is in the {stage} stage. {ctx.irrigation.recommendation}"
