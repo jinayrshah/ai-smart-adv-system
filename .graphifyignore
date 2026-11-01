@@ -1,0 +1,10 @@
+# Keep the knowledge graph focused on project code + docs, not raw data or vendored tooling.
+graphify-out/
+.agents/
+.claude/
+data/mandilens/
+data/market_price_history.json
+docs/advisory/sources/
+backend/app/data/advisory/fixtures/query_embeddings_cache.json
+backend/app/data/advisory/fixtures/rag_cache.json
+package-lock.json
