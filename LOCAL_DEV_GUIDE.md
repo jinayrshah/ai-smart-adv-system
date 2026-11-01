@@ -379,6 +379,12 @@ curl -s -X GET "http://127.0.0.1:8000/api/farmer/profile/00000000-0000-0000-0000
 - **Design tokens** (`src/index.css` `@theme`): `ground`, `surface`, `ash`, `tint`, `line`, `ink`, `ink-soft`, `ink-muted`, `brand` (forest `#07503f`), `accent` (lime, active states only), `good`/`warn`/`bad` (+`-bg`), `sky`/`sky-ink`. Components use these names, not hex. One typeface (Instrument Sans + Noto Indic fallbacks), no monospace, body ≥16px, controls ≥44px, flat panels (no shadows at rest).
 - **Price chart** (`market/PriceTrendChart.tsx`): modal line, shaded low–high band per day, dashed window average, breaks where no report was filed, "Show as table" view.
 
+### 21b. Crop Suitability for a Field (which crop fits this soil, season and climate)
+`GET /api/advisory/crop-suitability?lat&lon[&soil_type&soil_ph&irrigation&season]` ranks the 6 supported crops per season (kharif / rabi / zaid) using the grid's 15-year climate normals (fetched once from Open-Meteo ERA5-Land when missing), crop temperature, soil and pH references (`crop_catalog.json`), seasonal water need (FAO Crop Water Information) and the farm's irrigation. Every verdict lists its reasons; with no normals the verdict is `unknown`, never `suitable`. Shown live in farm setup (`FarmerOnboardingModal.tsx`) with a warning when the chosen crop is a poor fit.
+```bash
+curl -s "http://127.0.0.1:8000/api/advisory/crop-suitability?lat=22.30&lon=70.80&soil_type=Black&irrigation=rainfed&season=kharif" | python3 -m json.tool | head -40
+```
+
 ### 22. Codebase Knowledge Graph (graphify — dev tooling, no runtime/port impact)
 A queryable knowledge graph of the project's code + docs lives in `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`, interactive `graph.html`). Built with [graphify](https://github.com/Graphify-Labs/graphify); scope is controlled by `.graphifyignore` (raw data dumps in `data/mandilens/`, `docs/advisory/sources/`, embedding caches and vendored `.agents/` skills are excluded).
 ```bash

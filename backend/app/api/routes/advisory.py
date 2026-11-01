@@ -158,6 +158,28 @@ def check_soil(payload: SoilCheckRequest):
         raise HTTPException(status_code=404, detail=str(exc))
 
 
+@router.get("/crop-suitability")
+def crop_suitability(
+    lat: float = Query(..., ge=-90, le=90),
+    lon: float = Query(..., ge=-180, le=180),
+    soil_type: str | None = Query(None),
+    soil_ph: float | None = Query(None, ge=0, le=14),
+    irrigation: str | None = Query(None),
+    season: str | None = Query(None, pattern="^(kharif|rabi|zaid)$"),
+) -> dict[str, Any]:
+    """Which supported crops suit this field, per season, with the reason for each verdict."""
+    from app.domain.advisory.crop_suitability import assess, load_normals
+
+    normals, period = load_normals(lat, lon)
+    return {
+        "as_of": today_ist().isoformat(),
+        "grid_key": snap_to_grid(lat, lon).grid_key,
+        "climate_normals": {"period": period, "source": "Open-Meteo ERA5-Land monthly normals"} if normals else None,
+        "crops": assess(normals, soil_type=soil_type, soil_ph=soil_ph, irrigation=irrigation, season=season),
+        "note": "Broad guidance from climate normals and crop references; check local varieties with your KVK.",
+    }
+
+
 @router.get("/climate", response_model=ClimateVerdict)
 def check_climate(
     crop: str = Query(..., description="Crop name"),

@@ -3,6 +3,7 @@ import { Crosshair, Loader2, MapPin, Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { submitOnboarding, type OnboardingPayload, type OnboardingResult } from '../../lib/api/farmer';
 import { searchWeatherLocations, type LocationSearchResult } from '../../lib/api/weather';
+import { fetchCropSuitability, type CropSuitabilityRow, type SuitabilityVerdict } from '../../lib/api/advisory';
 import { INDIA_GEO, getDistrictsByState, getDistrictLatLon } from '../../data/indiaGeo';
 
 interface Props {
@@ -18,6 +19,7 @@ interface Props {
 }
 
 const CROPS = ['Wheat', 'Rice', 'Cotton', 'Soybean', 'Maize', 'Tomato'];
+const currentSeason = () => { const m = new Date().getMonth() + 1; return m >= 6 && m <= 10 ? 'kharif' : m >= 3 && m <= 5 ? 'zaid' : 'rabi'; };
 const SOIL_TYPES = ['Black (काली)', 'Alluvial (जलोढ़)', 'Red (लाल)', 'Loamy (दोमट)', 'Sandy loam (बलुई दोमट)', 'Clay loam (चिकनी दोमट)'];
 const IRRIGATION = [
   { v: 'borewell', l: 'Borewell / tubewell' },
@@ -27,6 +29,13 @@ const IRRIGATION = [
   { v: 'rainfed', l: 'Rainfed (no irrigation)' },
 ];
 const SEASONS = [{ v: 'kharif', l: 'Kharif (monsoon)' }, { v: 'rabi', l: 'Rabi (winter)' }, { v: 'zaid', l: 'Zaid (summer)' }];
+
+const VERDICT: Record<SuitabilityVerdict, { label: string; cls: string }> = {
+  suitable: { label: 'Suits this field', cls: 'text-good' },
+  marginal: { label: 'Possible, with care', cls: 'text-warn' },
+  unsuitable: { label: 'Not recommended', cls: 'text-bad' },
+  unknown: { label: 'Not enough data', cls: 'text-ink-muted' },
+};
 
 type Loc = { lat: number; lon: number; label: string; source: 'village' | 'gps' | 'district' };
 
@@ -62,6 +71,10 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
   const [irrigation, setIrrigation] = useState('');
   const [npk, setNpk] = useState({ n: '', p: '', k: '', ph: '' });
 
+  const [fit, setFit] = useState<CropSuitabilityRow[] | null>(null);
+  const [fitState, setFitState] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [fitNote, setFitNote] = useState<string | null>(null);
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,7 +92,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
     setVariety(crop0?.variety || '');
     setSown(crop0 ? Boolean(crop0.sowingDate) : true);
     setSowingDate(crop0?.sowingDate || '');
-    setSeason(crop0?.season || 'kharif');
+    setSeason(crop0?.season || currentSeason());
     setFieldSize(farm0?.fieldSizeAcres != null ? String(farm0.fieldSizeAcres) : '');
     setSoilType(farm0?.soilType || '');
     setIrrigation(farm0?.irrigationType || '');
@@ -88,8 +101,24 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
     setError(null); setLocError(null); setResults(null); setQuery('');
   }, [isOpen, initialFarmView, initialProfile, initialName]);
 
+  // Re-rank crops whenever the field, soil, water source or season changes.
+  useEffect(() => {
+    if (!isOpen || !loc) { setFit(null); return; }
+    let live = true;
+    setFitState('loading');
+    const t = setTimeout(() => {
+      fetchCropSuitability({ lat: loc.lat, lon: loc.lon, soilType: soilType || undefined, soilPh: npk.ph === '' ? undefined : Number(npk.ph), irrigation: irrigation || undefined, season })
+        .then((r) => { if (!live) return; setFit(r.crops); setFitNote(r.climate_normals ? `Based on ${r.climate_normals.period} climate normals for your location.` : 'Climate normals for this location are not available yet, so only soil and season were checked.'); setFitState('idle'); })
+        .catch(() => { if (live) { setFit(null); setFitState('error'); } });
+    }, 300);
+    return () => { live = false; clearTimeout(t); };
+  }, [isOpen, loc?.lat, loc?.lon, soilType, irrigation, season, npk.ph]);
+
   const districts = useMemo(() => getDistrictsByState(state), [state]);
   if (!isOpen) return null;
+  const fitOf = (c: string) => fit?.find((r) => r.crop === c);
+  const chosenFit = crop ? fitOf(crop) : undefined;
+  const seasonCrops = new Set((fit || []).map((r) => r.crop));
 
   const pickDistrict = (d: string) => {
     setDistrict(d);
@@ -282,42 +311,6 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
           </section>
 
           <section className="space-y-4">
-            <h3 className="text-lg font-semibold text-ink">Crop this season</h3>
-            <div role="radiogroup" aria-label="Crop" className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-              {CROPS.map((c) => (
-                <button key={c} type="button" role="radio" aria-checked={crop === c} onClick={() => setCrop(c)}
-                  className={`h-12 rounded-xl font-medium transition-colors ${crop === c ? 'bg-brand text-white' : 'bg-ash text-ink hover:bg-tint'}`}>
-                  {c}
-                </button>
-              ))}
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="f-variety" className={label}>Variety <span className="text-ink-muted font-normal">(optional)</span></label>
-                <input id="f-variety" className={field} value={variety} onChange={(e) => setVariety(e.target.value)} placeholder="e.g. HD-2967" />
-              </div>
-              <div>
-                <label htmlFor="f-season" className={label}>Season</label>
-                <select id="f-season" className={field} value={season} onChange={(e) => setSeason(e.target.value)}>
-                  {SEASONS.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
-                </select>
-              </div>
-            </div>
-            <div>
-              <label htmlFor="f-sown" className={label}>Sowing date</label>
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                <input id="f-sown" type="date" max={today} className={`${field} sm:max-w-xs num`} value={sowingDate}
-                  onChange={(e) => setSowingDate(e.target.value)} disabled={!sown} />
-                <label className="inline-flex items-center gap-2 text-ink">
-                  <input type="checkbox" className="w-5 h-5 accent-[var(--color-brand)]" checked={!sown} onChange={(e) => setSown(!e.target.checked)} />
-                  Not sown yet
-                </label>
-              </div>
-              <p className="mt-1.5 text-sm text-ink-muted">Used to work out the crop stage. We never guess it.</p>
-            </div>
-          </section>
-
-          <section className="space-y-4">
             <h3 className="text-lg font-semibold text-ink">Soil and water <span className="text-ink-muted font-normal text-base">(optional, improves advice)</span></h3>
             <div className="grid sm:grid-cols-3 gap-4">
               <div>
@@ -352,6 +345,80 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
               </div>
             </fieldset>
           </section>
+
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <h3 className="text-lg font-semibold text-ink">Crop this season</h3>
+              <div role="radiogroup" aria-label="Season" className="inline-flex rounded-full bg-ash p-1">
+                {SEASONS.map((x) => (
+                  <button key={x.v} type="button" role="radio" aria-checked={season === x.v} onClick={() => setSeason(x.v)}
+                    className={`h-9 px-3 rounded-full text-sm ${season === x.v ? 'bg-surface text-ink font-semibold' : 'text-ink-soft'}`}>
+                    {x.l.split(' ')[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-sm text-ink-soft">
+              {!loc ? 'Set the field location above to see which crops suit it.'
+                : fitState === 'loading' ? 'Checking which crops suit this field…'
+                : fitState === 'error' ? 'Could not check crop suitability right now; you can still choose a crop.'
+                : fitNote}
+            </p>
+            <div role="radiogroup" aria-label="Crop" className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {CROPS.map((c) => {
+                const f = fitOf(c);
+                const offSeason = !!fit && !seasonCrops.has(c);
+                return (
+                  <button key={c} type="button" role="radio" aria-checked={crop === c} onClick={() => setCrop(c)}
+                    className={`min-h-14 px-3 py-2 rounded-xl text-left transition-colors ${crop === c ? 'bg-brand text-white' : 'bg-ash text-ink hover:bg-tint'}`}>
+                    <span className="block font-semibold">{c}</span>
+                    {fit && (
+                      <span className={`block text-sm ${crop === c ? 'text-white/85' : offSeason ? 'text-ink-muted' : VERDICT[f!.verdict].cls}`}>
+                        {offSeason ? 'Not a usual crop this season' : VERDICT[f!.verdict].label}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {crop && fit && (chosenFit ? chosenFit.verdict !== 'suitable' : true) && (
+              <div role="status" className={`rounded-xl px-4 py-3 ${chosenFit?.verdict === 'unsuitable' || !chosenFit ? 'bg-bad-bg' : 'bg-warn-bg'}`}>
+                <p className={`font-semibold ${chosenFit?.verdict === 'unsuitable' || !chosenFit ? 'text-bad' : 'text-warn'}`}>
+                  {!chosenFit ? `${crop} is not normally sown in this season.`
+                    : chosenFit.verdict === 'unknown' ? `Not enough data to judge ${crop} here.`
+                    : chosenFit.verdict === 'unsuitable' ? `${crop} is not recommended for this field.` : `${crop} can grow here, with care.`}
+                </p>
+                {chosenFit && (
+                  <ul className="mt-1 text-sm text-ink space-y-0.5">
+                    {chosenFit.checks.filter((k) => k.verdict !== 'suitable').map((k) => <li key={k.factor}>{k.detail}</li>)}
+                  </ul>
+                )}
+                <p className="mt-1 text-sm text-ink-soft">You can still save it; advice will be tailored to your choice.</p>
+              </div>
+            )}
+            {crop && chosenFit?.verdict === 'suitable' && (
+              <p className="text-sm text-good">{crop} suits this field: {chosenFit.checks.map((k) => k.detail).join(' ')}</p>
+            )}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="f-variety" className={label}>Variety <span className="text-ink-muted font-normal">(optional)</span></label>
+                <input id="f-variety" className={field} value={variety} onChange={(e) => setVariety(e.target.value)} placeholder="e.g. HD-2967" />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="f-sown" className={label}>Sowing date</label>
+              <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                <input id="f-sown" type="date" max={today} className={`${field} sm:max-w-xs num`} value={sowingDate}
+                  onChange={(e) => setSowingDate(e.target.value)} disabled={!sown} />
+                <label className="inline-flex items-center gap-2 text-ink">
+                  <input type="checkbox" className="w-5 h-5 accent-[var(--color-brand)]" checked={!sown} onChange={(e) => setSown(!e.target.checked)} />
+                  Not sown yet
+                </label>
+              </div>
+              <p className="mt-1.5 text-sm text-ink-muted">Used to work out the crop stage. We never guess it.</p>
+            </div>
+          </section>
+
         </div>
 
         <footer className="px-6 py-4 border-t border-line flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">

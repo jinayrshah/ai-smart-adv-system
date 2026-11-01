@@ -425,3 +425,35 @@ export async function askSchemeAdvisory(payload: SchemeAskRequest): Promise<Sche
   }
   return res.json();
 }
+
+export type SuitabilityVerdict = 'suitable' | 'marginal' | 'unsuitable' | 'unknown';
+
+export interface CropSuitabilityRow {
+  crop: string;
+  season: 'kharif' | 'rabi' | 'zaid';
+  season_label: string;
+  verdict: SuitabilityVerdict;
+  season_climate: { mean_temp_c: number; rain_mm: number } | null;
+  checks: { factor: string; verdict: SuitabilityVerdict; detail: string; source?: string }[];
+}
+
+export interface CropSuitabilityResponse {
+  as_of: string;
+  grid_key: string;
+  climate_normals: { period: string | null; source: string } | null;
+  crops: CropSuitabilityRow[];
+  note: string;
+}
+
+export async function fetchCropSuitability(params: {
+  lat: number; lon: number; soilType?: string; soilPh?: number; irrigation?: string; season?: string;
+}): Promise<CropSuitabilityResponse> {
+  const q = new URLSearchParams({ lat: String(params.lat), lon: String(params.lon) });
+  if (params.soilType) q.set('soil_type', params.soilType);
+  if (params.soilPh != null && !Number.isNaN(params.soilPh)) q.set('soil_ph', String(params.soilPh));
+  if (params.irrigation) q.set('irrigation', params.irrigation);
+  if (params.season) q.set('season', params.season);
+  const res = await fetch(`/api/advisory/crop-suitability?${q}`);
+  if (!res.ok) throw new Error('Crop suitability is unavailable right now.');
+  return res.json();
+}

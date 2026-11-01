@@ -179,7 +179,7 @@ export async function createApp() {
       res.status(201).json({ status: 'ok', user: userWithoutPassword, token, isNewUser: true });
     } catch (error) {
       console.error('[API] Register error:', error);
-      res.json({ status: 'ok', fallback: true, message: 'Registration failed due to server error' });
+      res.status(503).json({ status: 'error', error: 'Registration failed due to server error. The account service is unreachable (is the Supabase project paused?). Please try again.' });
     }
   });
 
@@ -212,7 +212,7 @@ export async function createApp() {
       res.json({ status: 'ok', user: userWithoutPassword, token, isNewUser: false });
     } catch (error) {
       console.error('[API] Login error:', error);
-      res.json({ status: 'ok', fallback: true, message: 'Login failed due to server error' });
+      res.status(503).json({ status: 'error', error: 'Login failed due to server error. The account service is unreachable (is the Supabase project paused?). Please try again.' });
     }
   });
 
@@ -241,7 +241,7 @@ export async function createApp() {
       res.json({ status: 'ok', message: 'Password changed successfully' });
     } catch (error) {
       console.error('[API] Change password error:', error);
-      res.json({ status: 'ok', fallback: true, message: 'Failed to change password' });
+      res.status(503).json({ status: 'error', error: 'Failed to change password. The account service is unreachable (is the Supabase project paused?). Please try again.' });
     }
   });
 
@@ -268,7 +268,7 @@ export async function createApp() {
       res.json({ status: 'ok', message: 'Reset OTP sent successfully', expiresAt });
     } catch (error) {
       console.error('[API] Reset password request error:', error);
-      res.json({ status: 'ok', fallback: true, message: 'Failed to send reset OTP' });
+      res.status(503).json({ status: 'error', error: 'Failed to send reset OTP. The account service is unreachable (is the Supabase project paused?). Please try again.' });
     }
   });
 
@@ -373,7 +373,7 @@ export async function createApp() {
       res.json({ status: 'ok', ...(user as any) });
     } catch (error) {
       console.error('[API] Fetch profile error:', error);
-      res.json({ status: 'ok', fallback: true, message: 'Failed to fetch profile' });
+      res.status(503).json({ status: 'error', error: 'Failed to fetch profile. The account service is unreachable (is the Supabase project paused?). Please try again.' });
     }
   });
 
@@ -397,7 +397,7 @@ export async function createApp() {
       res.json({ status: 'ok', ...updatedUser });
     } catch (error) {
       console.error('[API] Update profile error:', error);
-      res.json({ status: 'ok', fallback: true, message: 'Failed to update profile' });
+      res.status(503).json({ status: 'error', error: 'Failed to update profile. The account service is unreachable (is the Supabase project paused?). Please try again.' });
     }
   });
   // --- End Auth Routes ---

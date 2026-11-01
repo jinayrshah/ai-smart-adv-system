@@ -94,6 +94,17 @@
         "root_depth_max_m": 1.5,
         "depletion_fraction_p": 0.55,
         "source": "FAO Irrigation and Drainage Paper 56, Table 22 (max effective rooting depth Zr, soil water depletion fraction p)"
+      },
+      "seasons": {
+        "values": [
+          "rabi"
+        ],
+        "source": "DA&FW / Directorate of Economics & Statistics crop calendar of major crops (general sowing seasons; local KVK calendars vary)"
+      },
+      "seasonal_water_mm": {
+        "min": 450,
+        "max": 650,
+        "source": "FAO Land & Water, Crop Water Information (seasonal crop water requirement range, mm)"
       }
     },
     "Tomato": {
@@ -165,6 +176,19 @@
         "root_depth_max_m": 1.5,
         "depletion_fraction_p": 0.4,
         "source": "FAO Irrigation and Drainage Paper 56, Table 22 (max effective rooting depth Zr, soil water depletion fraction p)"
+      },
+      "seasons": {
+        "values": [
+          "kharif",
+          "rabi",
+          "zaid"
+        ],
+        "source": "DA&FW / Directorate of Economics & Statistics crop calendar of major crops (general sowing seasons; local KVK calendars vary)"
+      },
+      "seasonal_water_mm": {
+        "min": 400,
+        "max": 800,
+        "source": "FAO Land & Water, Crop Water Information (seasonal crop water requirement range, mm)"
       }
     },
     "Cotton": {
@@ -244,6 +268,17 @@
         "root_depth_max_m": 1.7,
         "depletion_fraction_p": 0.65,
         "source": "FAO Irrigation and Drainage Paper 56, Table 22 (max effective rooting depth Zr, soil water depletion fraction p)"
+      },
+      "seasons": {
+        "values": [
+          "kharif"
+        ],
+        "source": "DA&FW / Directorate of Economics & Statistics crop calendar of major crops (general sowing seasons; local KVK calendars vary)"
+      },
+      "seasonal_water_mm": {
+        "min": 700,
+        "max": 1300,
+        "source": "FAO Land & Water, Crop Water Information (seasonal crop water requirement range, mm)"
       }
     },
     "Soybean": {
@@ -315,6 +350,17 @@
         "root_depth_max_m": 1.3,
         "depletion_fraction_p": 0.5,
         "source": "FAO Irrigation and Drainage Paper 56, Table 22 (max effective rooting depth Zr, soil water depletion fraction p)"
+      },
+      "seasons": {
+        "values": [
+          "kharif"
+        ],
+        "source": "DA&FW / Directorate of Economics & Statistics crop calendar of major crops (general sowing seasons; local KVK calendars vary)"
+      },
+      "seasonal_water_mm": {
+        "min": 450,
+        "max": 700,
+        "source": "FAO Land & Water, Crop Water Information (seasonal crop water requirement range, mm)"
       }
     },
     "Rice": {
@@ -389,7 +435,19 @@
         "notes": "Requires warm humid weather and abundant sunshine during panicle and grain ripening.",
         "source": "ICAR-NRRI Cuttack Rice Climate Advisory"
       },
-      "fao56_water": null
+      "fao56_water": null,
+      "seasons": {
+        "values": [
+          "kharif",
+          "rabi"
+        ],
+        "source": "DA&FW / Directorate of Economics & Statistics crop calendar of major crops (general sowing seasons; local KVK calendars vary)"
+      },
+      "seasonal_water_mm": {
+        "min": 450,
+        "max": 700,
+        "source": "FAO Land & Water, Crop Water Information (seasonal crop water requirement range, mm)"
+      }
     },
     "Maize": {
       "gdd_base_c": 10.0,
@@ -462,7 +520,20 @@
         "source": "FAO Irrigation and Drainage Paper 56, Table 22 (max effective rooting depth Zr, soil water depletion fraction p)"
       },
       "gdd_upper_c": 30.0,
-      "gdd_upper_source": "Modified growing-degree-day method for corn (10 °C base / 30 °C cut-off), e.g. Kansas State Univ. Extension MF3740"
+      "gdd_upper_source": "Modified growing-degree-day method for corn (10 °C base / 30 °C cut-off), e.g. Kansas State Univ. Extension MF3740",
+      "seasons": {
+        "values": [
+          "kharif",
+          "rabi",
+          "zaid"
+        ],
+        "source": "DA&FW / Directorate of Economics & Statistics crop calendar of major crops (general sowing seasons; local KVK calendars vary)"
+      },
+      "seasonal_water_mm": {
+        "min": 500,
+        "max": 800,
+        "source": "FAO Land & Water, Crop Water Information (seasonal crop water requirement range, mm)"
+      }
     }
   }
 }
