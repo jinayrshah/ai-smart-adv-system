@@ -3,7 +3,7 @@ import { ArrowRight, Droplets, Loader2, MessageCircle, Pencil } from 'lucide-rea
 import type { FarmerProfileView } from '../../lib/farmerProfile';
 import { formatIsoDate } from '../../lib/farmerProfile';
 import {
-  fetchCropStages, fetchFarmDiagnostic,
+  fetchAgrometBulletin, fetchCropStages, fetchFarmDiagnostic, type AgrometBulletin,
   type AgronomyDiagnosticResponse, type CropStageNorm,
 } from '../../lib/api/advisory';
 import { fetchWeatherSummary, type WeatherSummaryResponse } from '../../lib/api/weather';
@@ -116,6 +116,10 @@ export const TodayView: React.FC<Props> = ({ farmView, onAsk, onEditFarm, onOpen
     [crop?.name, farm.state],
   );
 
+  const imd = useAsync<AgrometBulletin | null>(
+    farm.district ? () => fetchAgrometBulletin(farm.district!, crop?.name) : null,
+    [farm.district, crop?.name],
+  );
   const d = diag.data;
   const action = d?.irrigation.action ? ACTION_TEXT[d.irrigation.action] : undefined;
   const next3 = (weather.data?.days || []).filter((x) => x.phase !== 'past').slice(0, 3);
@@ -221,6 +225,19 @@ export const TodayView: React.FC<Props> = ({ farmView, onAsk, onEditFarm, onOpen
               </div>
             ) : <Muted>No recent {crop?.name.toLowerCase()} prices reported in {farm.state || 'your state'}.</Muted>}
         </Panel>
+
+        {imd.data && (
+          <section className="bg-surface rounded-2xl p-5 sm:p-6 md:col-span-2">
+            <div className="flex items-baseline justify-between gap-4 mb-3">
+              <h2 className="text-lg font-semibold text-ink">This week’s IMD advice for {imd.data.district}</h2>
+              <a href={imd.data.source_url} target="_blank" rel="noreferrer" className="text-sm text-brand font-medium shrink-0">Bulletin</a>
+            </div>
+            <ul className="space-y-2 text-ink">
+              {imd.data.passages.slice(0, 3).map((p, i) => <li key={i} className="line-clamp-4">{p}</li>)}
+            </ul>
+            <p className="mt-3 text-sm text-ink-soft">India Meteorological Department agromet bulletin{imd.data.published_on ? `, issued ${formatIsoDate(imd.data.published_on)}` : ''}.</p>
+          </section>
+        )}
 
         <Panel title="Soil" action={<button onClick={onEditFarm} className="text-sm text-brand font-medium flex items-center gap-1"><Pencil size={14} /> Edit</button>}>
           {d && d.soil_flags.length > 0 ? (

@@ -5,6 +5,7 @@ Architecture_Advisory.md §7, §8, §9, §9b.
 
 from datetime import date
 import logging
+import re
 from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
@@ -168,16 +169,50 @@ def crop_suitability(
     season: str | None = Query(None, pattern="^(kharif|rabi|zaid)$"),
 ) -> dict[str, Any]:
     """Which supported crops suit this field, per season, with the reason for each verdict."""
+    from app.data.soil.soilgrids import soil_estimate
     from app.domain.advisory.crop_suitability import assess, load_normals
 
     normals, period = load_normals(lat, lon)
+    est = soil_estimate(lat, lon) if soil_ph is None else None
+    ph_source = None
+    if est and est.get("ph") is not None:
+        soil_ph, ph_source = est["ph"], est["source"]
     return {
+        "soil_estimate": est,
+        "soil_ph_source": ph_source or ("farmer" if soil_ph is not None else None),
         "as_of": today_ist().isoformat(),
         "grid_key": snap_to_grid(lat, lon).grid_key,
         "climate_normals": {"period": period, "source": "Open-Meteo ERA5-Land monthly normals"} if normals else None,
-        "crops": assess(normals, soil_type=soil_type, soil_ph=soil_ph, irrigation=irrigation, season=season),
+        "crops": assess(normals, soil_type=soil_type, soil_ph=soil_ph, irrigation=irrigation, season=season, ph_source=ph_source),
         "note": "Broad guidance from climate normals and crop references; check local varieties with your KVK.",
     }
+
+
+@router.get("/agromet-bulletin")
+def agromet_bulletin(district: str = Query(..., min_length=2), crop: str | None = Query(None)) -> dict[str, Any]:
+    """Latest IMD district agromet advisory on file (ingested by jobs/ingest_imd_agromet.py)."""
+    from app.data.advisory.rag_repo import get_rag_repo
+
+    found = get_rag_repo().latest_district_document("agromet_advisory", district)
+    if not found:
+        raise HTTPException(status_code=404, detail=f"No IMD agromet bulletin on file for {district} yet.")
+    doc, chunks = found
+    c = (crop or "").lower()
+    texts = [re.sub(r"^IMD agromet advisory for .*? issued \d{4}-\d{2}-\d{2}\.\s*", "", ch["chunk_text"]) for ch in chunks]
+    ranked = sorted(texts, key=lambda t: 0 if c and c in t.lower() else 1)
+    return {"title": doc.get("title"), "district": doc.get("district"), "published_on": doc.get("published_on"),
+            "source_url": doc.get("source_url"), "passages": ranked[:4]}
+
+
+@router.get("/soil-estimate")
+def soil_estimate_endpoint(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180)) -> dict[str, Any]:
+    """Modelled soil properties for a field (SoilGrids) when there is no Soil Health Card."""
+    from app.data.soil.soilgrids import soil_estimate
+
+    est = soil_estimate(lat, lon)
+    if est is None:
+        raise HTTPException(status_code=502, detail="Soil map is unavailable for this location right now.")
+    return est
 
 
 @router.get("/climate", response_model=ClimateVerdict)

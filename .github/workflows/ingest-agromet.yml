@@ -1,0 +1,41 @@
+name: ingest-agromet
+
+# IMD district agromet bulletins are issued on Tuesdays and Fridays.
+on:
+  workflow_dispatch:
+    inputs:
+      district:
+        description: "One district only (blank = every district with a farm)"
+        required: false
+  schedule:
+    # 16:43 IST Tue and Fri (11:13 UTC), after the day's bulletins are published
+    - cron: "13 11 * * 2,5"
+
+concurrency:
+  group: ingest-agromet
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - run: pip install -r backend/requirements.txt
+      - name: Ingest IMD agromet bulletins
+        working-directory: backend
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          IMD_AGROMET_PDF_URL: ${{ vars.IMD_AGROMET_PDF_URL }}
+        run: |
+          if [ -n "${{ github.event.inputs.district }}" ]; then
+            python -m jobs.ingest_imd_agromet --district "${{ github.event.inputs.district }}"
+          else
+            python -m jobs.ingest_imd_agromet
+          fi

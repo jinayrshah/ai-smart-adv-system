@@ -45,6 +45,26 @@ class UnsupportedCropError(ValueError):
         )
 
 
+def _district_bulletin(district: str, crop: str | None, limit: int = 3) -> list[RetrievedChunk]:
+    """This week's IMD agromet bulletin for the farm's district: crop-specific passages first."""
+    if not district:
+        return []
+    try:
+        from app.data.advisory.rag_repo import get_rag_repo
+        found = get_rag_repo().latest_district_document("agromet_advisory", district)
+    except Exception as exc:
+        logger.debug(f"Agromet bulletin lookup skipped: {exc}")
+        return []
+    if not found:
+        return []
+    doc, chunks = found
+    c = (crop or "").lower()
+    ranked = sorted(chunks, key=lambda ch: 0 if c and c in (ch.get("chunk_text") or "").lower() else 1)
+    return [RetrievedChunk(document_id=doc.get("id"), chunk_text=ch["chunk_text"], source_title=doc.get("title"),
+                           page_number=ch.get("page_number"), similarity=0.9, source_url=doc.get("source_url"))
+            for ch in ranked[:limit]]
+
+
 @dataclass
 class AdvisoryContext:
     farmer_id: str | None
@@ -337,6 +357,8 @@ def assemble_advisory_context(
         doc_types=doc_types,
         top_k=6,
     )
+
+    retrieved_chunks.extend(_district_bulletin(eff_district, eff_crop))
 
     if is_scheme_query:
         # Ground with static national schemes catalog so welfare queries are always answered thoroughly

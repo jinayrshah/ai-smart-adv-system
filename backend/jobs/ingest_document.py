@@ -174,6 +174,25 @@ def ingest_document(
     return count
 
 
+def store_passages(doc: RagDocumentCreate, passages: list[dict], use_mock_embedding: bool = False) -> int:
+    """
+    Register a document and store its passages ({"text", "page", "crop"}). An embedding is
+    added when the embedding API works; otherwise the passage is stored without one and is
+    found by keyword search only (no placeholder vectors).
+    """
+    repo = get_rag_repo()
+    doc_id = repo.create_document(doc)
+    chunks, missing = [], 0
+    for i, p in enumerate(passages):
+        emb = get_gemini_embedding(text=p["text"], task_type="RETRIEVAL_DOCUMENT", use_mock=use_mock_embedding)
+        missing += emb is None
+        chunks.append({"document_id": doc_id, "crop": p.get("crop"), "doc_type": doc.doc_type,
+                       "chunk_text": p["text"], "chunk_index": i, "page_number": p.get("page"), "embedding": emb})
+    if missing:
+        logger.warning(f"{missing}/{len(chunks)} passages stored without embeddings (keyword search only).")
+    return repo.add_chunks(chunks)
+
+
 def seed_core_schemes_and_advisories(use_mock_embedding: bool = False):
     """
     Seeds comprehensive agronomic guidelines, pest treatments, and government schemes.

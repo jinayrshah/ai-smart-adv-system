@@ -3,16 +3,18 @@ Schemas for RAG Knowledge Pipeline (Documents, Chunks & Retrieval).
 Architecture_Advisory.md §10.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 from pydantic import BaseModel, Field
 
 
 class RagDocumentCreate(BaseModel):
     title: str
-    doc_type: Literal["agronomy_pop", "disease_treatment", "govt_scheme"]
+    doc_type: Literal["agronomy_pop", "disease_treatment", "govt_scheme", "agromet_advisory", "kcc_qa"]
     crop: str | None = None
     state: str | None = None
+    district: str | None = None
+    published_on: date | None = None
     source_url: str
     license_note: str
     version_tag: str | None = None

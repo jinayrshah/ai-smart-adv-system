@@ -385,6 +385,21 @@ curl -s -X GET "http://127.0.0.1:8000/api/farmer/profile/00000000-0000-0000-0000
 curl -s "http://127.0.0.1:8000/api/advisory/crop-suitability?lat=22.30&lon=70.80&soil_type=Black&irrigation=rainfed&season=kharif" | python3 -m json.tool | head -40
 ```
 
+### 21c. Official & Open Data Sources (IMD bulletins, SoilGrids, Kisan Call Centre)
+Run migration `supabase/migrations/20261101000001_rag_agromet_kcc.sql` first. Roadmap for the rest: `docs/ROADMAP_data_integrations.md`.
+```bash
+# IMD district agromet bulletin → advisor + Today panel (scheduled Tue/Fri by .github/workflows/ingest-agromet.yml)
+PYTHONPATH=backend backend/.venv/bin/python -m jobs.ingest_imd_agromet --district Rajkot --state Gujarat
+curl -s "http://127.0.0.1:8000/api/advisory/agromet-bulletin?district=Rajkot&crop=Cotton"
+
+# SoilGrids soil estimate for a field (also used for pH in crop suitability)
+curl -s "http://127.0.0.1:8000/api/advisory/soil-estimate?lat=22.30&lon=70.80"
+
+# Kisan Call Centre Q&A (download the CSV from data.gov.in first)
+PYTHONPATH=backend backend/.venv/bin/python -m jobs.ingest_kcc --file kcc.csv --state Gujarat --per-crop 400
+```
+If IMD moves the bulletin PDFs, set `IMD_AGROMET_PDF_URL` (with `{district}`) in `.env` / GitHub variables.
+
 ### 22. Codebase Knowledge Graph (graphify — dev tooling, no runtime/port impact)
 A queryable knowledge graph of the project's code + docs lives in `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`, interactive `graph.html`). Built with [graphify](https://github.com/Graphify-Labs/graphify); scope is controlled by `.graphifyignore` (raw data dumps in `data/mandilens/`, `docs/advisory/sources/`, embedding caches and vendored `.agents/` skills are excluded).
 ```bash

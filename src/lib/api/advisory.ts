@@ -457,3 +457,28 @@ export async function fetchCropSuitability(params: {
   if (!res.ok) throw new Error('Crop suitability is unavailable right now.');
   return res.json();
 }
+
+export interface SoilEstimate {
+  ph: number; clay_pct: number; sand_pct: number; silt_pct: number;
+  organic_carbon_g_per_kg?: number | null; texture_class: string;
+  suggested_soil_type: string | null; depth: string; source: string;
+}
+
+export async function fetchSoilEstimate(lat: number, lon: number): Promise<SoilEstimate> {
+  const res = await fetch(`/api/advisory/soil-estimate?lat=${lat}&lon=${lon}`);
+  if (!res.ok) throw new Error('Soil map unavailable');
+  return res.json();
+}
+
+export interface AgrometBulletin {
+  title: string; district: string; published_on: string | null; source_url: string; passages: string[];
+}
+
+/** null when no bulletin has been ingested for the district yet. */
+export async function fetchAgrometBulletin(district: string, crop?: string): Promise<AgrometBulletin | null> {
+  const q = new URLSearchParams({ district, ...(crop ? { crop } : {}) });
+  const res = await fetch(`/api/advisory/agromet-bulletin?${q}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('IMD advisory unavailable');
+  return res.json();
+}

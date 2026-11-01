@@ -90,6 +90,8 @@ class RagRepository:
                 "source_url": doc.source_url,
                 "license_note": doc.license_note,
                 "version_tag": doc.version_tag,
+                **({"district": doc.district} if doc.district else {}),
+                **({"published_on": doc.published_on.isoformat()} if doc.published_on else {}),
                 "ingested_at": now.isoformat(),
             }).execute()
             if res.data and len(res.data) > 0:
@@ -146,6 +148,39 @@ class RagRepository:
         RagRepository._local_chunks.extend(sanitized_chunks)
         self.save_cache()
         return len(sanitized_chunks)
+
+    def delete_documents(self, doc_type: str, district: str) -> None:
+        """Drop earlier documents of one type for a district (e.g. last week's bulletin)."""
+        try:
+            self.client.table("rag_documents").delete().eq("doc_type", doc_type).ilike("district", district).execute()
+        except Exception as exc:
+            logger.debug(f"Supabase rag_documents delete fallback: {exc}")
+        gone = {i for i, d in RagRepository._local_docs.items()
+                if d.get("doc_type") == doc_type and (d.get("district") or "").lower() == district.lower()}
+        for i in gone:
+            RagRepository._local_docs.pop(i, None)
+        RagRepository._local_chunks[:] = [c for c in RagRepository._local_chunks if c.get("document_id") not in gone]
+
+    def latest_district_document(self, doc_type: str, district: str) -> tuple[dict[str, Any], list[dict[str, Any]]] | None:
+        """Newest document of a type for a district, with its chunks in order."""
+        try:
+            res = (self.client.table("rag_documents").select("*").eq("doc_type", doc_type)
+                   .ilike("district", district).order("published_on", desc=True).limit(1).execute())
+            if res.data:
+                doc = res.data[0]
+                ch = (self.client.table("rag_chunks").select("chunk_text,chunk_index,page_number,crop")
+                      .eq("document_id", doc["id"]).order("chunk_index").execute())
+                return doc, ch.data or []
+        except Exception as exc:
+            logger.debug(f"Supabase latest district document fallback: {exc}")
+        docs = [d for d in RagRepository._local_docs.values()
+                if d.get("doc_type") == doc_type and (d.get("district") or "").lower() == district.lower()]
+        if not docs:
+            return None
+        doc = max(docs, key=lambda d: str(d.get("published_on") or ""))
+        chunks = sorted((c for c in RagRepository._local_chunks if c.get("document_id") == doc["id"]),
+                        key=lambda c: c.get("chunk_index", 0))
+        return doc, chunks
 
     # ------------------------------------------------------------------ retrieval
 

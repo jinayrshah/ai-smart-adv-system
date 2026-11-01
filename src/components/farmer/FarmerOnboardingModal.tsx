@@ -3,7 +3,7 @@ import { Crosshair, Loader2, MapPin, Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { submitOnboarding, type OnboardingPayload, type OnboardingResult } from '../../lib/api/farmer';
 import { searchWeatherLocations, type LocationSearchResult } from '../../lib/api/weather';
-import { fetchCropSuitability, type CropSuitabilityRow, type SuitabilityVerdict } from '../../lib/api/advisory';
+import { fetchCropSuitability, fetchSoilEstimate, type CropSuitabilityRow, type SoilEstimate, type SuitabilityVerdict } from '../../lib/api/advisory';
 import { INDIA_GEO, getDistrictsByState, getDistrictLatLon } from '../../data/indiaGeo';
 
 interface Props {
@@ -71,6 +71,7 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
   const [irrigation, setIrrigation] = useState('');
   const [npk, setNpk] = useState({ n: '', p: '', k: '', ph: '' });
 
+  const [soilEst, setSoilEst] = useState<SoilEstimate | null>(null);
   const [fit, setFit] = useState<CropSuitabilityRow[] | null>(null);
   const [fitState, setFitState] = useState<'idle' | 'loading' | 'error'>('idle');
   const [fitNote, setFitNote] = useState<string | null>(null);
@@ -113,6 +114,13 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
     }, 300);
     return () => { live = false; clearTimeout(t); };
   }, [isOpen, loc?.lat, loc?.lon, soilType, irrigation, season, npk.ph]);
+
+  useEffect(() => {
+    if (!isOpen || !loc) { setSoilEst(null); return; }
+    let live = true;
+    fetchSoilEstimate(loc.lat, loc.lon).then((e) => live && setSoilEst(e), () => live && setSoilEst(null));
+    return () => { live = false; };
+  }, [isOpen, loc?.lat, loc?.lon]);
 
   const districts = useMemo(() => getDistrictsByState(state), [state]);
   if (!isOpen) return null;
@@ -332,6 +340,20 @@ export const FarmerOnboardingModal: React.FC<Props> = ({
                 </select>
               </div>
             </div>
+            {soilEst && (
+              <div className="rounded-xl bg-ground px-4 py-3 text-sm">
+                <p className="text-ink">
+                  <span className="font-medium">Soil map estimate for this field:</span> {soilEst.texture_class.toLowerCase()},
+                  pH {soilEst.ph}, clay {soilEst.clay_pct}% · sand {soilEst.sand_pct}%.
+                  {soilEst.suggested_soil_type && soilType !== soilEst.suggested_soil_type && (
+                    <button type="button" onClick={() => setSoilType(soilEst.suggested_soil_type!)} className="ml-1 text-brand font-medium underline underline-offset-4">
+                      Use {soilEst.suggested_soil_type.split(' (')[0].toLowerCase()}
+                    </button>
+                  )}
+                </p>
+                <p className="mt-1 text-ink-muted">Modelled estimate ({soilEst.source}). A Soil Health Card test is more accurate; its pH below overrides this.</p>
+              </div>
+            )}
             <fieldset>
               <legend className={label}>Soil Health Card values</legend>
               <div className="grid grid-cols-4 gap-2">

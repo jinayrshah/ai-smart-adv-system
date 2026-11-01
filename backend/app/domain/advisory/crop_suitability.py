@@ -48,6 +48,7 @@ def assess(
     soil_ph: float | None = None,
     irrigation: str | None = None,
     season: str | None = None,
+    ph_source: str | None = None,
 ) -> list[dict[str, Any]]:
     """Pure function: one row per (crop, season), best first. Easy to test without I/O."""
     repo = get_agronomy_repo()
@@ -99,7 +100,7 @@ def assess(
             if soil_ph is not None:
                 off = max(soil.ideal_ph_min - soil_ph, soil_ph - soil.ideal_ph_max, 0)
                 checks.append({"factor": "soil pH", "verdict": "suitable" if off == 0 else "marginal" if off <= 1 else "unsuitable",
-                               "detail": f"pH {soil_ph:g} vs ideal {soil.ideal_ph_min:g}–{soil.ideal_ph_max:g}.", "source": soil.source})
+                               "detail": f"pH {soil_ph:g}{' (estimated from soil maps)' if ph_source and ph_source != 'farmer' else ''} vs ideal {soil.ideal_ph_min:g}–{soil.ideal_ph_max:g}.", "source": soil.source})
 
             known = [c["verdict"] for c in checks if c["verdict"] != "unknown"]
             overall: Verdict = max(known, key=_RANK.get) if known else "unknown"

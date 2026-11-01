@@ -41,7 +41,7 @@ def retrieve(
         if disease_label:
             target_types = ["disease_treatment", "agronomy_pop"]
         else:
-            target_types = ["agronomy_pop", "disease_treatment", "govt_scheme"]
+            target_types = ["agronomy_pop", "disease_treatment", "govt_scheme", "kcc_qa"]
     else:
         target_types = doc_types
 
