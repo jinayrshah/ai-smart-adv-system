@@ -16,8 +16,11 @@ __pycache__/
 .pytest_cache/
 .coverage
 .planning/
-graphify-out/
+graphify-out/.graphify_python
+graphify-out/.graphify_root
+graphify-out/.needs_update
 localhost.md
 scratch_gemini.ts
 supabase/.temp/
 users.json
+graphify-out/cache/ast/

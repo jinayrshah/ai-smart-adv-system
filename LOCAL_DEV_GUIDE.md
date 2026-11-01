@@ -396,6 +396,17 @@ curl -s -X GET "http://127.0.0.1:8000/api/farmer/profile/00000000-0000-0000-0000
   - **Design Foundation (`tokens.json`, `theme.css`, `src/index.css`)**: Arva Pastoral Editorial Magazine design system — Bone `#f1efdf` canvas, Forest Ink `#07503f` text/headers, Vivid Lime `#e8fe85` accents, and Quilted Pastel surfaces (`#b2cee7`, `#fceace`, `#e6ecd5`, `#efefef`). Zero text overlapping or clashing dark/white elements.
   - **Streamlined Navigation**: 5-tab pill shell (`Home`, `Advisor`, `Prices`, `Weather`, and `Profile`). Legacy removed tabs (`fertilizer`, `marketplace`, `disease`, `learn`, `history`) remain completely omitted from active navigation.
 
+### 22. Codebase Knowledge Graph (graphify — dev tooling, no runtime/port impact)
+A queryable knowledge graph of the project's code + docs lives in `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`, interactive `graph.html`). Built with [graphify](https://github.com/Graphify-Labs/graphify); scope is controlled by `.graphifyignore` (raw data dumps in `data/mandilens/`, `docs/advisory/sources/`, embedding caches and vendored `.agents/` skills are excluded).
+```bash
+uv tool install "graphifyy[sql,pdf]"     # one-time CLI install
+graphify query "how is the advisory answer grounded in weather and mandi data" --budget 2000
+graphify explain "WeatherService"
+graphify path "MandiRepository" "generate_advisory_response"
+graphify update .                         # after code changes (AST-only, no LLM cost)
+```
+In Claude Code, `/graphify . --update` also re-extracts changed docs. Open `graphify-out/graph.html` in a browser to explore communities visually.
+
 ---
 
 ## 📁 Key Source Directories
