@@ -159,6 +159,18 @@ Translate every screen, not just the Advisor (see 4.2). Put the language switch 
 **D9. Demo script.**
 Add `docs/DEMO.md`: a 3-minute path for presenters (sample farm, then Today and "How we know", a question in Hindi with a follow-up, a leaf photo, then the price trend), plus a backup set of screenshots in case the network fails on stage.
 
+## Phase 5c: Final repo cleanup and README (half a day, owner asked 2026-11-27)
+
+- Remove files and Markdown docs that are no longer needed. Candidates:
+  - The root design and planning docs (`Architecture_Frontend.md`, `Implementationplan_Frontend.md`, `Implementationplan_MarketData_Weather.md`, `PROJECT_DETAILS.md`, `MARKET_COVERAGE.md`).
+  - The old notes in `docs/fixesbyclaude/` and `docs/branch-notes/`.
+  - `src/data/agriculture_knowledge.json` and `data/market_price_history.json` if nothing reads them.
+  - Unused `.agents/` skills.
+
+  Check references before deleting (`graphify query`, grep), and list every removal in the PR so the owner can veto any.
+- Keep `docs/submission/`, the plan, `docs/DEPLOY.md` and the advisory and data-layer architecture docs.
+- Rewrite `README.md` for the final state: what the app does, with screenshots, the live link, architecture, how to run it locally, how to deploy (link to `docs/DEPLOY.md`), tests, and data sources.
+
 ## Phase 6: Product features (pick in order; each is its own PR)
 
 1. **Voice questions and spoken answers in the Advisor.** Bhashini is already configured (`translation.py`). Add a mic button: speech to text, then the advisor, then text to speech. This removes the reading barrier.
@@ -187,6 +199,7 @@ Add `docs/DEMO.md`: a 3-minute path for presenters (sample farm, then Today and 
 | 4 Frontend | 3-4 days | Speed on cheap phones, full regional languages |
 | 5 Deploy | 2 days | The full stack can be run and recovered |
 | 5b Design and demo | 3-4 days | Judges see value in the first 2 minutes |
+| 5c Cleanup and README | 0.5 day | Owner asked: lean repo, accurate README |
 | 6 Features | 1-2 weeks each | Voice and offline first: they suit the users best |
 | 7 Evals | ongoing | Proves answers are improving, not just changing |
 
