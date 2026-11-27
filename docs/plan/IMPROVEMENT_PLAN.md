@@ -151,7 +151,7 @@ On the first visit to Today, show 3 dismissible coach marks: your crop's stage, 
 Translate every screen, not just the Advisor (see 4.2). Put the language switch on the sign-in page and in the first-run guide, since multilingual support is a headline feature. Check that long Hindi and Telugu strings don't break buttons.
 
 **D8. Name, icon and polish.**
-- Give the app a short name and icon instead of the generic "Smart Agriculture", and use it in the title, favicon and PWA manifest.
+- **Rename the app to KhetMitra ("farm friend")**, approved by the owner on 2026-11-27, replacing "Smart Agriculture" everywhere: the header, sign-in page, `<title>`, favicon and icon, PWA manifest, README, and the API title in `backend/app/main.py`. Leave `docs/submission/` as it is.
 - Add page transitions under 200 ms, with reduced motion respected.
 - Keep tap targets at 44 px or more.
 - Check text contrast against WCAG AA.
