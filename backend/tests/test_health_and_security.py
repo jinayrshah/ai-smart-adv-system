@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 
-from app.core.timeutil import now_utc_iso
 from app.data.ops.service import OpsService
 from app.main import app
 

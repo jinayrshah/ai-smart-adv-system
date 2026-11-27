@@ -23,7 +23,7 @@ from app.domain.advisory.disease_detector import get_disease_detector
 from app.domain.advisory.generator import generate_advisory_response
 from app.domain.advisory.growth_stage_engine import current_growth_stage
 from app.domain.advisory.ratelimit import advisory_rate_limiter
-from app.domain.advisory.schemes import answer_scheme_query, get_all_schemes, get_scheme_by_code
+from app.domain.advisory.schemes import answer_scheme_query, get_all_schemes
 from app.domain.advisory.soil_suitability_engine import check_soil_suitability
 from app.domain.advisory.water_requirement_engine import calculate_irrigation_need
 from app.domain.advisory.retrieve import retrieve

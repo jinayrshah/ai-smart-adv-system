@@ -1,5 +1,5 @@
 from collections import Counter
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any
 
 from app.core.timeutil import now_ist, now_utc_iso, today_ist

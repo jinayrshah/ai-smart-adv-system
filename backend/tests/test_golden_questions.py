@@ -9,12 +9,10 @@ Verifies:
 4. Golden Question Coverage across the Deep-6 crops and National Welfare Schemes.
 """
 
-import pytest
 from datetime import date
 from app.domain.advisory.context import AdvisoryContext
 from app.domain.advisory.generator import generate_advisory_response
 from app.domain.advisory.schemes import answer_scheme_query
-from app.domain.advisory.disease_detector import get_disease_detector
 from app.domain.advisory.growth_stage_engine import current_growth_stage
 from app.domain.advisory.water_requirement_engine import calculate_irrigation_need
 from app.domain.advisory.soil_suitability_engine import check_soil_suitability

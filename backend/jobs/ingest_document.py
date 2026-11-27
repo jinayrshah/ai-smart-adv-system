@@ -9,7 +9,6 @@ import argparse
 import logging
 from pathlib import Path
 import re
-import sys
 from typing import Any, Literal
 import pypdf
 

@@ -1,6 +1,4 @@
-from datetime import date
 from uuid import uuid4
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app

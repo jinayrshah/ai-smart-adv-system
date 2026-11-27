@@ -6,7 +6,6 @@ Architecture_Advisory.md §6, Security item #2.
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 import jwt
-import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import get_settings

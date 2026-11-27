@@ -5,7 +5,7 @@ Architecture_Advisory.md §10.
 
 from datetime import date, datetime
 from typing import Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class RagDocumentCreate(BaseModel):

@@ -1,7 +1,6 @@
-import logging
 import sys
 import time
-from datetime import date, timedelta
+from datetime import timedelta
 
 from app.core.logging import setup_logger
 from app.core.timeutil import now_utc_iso, today_ist

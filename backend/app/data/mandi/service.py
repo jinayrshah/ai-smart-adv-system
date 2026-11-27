@@ -6,7 +6,7 @@ Architecture §9.5 / Implementation Plan Phase 2B.
 """
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from typing import Any
 
 from app.core.config import get_settings

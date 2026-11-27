@@ -13,7 +13,6 @@ Retention rules:
 """
 
 import argparse
-import logging
 import sys
 from datetime import datetime, timedelta, timezone
 

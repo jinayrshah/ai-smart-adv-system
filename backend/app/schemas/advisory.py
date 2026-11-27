@@ -3,7 +3,6 @@ Pydantic schemas for the Personalized Crop Advisory domain engines.
 Architecture_Advisory.md §7, §8, §9, §9b.
 """
 
-from datetime import date
 from typing import Any, Literal
 from pydantic import BaseModel, Field
 

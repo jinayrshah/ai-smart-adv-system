@@ -1,5 +1,4 @@
 from datetime import date, timedelta
-from unittest.mock import MagicMock
 
 from app.data.types import WeatherDay
 from app.data.weather.fusion import DEFAULT_FUSION_CONFIG, fuse_range
