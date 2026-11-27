@@ -127,3 +127,31 @@ def require_self_or_dev(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Token 'sub' is not a valid UUID: {sub!r}",
         )
+
+
+def optional_caller(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+) -> UUID | None:
+    """
+    Like ``require_self_or_dev`` but a missing token is allowed: anonymous callers may use
+    advisory routes without naming a farm. A token that is present must be valid.
+    """
+    if credentials is None:
+        return None
+    return require_self_or_dev(credentials)
+
+
+def assert_owner(caller: UUID | None, owner_id: object | None, what: str = "farm") -> None:
+    """403 when auth is active and the record belongs to someone else (or to no one we can verify)."""
+    if caller is None:
+        if not (get_settings().SUPABASE_JWT_SECRET or get_settings().JWT_SECRET).strip():
+            return  # dev / CI: auth not configured
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Sign in to use your {what}.")
+    if owner_id is None:
+        return
+    try:
+        if UUID(str(owner_id)) == caller:
+            return
+    except ValueError:
+        pass
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Access denied: this {what} does not belong to you.")

@@ -8,7 +8,11 @@ import logging
 import re
 from typing import Any
 
-from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
+from app.core.auth import assert_owner, optional_caller
+from app.core.config import get_settings
 from app.core.rate_limit import client_ip_from_request as client_ip
 from app.core.timeutil import today_ist
 from app.data.advisory.query_repo import get_query_repo
@@ -56,6 +60,14 @@ agronomy_repo = get_agronomy_repo()
 farmer_repo = FarmerRepository()
 query_repo = get_query_repo()
 disease_detector = get_disease_detector()
+
+
+def _assert_farm_owner(caller: UUID | None, farm_id: int) -> None:
+    farm = farmer_repo.get_farm(farm_id)
+    if farm is None:
+        assert_owner(caller, None)  # still require sign-in when auth is on
+        return
+    assert_owner(caller, getattr(farm, "farmer_id", None))
 
 
 @router.get("/crops", response_model=list[str])
@@ -260,6 +272,7 @@ def check_climate(
 def get_farm_diagnostic(
     farm_id: int = Query(..., description="Farm ID"),
     crop_id: int | None = Query(None, description="Optional specific farm crop ID"),
+    caller: UUID | None = Depends(optional_caller),
 ):
     """
     Complete 4-engine agronomic diagnostic for an onboarded farm and its active crop:
@@ -268,6 +281,7 @@ def get_farm_diagnostic(
     farm = farmer_repo.get_farm(farm_id)
     if not farm:
         raise HTTPException(status_code=404, detail="Farm not found.")
+    assert_owner(caller, getattr(farm, "farmer_id", None))
 
     crops = farmer_repo.get_crops(farm_id, status="active") or farmer_repo.get_crops(farm_id)
     if not crops:
@@ -440,13 +454,23 @@ def ask_government_scheme(payload: SchemeAskRequest):
 
 
 @router.post("/ask", response_model=AdvisoryAskResponse)
-def ask_crop_advisory(payload: AdvisoryAskRequest, request: Request):
+def ask_crop_advisory(
+    payload: AdvisoryAskRequest,
+    request: Request,
+    caller: UUID | None = Depends(optional_caller),
+):
     """
     Main Personalized Advisory pipeline:
     Assembles AdvisoryContext (profile, weather history, GDD stage, ETc deficit, soil & climate),
     executes RAG retrieval, invokes grounded generation, performs safety audit, and logs query.
     Architecture §4, §12, §14.
     """
+    # A named farm or farmer must belong to the signed-in caller.
+    if payload.farmer_id:
+        assert_owner(caller, payload.farmer_id, "profile")
+    if payload.farm_id is not None:
+        _assert_farm_owner(caller, payload.farm_id)
+
     # Rate limit check per farmer / farm / anonymous caller (Architecture §18, Phase 7)
     # Anonymous callers are keyed by client IP — a single shared "anonymous" bucket let
     # one visitor exhaust the quota for every other logged-out user.
@@ -532,7 +556,11 @@ def ask_crop_advisory(payload: AdvisoryAskRequest, request: Request):
 
 
 @router.post("/queries/{query_id}/feedback", response_model=AdvisoryFeedbackResponse)
-def record_query_feedback(query_id: int, payload: AdvisoryFeedbackRequest):
+def record_query_feedback(
+    query_id: int,
+    payload: AdvisoryFeedbackRequest,
+    caller: UUID | None = Depends(optional_caller),
+):
     """
     Records farmer feedback (+1 thumbs-up, -1 thumbs-down) for an advisory response.
     Architecture §2 idea 3, §14.
@@ -542,6 +570,12 @@ def record_query_feedback(query_id: int, payload: AdvisoryFeedbackRequest):
         val = 1 if payload.up else -1
     if val not in (1, -1):
         raise HTTPException(status_code=400, detail="Feedback must be 1 (thumbs-up) or -1 (thumbs-down).")
+
+    if caller is not None:
+        row = query_repo.get_query(query_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Answer not found.")
+        assert_owner(caller, row.get("farmer_id"), "answer")
 
     success = query_repo.record_feedback(query_id=query_id, feedback=val)
     if not success:
@@ -555,18 +589,26 @@ async def check_crop_disease(
     file: UploadFile = File(..., description="Uploaded leaf photograph (JPEG/PNG/WebP)"),
     crop: str | None = Form(None, description="Optional crop hint (e.g. Tomato, Wheat, Maize)"),
     farm_id: int | None = Form(None, description="Optional farm ID to retrieve registered crop"),
+    caller: UUID | None = Depends(optional_caller),
 ):
     """
     Analyzes crop leaf photo for disease identification and automatically retrieves
     verified scientific treatments from ICAR and State Agricultural University guides.
     Architecture §11, §14.
     """
+    if file.content_type and not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=415, detail="Upload a photo (JPEG, PNG or WebP).")
+    if farm_id is not None:
+        _assert_farm_owner(caller, farm_id)
     if farm_id is not None and not crop:
         farm_crops = farmer_repo.get_crops(farm_id)
         if farm_crops:
             crop = farm_crops[0].crop
 
-    content = await file.read()
+    max_bytes = get_settings().DISEASE_MAX_UPLOAD_BYTES
+    content = await file.read(max_bytes + 1)
+    if len(content) > max_bytes:
+        raise HTTPException(status_code=413, detail=f"Photo is too large (max {max_bytes // (1024 * 1024)} MB).")
     if not content or len(content) < 100:
         raise HTTPException(status_code=400, detail="Invalid or empty image file uploaded.")
 
@@ -574,5 +616,5 @@ async def check_crop_disease(
         return disease_detector.diagnose(image_bytes=content, crop=crop)
     except Exception as exc:
         logger.error(f"Disease detection failed: {exc}")
-        raise HTTPException(status_code=400, detail=f"Failed to process image: {exc}")
+        raise HTTPException(status_code=400, detail="Could not read this photo. Try another JPEG or PNG image.")
 
