@@ -10,7 +10,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "check:i18n": "node scripts/check-locales.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",

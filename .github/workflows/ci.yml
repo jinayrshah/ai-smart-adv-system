@@ -51,6 +51,9 @@ jobs:
       - name: Install npm dependencies
         run: npm ci || npm install
 
+      - name: Check translations match en.json
+        run: npm run check:i18n
+
       - name: Typecheck TypeScript
         run: npx tsc --noEmit
 
