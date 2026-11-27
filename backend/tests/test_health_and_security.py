@@ -160,3 +160,18 @@ def test_request_id_header_and_ready_endpoint():
     ready = c.get("/health/ready")
     assert ready.status_code in (200, 503)
     assert set(ready.json()["checks"]) >= {"supabase", "llm", "auth", "disease_model"}
+
+
+def test_forwarded_for_trusted_only_with_proxy_secret(monkeypatch):
+    from starlette.requests import Request
+    from app.core.config import get_settings
+    from app.core.rate_limit import client_ip_from_request
+
+    def req(headers):
+        return Request({"type": "http", "client": ("203.0.113.9", 1234),
+                        "headers": [(k.lower().encode(), v.encode()) for k, v in headers.items()]})
+
+    monkeypatch.setattr(get_settings(), "PROXY_SHARED_SECRET", "s3cret")
+    assert client_ip_from_request(req({"X-Forwarded-For": "1.2.3.4"})) == "203.0.113.9"
+    assert client_ip_from_request(req({"X-Forwarded-For": "1.2.3.4", "X-Proxy-Secret": "wrong"})) == "203.0.113.9"
+    assert client_ip_from_request(req({"X-Forwarded-For": "1.2.3.4", "X-Proxy-Secret": "s3cret"})) == "1.2.3.4"

@@ -1,3 +1,4 @@
+import hmac
 import time
 from collections import defaultdict
 from threading import Lock
@@ -17,12 +18,24 @@ def client_ip_from_request(request: Request, trusted_proxies: set[str] | None = 
     peer = request.client.host if request.client else "unknown"
     trusted = trusted_proxies if trusted_proxies is not None else {"127.0.0.1", "::1"}
     forwarded_for = request.headers.get("x-forwarded-for")
-    if forwarded_for and peer in trusted:
+    if forwarded_for and (peer in trusted or _has_proxy_secret(request)):
         # Left-most entry is the original client as seen by the first proxy.
         first = forwarded_for.split(",")[0].strip()
         if first:
             return first
     return peer
+
+
+def _has_proxy_secret(request: Request) -> bool:
+    """
+    When Express and FastAPI run on different hosts (Vercel + Render), the proxy's IP is not
+    fixed, so it proves itself with a shared secret instead (PROXY_SHARED_SECRET on both).
+    """
+    from app.core.config import get_settings
+
+    secret = get_settings().PROXY_SHARED_SECRET
+    sent = request.headers.get("x-proxy-secret", "")
+    return bool(secret) and hmac.compare_digest(sent.encode(), secret.encode())
 
 
 _INSTANCES: list["RateLimitMiddleware"] = []

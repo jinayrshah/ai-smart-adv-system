@@ -1,0 +1,42 @@
+# Render Blueprint for the FastAPI backend (the frontend and login server stay on Vercel).
+# Render dashboard -> New -> Blueprint -> pick this repo. Values marked `sync: false`
+# are asked for once in the dashboard; never commit them.
+services:
+  - type: web
+    name: smart-agri-api
+    runtime: python
+    region: singapore        # closest Render region to India
+    plan: free               # sleeps after 15 min idle; "starter" stays awake
+    branch: dev
+    # Built from the repo root: the API reads ../config/*.yaml at runtime.
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: JWT_SECRET            # must equal JWT_SECRET on Vercel
+        sync: false
+      - key: PROXY_SHARED_SECRET   # must equal PROXY_SHARED_SECRET on Vercel
+        sync: false
+      - key: CORS_ALLOW_ORIGINS    # your Vercel URL, e.g. https://ai-smart-adv-system.vercel.app
+        sync: false
+      - key: DATA_GOV_IN_KEY
+        sync: false
+      - key: OPENWEATHER_API_KEY
+        sync: false
+      - key: GROQ_API_KEYS
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: BHASHINI_USER_ID      # optional: answers in hi / mr / gu / kn / te
+        sync: false
+      - key: BHASHINI_API_KEY
+        sync: false

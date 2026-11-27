@@ -62,6 +62,7 @@ npx tsc --noEmit && npm run build
 
 ## More
 
+- [`docs/DEPLOY.md`](docs/DEPLOY.md): deploying to Vercel (frontend), Render (backend) and Supabase
 - [`LOCAL_DEV_GUIDE.md`](LOCAL_DEV_GUIDE.md): every endpoint, port and curl example
 - [`docs/ROADMAP_data_integrations.md`](docs/ROADMAP_data_integrations.md): next data sources (WhatsApp + voice, satellite crop health, groundwater, eNAM)
 - Adding a crop: add its stages, Kc, soil, climate, seasons and water need to `backend/app/data/advisory/fixtures/crop_catalog.json` (with sources), then ingest its ICAR guide with `jobs.ingest_document`.
