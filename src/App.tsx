@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { CloudSun, Home, Loader2, MessageCircle, Sprout, TrendingUp, Tractor } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -6,19 +6,31 @@ import { AppProvider } from './context/AppContext';
 import { AuthPortal } from './components/auth/AuthPortal';
 import { LanguageSelector } from './components/LanguageSelector';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { FarmerOnboardingModal } from './components/farmer/FarmerOnboardingModal';
-import { FarmView } from './components/farmer/FarmView';
 import { TodayView } from './components/home/TodayView';
-import { AdvisorView } from './components/advisor/AdvisorView';
-import { WeatherStrip } from './components/weather/WeatherStrip';
-import { MarketDataView, type MarketSelection } from './components/market/MarketDataView';
-import { MandiExplore } from './components/market/MandiExplore';
+import type { MarketSelection } from './components/market/MarketDataView';
 import { useUIStore, type UIActiveTab } from './stores/uiStore';
 import { cacheProfile, loadFarmerProfile, normalizeFarmerProfile, readCachedProfile } from './lib/farmerProfile';
 
+// Each tab's code is downloaded the first time the tab is opened, so the first screen loads fast
+// on slow phones and networks.
+const AdvisorView = lazy(() => import('./components/advisor/AdvisorView').then((m) => ({ default: m.AdvisorView })));
+const WeatherStrip = lazy(() => import('./components/weather/WeatherStrip').then((m) => ({ default: m.WeatherStrip })));
+const MarketDataView = lazy(() => import('./components/market/MarketDataView').then((m) => ({ default: m.MarketDataView })));
+const MandiExplore = lazy(() => import('./components/market/MandiExplore').then((m) => ({ default: m.MandiExplore })));
+const FarmView = lazy(() => import('./components/farmer/FarmView').then((m) => ({ default: m.FarmView })));
+const FarmerOnboardingModal = lazy(() =>
+  import('./components/farmer/FarmerOnboardingModal').then((m) => ({ default: m.FarmerOnboardingModal })));
+
+const TabLoading = () => (
+  <div className="py-24 flex justify-center"><Loader2 className="animate-spin text-brand" size={28} aria-label="Loading" /></div>
+);
+
 function TabPanel({ active, children }: { active: boolean; children: React.ReactNode }) {
-  // Kept mounted so each tab keeps its state (chat thread, chart selection) when you switch away.
-  return <div hidden={!active}>{children}</div>;
+  // Mounted on first visit, then kept mounted so each tab keeps its state (chat thread,
+  // chart selection) when you switch away.
+  const [visited, setVisited] = useState(active);
+  useEffect(() => { if (active) setVisited(true); }, [active]);
+  return <div hidden={!active}>{visited && <Suspense fallback={<TabLoading />}>{children}</Suspense>}</div>;
 }
 
 export function AppContent() {
@@ -159,8 +171,10 @@ export function AppContent() {
         )}
       </main>
 
+      {(editingFarm || (profileState === 'ready' && !hasFarm)) && (
+      <Suspense fallback={null}>
       <FarmerOnboardingModal
-        isOpen={editingFarm || (profileState === 'ready' && !hasFarm)}
+        isOpen
         required={!hasFarm}
         onClose={() => setEditingFarm(false)}
         initialFarmerId={user.id}
@@ -169,6 +183,8 @@ export function AppContent() {
         initialProfile={farmerProfile}
         onComplete={saveFarm}
       />
+      </Suspense>
+      )}
 
       <nav aria-label="Main" className="fixed bottom-0 inset-x-0 z-40 bg-surface border-t border-line pb-[env(safe-area-inset-bottom)]">
         <ul className="mx-auto max-w-lg grid grid-cols-5">
