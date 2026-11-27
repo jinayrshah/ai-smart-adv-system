@@ -1,8 +1,6 @@
 """Tests for Phase 2B — Mandi Explore service, search endpoint, and prune job."""
 
-import pytest
-from unittest.mock import MagicMock, patch
-from datetime import date
+from unittest.mock import MagicMock
 
 from app.data.mandi.service import _is_tracked_scope, _enforce_lru_cap
 

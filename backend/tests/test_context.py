@@ -1,4 +1,3 @@
-from datetime import date
 from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 
@@ -127,11 +126,15 @@ def test_context_service_rule_evaluation_and_capping():
     mock_locations_repo = MagicMock()
 
     # Mock 30-day prices with high volatility
+    # Dates are relative to today: the service only looks at the last `days` days.
+    from datetime import timedelta
+    from app.core.timeutil import today_ist
+    _d = lambda n: (today_ist() - timedelta(days=n)).isoformat()
     mock_mandi_repo.get_latest_prices.return_value = [
-        {"arrival_date": "2026-09-05", "modal_price": 2000.0, "state": "Maharashtra", "district": "Nashik"},
-        {"arrival_date": "2026-09-12", "modal_price": 2800.0, "state": "Maharashtra", "district": "Nashik"},
-        {"arrival_date": "2026-09-20", "modal_price": 1900.0, "state": "Maharashtra", "district": "Nashik"},
-        {"arrival_date": "2026-10-04", "modal_price": 2600.0, "state": "Maharashtra", "district": "Nashik"},
+        {"arrival_date": _d(29), "modal_price": 2000.0, "state": "Maharashtra", "district": "Nashik"},
+        {"arrival_date": _d(22), "modal_price": 2800.0, "state": "Maharashtra", "district": "Nashik"},
+        {"arrival_date": _d(14), "modal_price": 1900.0, "state": "Maharashtra", "district": "Nashik"},
+        {"arrival_date": _d(0), "modal_price": 2600.0, "state": "Maharashtra", "district": "Nashik"},
     ]
 
     mock_locations_repo.get_tracked_locations.return_value = [

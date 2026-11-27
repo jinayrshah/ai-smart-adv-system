@@ -6,7 +6,6 @@ Protects against runaway LLM / Gemini API usage with a per-farmer sliding window
 """
 
 from collections import deque
-from datetime import datetime, timezone
 import time
 from typing import Deque
 

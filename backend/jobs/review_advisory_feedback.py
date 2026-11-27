@@ -11,7 +11,6 @@ confidence ratings, and identifies potential knowledge gaps in PoP documents or 
 import argparse
 import json
 import logging
-import sys
 from typing import Any
 
 from app.data.advisory.query_repo import get_query_repo

@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Languages, Check, ChevronDown } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -64,14 +63,9 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = 'f
         <ChevronDown size={12} className={cn("transition-transform duration-200", isOpen && "rotate-180")} />
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-52 bg-white border border-line rounded-2xl shadow-xl z-50 overflow-hidden"
+      {isOpen && (
+          <div
+            className="lang-menu-in absolute right-0 mt-2 w-52 bg-white border border-line rounded-2xl shadow-xl z-50 overflow-hidden"
           >
             <div className="p-2 space-y-1">
               {languages.map((lang) => (
@@ -95,9 +89,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = 'f
                 </button>
               ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+      )}
     </div>
   );
 };

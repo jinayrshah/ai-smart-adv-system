@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
 
+      - name: Lint (errors and unused imports)
+        run: pip install ruff && ruff check backend --select E9,F63,F7,F82,F401
+
       - name: Run offline unit tests
         working-directory: backend
         env:
@@ -47,6 +50,9 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci || npm install
+
+      - name: Check translations match en.json
+        run: npm run check:i18n
 
       - name: Typecheck TypeScript
         run: npx tsc --noEmit

@@ -1,5 +1,4 @@
 import json
-import logging
 from pathlib import Path
 
 from app.core.logging import setup_logger

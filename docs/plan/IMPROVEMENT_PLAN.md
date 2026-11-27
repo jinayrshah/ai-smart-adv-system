@@ -29,8 +29,8 @@ Written 2026-11-27 for an executing agent (Opus) working in this repo. Work thro
 In `backend/tests/conftest.py`, add an autouse fixture that makes `FarmerRepository` non-persistent and in-memory for tests. Either inject a fake client (`backend/tests/fake_supabase.py` already exists), or set `_persistent=False` when `SUPABASE_URL` is the CI dummy host. Also fix `test_context.py::test_context_service_rule_evaluation_and_capping`, which returns `price=None` and probably has the same root cause in the mandi repo.
 *Done when:* `pytest -q` passes fully offline, and CI is green on `dev`.
 
-**0.2 Remove the `httpx2` dependency.**
-It is in `backend/requirements.txt`, nothing imports it, and it is a lookalike of `httpx`. Treat it as a supply-chain risk: remove it, then confirm nothing breaks.
+**0.2 Make tests fast and offline.**
+supabase-py retries failed reads with back-off, so every offline Supabase call in a test waited over a minute and the CI job hit its 10-minute limit. Tests should skip the retry wait and route outbound traffic to a dead local proxy. (`httpx2` in `requirements.txt` is the real successor to `httpx` and what Starlette's TestClient prefers, so keep it.)
 
 **0.3 Remove unused npm dependencies.**
 Nothing in `src/`, `server.ts` or `api/` imports `firebase`, `@google/genai`, `multer`, `@types/multer`, `cors` or `react-is`. Remove them, regenerate `package-lock.json`, and rename the package from `react-example` to `smart-agri-advisory`.

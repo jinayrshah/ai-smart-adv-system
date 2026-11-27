@@ -34,7 +34,8 @@ export const AuthPortal: React.FC = () => {
     setError(null);
     if (method === 'mobile' && identifier.length !== 10) return setError('Enter your 10-digit mobile number.');
     if (method === 'email' && !/^\S+@\S+\.\S+$/.test(identifier.trim())) return setError('Enter a valid email address.');
-    if (password.length < 6) return setError('Password needs at least 6 characters.');
+    if (mode !== 'signin' && password.length < 8) return setError('Password needs at least 8 characters.');
+    if (!password) return setError('Enter your password.');
     if (mode === 'register' && !fullName.trim()) return setError('Enter your name.');
     setBusy(true);
     try {

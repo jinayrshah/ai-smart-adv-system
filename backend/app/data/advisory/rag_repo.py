@@ -14,7 +14,7 @@ from typing import Any
 
 from app.data.mandi.repository import get_supabase_client
 from app.domain.advisory.lexical import BM25Index, reciprocal_rank_fusion
-from app.schemas.rag import RagChunk, RagDocument, RagDocumentCreate, RetrievedChunk
+from app.schemas.rag import RagDocumentCreate, RetrievedChunk
 
 logger = logging.getLogger(__name__)
 

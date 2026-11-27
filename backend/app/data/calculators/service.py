@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from app.data.mandi.repository import MandiRepository
 from app.data.reference.repository import ReferenceRepository

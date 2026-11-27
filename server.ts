@@ -48,7 +48,7 @@ export async function createApp() {
     console.warn('[AUTH] JWT_SECRET not set; using a random development secret (logins reset on restart).');
   }
 
-  app.use(express.json());
+  app.use(express.json({ limit: '1mb' }));
 
   // Persistence for users
   const usersFile = getRuntimeDataFile('users.json', {});
@@ -82,8 +82,18 @@ export async function createApp() {
   // Once Supabase fails for accounts (table missing, bad key, unreachable), this process
   // serves accounts from the local users.json so sign-in keeps working; the reason is logged.
   let sbUsersOff = false;
-  const useSb = () => !!(SB_URL && SB_KEY) && !sbUsersOff;
+  const IS_PROD = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
+  if (IS_PROD && !(SB_URL && SB_KEY)) {
+    // On Vercel the local file lives in /tmp and is wiped on cold starts: accounts would vanish.
+    console.error('[AUTH] SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not set; accounts cannot be stored in production.');
+  }
+  const useSb = () => !!(SB_URL && SB_KEY) && (IS_PROD || !sbUsersOff);
   const sbOff = (why: string) => {
+    if (IS_PROD) {
+      // Never fall back to the throwaway file in production; surface the failure instead.
+      console.error(`[AUTH] Supabase account store failed: ${why}`);
+      throw new Error('account store unavailable');
+    }
     sbUsersOff = true;
     console.warn(`[AUTH] Supabase account store disabled for this run: ${why}. Using local users.json. Fix the cause and restart.`);
   };
@@ -123,6 +133,7 @@ export async function createApp() {
         return local;
       }
     }
+    if (IS_PROD) throw new Error('account store unavailable');
     return findInFile(by);
   };
   const saveUser = async (user: any): Promise<void> => {
@@ -134,6 +145,7 @@ export async function createApp() {
       }, 'write');
       if (r) return;
     }
+    if (IS_PROD) throw new Error('account store unavailable');
     const users = readUserFile();
     users[user.identifier] = user;
     fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
@@ -188,6 +200,15 @@ export async function createApp() {
       const { identifier, password, type } = req.body;
       if (!identifier || !password || !type) {
         return res.status(400).json({ status: 'error', error: 'Identifier, password and type are required' });
+      }
+      if (typeof identifier !== 'string' || identifier.length > 254 || typeof password !== 'string') {
+        return res.status(400).json({ status: 'error', error: 'Invalid identifier or password' });
+      }
+      if (password.length < 8) {
+        return res.status(400).json({ status: 'error', error: 'Password must be at least 8 characters' });
+      }
+      if (type !== 'email' && type !== 'mobile') {
+        return res.status(400).json({ status: 'error', error: "Type must be 'email' or 'mobile'" });
       }
 
       if (await findUser({ identifier })) {
@@ -260,6 +281,9 @@ export async function createApp() {
       if (!oldPassword || !newPassword) {
         return res.status(400).json({ status: 'error', error: 'Old and new passwords are required' });
       }
+      if (typeof newPassword !== 'string' || newPassword.length < 8) {
+        return res.status(400).json({ status: 'error', error: 'New password must be at least 8 characters' });
+      }
 
       const user = await findUser({ id: req.user.userId });
 
@@ -288,13 +312,14 @@ export async function createApp() {
       const { identifier } = req.body;
       if (!identifier) return res.status(400).json({ status: 'error', error: 'Identifier is required' });
 
+      const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+      // Same answer whether or not the account exists, so this cannot be used to probe accounts.
       if (!(await findUser({ identifier }))) {
-        return res.status(404).json({ status: 'error', error: 'User not found' });
+        return res.json({ status: 'ok', message: 'Reset OTP sent successfully', expiresAt });
       }
 
       const otp = crypto.randomInt(100000, 1000000).toString(); // CSPRNG, not Math.random
       const hashedOtp = await bcrypt.hash(otp, 10);
-      const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
       otpStore.set(identifier, { hashedOtp, expiresAt, attempts: 0 });
 
@@ -354,60 +379,12 @@ export async function createApp() {
     }
   });
 
-  // Deprecated OTP routes (for backward compatibility if needed, but we'll remove them from UI)
-  app.post('/api/auth/send-otp', authLimiter, async (req, res) => {
-    const { identifier } = req.body;
-    if (!identifier) return res.status(400).json({ status: 'error', error: 'Identifier is required' });
-
-    const otp = crypto.randomInt(100000, 1000000).toString();
-    const hashedOtp = await bcrypt.hash(otp, 10);
-    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
-    otpStore.set(identifier, { hashedOtp, expiresAt, attempts: 0 });
-    if (process.env.NODE_ENV !== 'production') console.log(`[AUTH] (dev) OTP for ${identifier}: ${otp}`);
-    res.json({ status: 'ok', message: 'OTP sent successfully', expiresAt });
-  });
-
-  app.post('/api/auth/verify-otp', authLimiter, async (req, res) => {
-    const { identifier, otp } = req.body;
-    if (!identifier || !otp) return res.status(400).json({ status: 'error', error: 'Identifier and OTP are required' });
-
-    const storedData = otpStore.get(identifier);
-    if (!storedData) return res.status(400).json({ status: 'error', error: 'OTP not found or expired' });
-
-    const isValid = await bcrypt.compare(otp, storedData.hashedOtp);
-    if (!isValid) return res.status(400).json({ status: 'error', error: 'Invalid OTP' });
-
-    otpStore.delete(identifier);
-
-    let user = await findUser({ identifier });
-    let isNewUser = false;
-
-    if (!user) {
-      isNewUser = true;
-      user = {
-        id: identifier === '+910000000000' ? 'demo-user-9999999999' : crypto.randomUUID(),
-        identifier,
-        type: identifier.includes('@') ? 'email' : 'mobile',
-        role: 'farmer',
-        createdAt: new Date().toISOString()
-      };
-      await saveUser(user);
-    }
-
-    const token = jwt.sign(
-      { userId: user.id, identifier: user.identifier, role: user.role || 'farmer' },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.json({ status: 'ok', user, token, isNewUser });
-  });
-
   app.get('/api/auth/profile', authenticateToken, async (req: any, res) => {
     try {
       const user = await findUser({ id: req.user.userId });
       if (!user) return res.status(404).json({ status: 'error', error: 'User not found' });
-      res.json({ status: 'ok', ...(user as any) });
+      const { password: _pw, ...safeUser } = user as any;
+      res.json({ status: 'ok', ...safeUser });
     } catch (error) {
       console.error('[API] Fetch profile error:', error);
       res.status(503).json({ status: 'error', error: 'Failed to fetch profile. The account service is unreachable (is the Supabase project paused?). Please try again.' });
@@ -416,7 +393,8 @@ export async function createApp() {
 
   app.post('/api/auth/update-profile', authenticateToken, async (req: any, res) => {
     try {
-      const { name, location, farmType, role } = req.body;
+      // `role` is never taken from the client: letting it through let anyone make themselves admin.
+      const { name, location, farmType } = req.body;
       const user = await findUser({ id: req.user.userId });
 
       if (!user) return res.status(404).json({ status: 'error', error: 'User not found' });
@@ -426,12 +404,13 @@ export async function createApp() {
         name: name || (user as any).name,
         location: location || (user as any).location,
         farmType: farmType || (user as any).farmType,
-        role: role || (user as any).role || 'farmer'
+        role: (user as any).role || 'farmer'
       };
 
       await saveUser(updatedUser);
 
-      res.json({ status: 'ok', ...updatedUser });
+      const { password: _pw, ...safeUser } = updatedUser;
+      res.json({ status: 'ok', ...safeUser });
     } catch (error) {
       console.error('[API] Update profile error:', error);
       res.status(503).json({ status: 'error', error: 'Failed to update profile. The account service is unreachable (is the Supabase project paused?). Please try again.' });
@@ -449,7 +428,9 @@ export async function createApp() {
   const FASTAPI_URL = (process.env.FASTAPI_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
   const proxyToFastApi = async (req: any, res: any) => {
     try {
-      const headers: Record<string, string> = {};
+      const headers: Record<string, string> = {
+        'X-Request-ID': String(req.headers['x-request-id'] || crypto.randomUUID().slice(0, 16)),
+      };
       if (req.headers.authorization) headers['Authorization'] = req.headers.authorization;
       const clientIp = req.ip || req.socket?.remoteAddress;
       if (clientIp) headers['X-Forwarded-For'] = clientIp;

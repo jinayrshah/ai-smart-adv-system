@@ -246,7 +246,7 @@ export async function fetchFarmDiagnostic(
     ...(cropId ? { crop_id: cropId } : {}),
   });
 
-  const res = await fetch(`/api/advisory/diagnostic?${query.toString()}`);
+  const res = await fetch(`/api/advisory/diagnostic?${query.toString()}`, { headers: getAuthHeaders() });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(typeof err.detail === 'string' ? err.detail : 'Failed to generate farm agronomic diagnostic');
@@ -280,6 +280,8 @@ export interface AdvisoryAskRequest {
   lat?: number | null;
   lon?: number | null;
   disease_label?: string | null;
+  /** earlier turns of this chat, oldest first, so follow-up questions keep their meaning */
+  history?: { role: 'user' | 'assistant'; text: string }[];
 }
 
 export interface AdvisoryAskResponse {
@@ -302,7 +304,7 @@ export interface AdvisoryFeedbackResponse {
 export async function askAdvisory(payload: AdvisoryAskRequest): Promise<AdvisoryAskResponse> {
   const res = await fetch('/api/advisory/ask', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -319,7 +321,7 @@ export async function sendAdvisoryFeedback(
 ): Promise<AdvisoryFeedbackResponse> {
   const res = await fetch(`/api/advisory/queries/${queryId}/feedback`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify({ feedback }),
   });
   if (!res.ok) {
@@ -361,6 +363,7 @@ export async function checkCropDisease(
 
   const res = await fetch('/api/advisory/disease-check', {
     method: 'POST',
+    headers: getAuthHeaders(),
     body: formData,
   });
   if (!res.ok) {

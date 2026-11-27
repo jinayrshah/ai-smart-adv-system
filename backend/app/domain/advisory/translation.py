@@ -10,7 +10,6 @@ preferred language.
 import logging
 import os
 import re
-from typing import Literal
 import httpx
 
 from app.core.config import get_settings

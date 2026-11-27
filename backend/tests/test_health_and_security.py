@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 
-from app.core.timeutil import now_utc_iso
 from app.data.ops.service import OpsService
 from app.main import app
 
@@ -149,3 +148,15 @@ def test_rate_limiting_headers_and_enforcement():
     from app.core.config import get_settings
     assert resp.headers["X-RateLimit-Limit"] == str(get_settings().RATE_LIMIT_PER_MINUTE)
     assert "X-RateLimit-Remaining" in resp.headers
+
+
+def test_request_id_header_and_ready_endpoint():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    c = TestClient(app)
+    r = c.get("/health", headers={"X-Request-ID": "abc123"})
+    assert r.headers["X-Request-ID"] == "abc123"
+    ready = c.get("/health/ready")
+    assert ready.status_code in (200, 503)
+    assert set(ready.json()["checks"]) >= {"supabase", "llm", "auth", "disease_model"}

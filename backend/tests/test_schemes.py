@@ -3,12 +3,10 @@ Unit & Integration Tests for Government Schemes Section and Q&A Engine.
 Architecture_Advisory.md §16, Implementationplan_Advisory.md Phase 6.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.domain.advisory.schemes import (
-    NATIONAL_SCHEMES,
     answer_scheme_query,
     get_all_schemes,
     get_scheme_by_code,

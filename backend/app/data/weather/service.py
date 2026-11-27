@@ -6,7 +6,7 @@ from app.core.config import get_settings
 from app.core.timeutil import now_utc_iso, today_ist
 from app.data.locations.grid import snap_to_grid
 from app.data.locations.repository import LocationsRepository
-from app.data.types import AgroMetrics, FusedDay, WeatherCurrent, WeatherDay
+from app.data.types import FusedDay, WeatherDay
 from app.data.weather.agro import compute_agro_metrics
 from app.data.weather.fusion import fuse_range, load_fusion_config
 from app.data.weather.providers.open_meteo import OpenMeteoClient

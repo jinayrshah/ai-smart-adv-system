@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Camera, Loader2, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 import {
   askAdvisory, checkCropDisease, sendAdvisoryFeedback,
@@ -16,19 +17,19 @@ type Msg =
   | { kind: 'dx'; res: DiseaseCheckResponse }
   | { kind: 'err'; text: string; retry: () => void };
 
-const CONFIDENCE: Record<string, string> = {
-  grounded: 'Based on ICAR / university guidance and your farm data',
-  partial: 'Partly based on sources; check with your KVK before acting',
-  insufficient: 'Not enough verified information',
+const CONFIDENCE_KEY: Record<string, string> = {
+  grounded: 'chat.confGrounded',
+  partial: 'chat.confPartial',
+  insufficient: 'chat.confInsufficient',
 };
 
-function suggestions(crop?: string) {
-  const c = crop?.toLowerCase() || 'my crop';
+function suggestions(t: TFunction, crop?: string) {
+  const c = crop?.toLowerCase() || t('chat.myCrop', 'my crop');
   return [
-    `How much water does ${c} need this week?`,
-    `What fertilizer should I apply at this stage?`,
-    `Which pests should I watch for now?`,
-    `Are there government schemes for ${c} farmers?`,
+    t('chat.sugWater', { crop: c, defaultValue: 'How much water does {{crop}} need this week?' }),
+    t('chat.sugFert', 'What fertilizer should I apply at this stage?'),
+    t('chat.sugPests', 'Which pests should I watch for now?'),
+    t('chat.sugSchemes', { crop: c, defaultValue: 'Are there government schemes for {{crop}} farmers?' }),
   ];
 }
 
@@ -40,7 +41,7 @@ interface Props {
 }
 
 export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEditFarm }) => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [view, setView] = useState<'ask' | 'schemes'>('ask');
   const [thread, setThread] = useState<Msg[]>([]);
   const [text, setText] = useState('');
@@ -57,6 +58,11 @@ export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEdit
 
   const ask = async (q: string, force = false) => {
     if (!q.trim() || (busy && !force)) return;
+    // Last few turns of this chat (before this question), so "and the next spray?" keeps its subject.
+    const history = thread
+      .flatMap((m): { role: 'user' | 'assistant'; text: string }[] => m.kind === 'q' && !m.photo ? [{ role: 'user' as const, text: m.text }]
+        : m.kind === 'a' ? [{ role: 'assistant' as const, text: m.res.response.slice(0, 1500) }] : [])
+      .slice(-6);
     setView('ask');
     setThread((t) => [...t, { kind: 'q', text: q }]);
     setText('');
@@ -73,6 +79,7 @@ export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEdit
         lon: farm?.lon ?? undefined,
         disease_label: lastDisease ?? undefined,
         language: lang,
+        history,
       });
       setThread((t) => [...t, { kind: 'a', res }]);
     } catch (e: any) {
@@ -85,7 +92,8 @@ export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEdit
   const sendPhoto = async (file: File) => {
     const url = URL.createObjectURL(file);
     setView('ask');
-    setThread((t) => [...t, { kind: 'q', text: 'Check this leaf', photo: url }]);
+    const label = t('chat.checkThisLeaf', 'Check this leaf');
+    setThread((prev) => [...prev, { kind: 'q', text: label, photo: url }]);
     setBusy(true);
     try {
       const res = await checkCropDisease(file, crop?.name, farm?.id ?? undefined);
@@ -115,9 +123,9 @@ export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEdit
   return (
     <div className="pb-44">
       <div className="flex items-center justify-between gap-4 pt-2 pb-4">
-        <h1 className="text-3xl font-semibold text-ink">Advisor</h1>
+        <h1 className="text-3xl font-semibold text-ink">{t('chat.title', 'Advisor')}</h1>
         <div role="tablist" aria-label="Advisor sections" className="inline-flex rounded-full bg-ash p-1">
-          {([['ask', 'Ask'], ['schemes', 'Schemes']] as const).map(([v, l]) => (
+          {([['ask', t('chat.tabAsk', 'Ask')], ['schemes', t('chat.tabSchemes', 'Schemes')]] as const).map(([v, l]) => (
             <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
               className={`h-10 px-5 rounded-full text-sm font-semibold ${view === v ? 'bg-surface text-ink' : 'text-ink-soft hover:text-ink'}`}>
               {l}
@@ -130,21 +138,22 @@ export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEdit
         <>
           <p className="text-ink-soft">
             {crop ? (
-              <>Answers use your farm: {crop.name}{crop.sowingDate ? `, sown ${formatIsoDate(crop.sowingDate)}` : ', not sown yet'}
+              <>{t('chat.usesFarm', { crop: crop.name, defaultValue: 'Answers use your farm: {{crop}}' })}
+                {crop.sowingDate ? t('chat.sownOn', { date: formatIsoDate(crop.sowingDate), defaultValue: ', sown {{date}}' }) : t('chat.notSown', ', not sown yet')}
                 {farm?.district ? `, ${farm.district}` : ''}.{' '}
-                <button onClick={onEditFarm} className="text-brand font-medium underline underline-offset-4">Change</button></>
-            ) : 'Add your farm for answers about your own crop and weather.'}
+                <button onClick={onEditFarm} className="text-brand font-medium underline underline-offset-4">{t('chat.change', 'Change')}</button></>
+            ) : t('chat.addFarm', 'Add your farm for answers about your own crop and weather.')}
           </p>
 
           {thread.length === 0 && (
             <div className="mt-6 grid sm:grid-cols-2 gap-2">
-              {suggestions(crop?.name).map((s) => (
+              {suggestions(t, crop?.name).map((s) => (
                 <button key={s} onClick={() => ask(s)} className="text-left rounded-xl bg-surface px-4 py-3 text-ink hover:bg-tint transition-colors">
                   {s}
                 </button>
               ))}
               <button onClick={() => fileRef.current?.click()} className="text-left rounded-xl bg-surface px-4 py-3 text-ink hover:bg-tint transition-colors flex items-center gap-2 sm:col-span-2">
-                <Camera size={18} className="text-brand" aria-hidden /> Check a sick leaf from a photo
+                <Camera size={18} className="text-brand" aria-hidden /> {t('chat.checkLeaf', 'Check a sick leaf from a photo')}
               </button>
             </div>
           )}
@@ -163,29 +172,29 @@ export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEdit
                   <article className="max-w-[92%] rounded-2xl rounded-bl-md bg-surface px-5 py-4">
                     {m.res.generated_by === 'deterministic' && (
                       <p className="mb-3 rounded-lg bg-warn-bg text-warn px-3 py-2 text-sm">
-                        The AI model could not be reached, so this answer is built only from your farm’s computed data and matching guidance.
+                        {t('chat.offline', 'The AI model could not be reached, so this answer is built only from your farm’s computed data and matching guidance.')}
                       </p>
                     )}
                     <div className="prose prose-sm sm:prose-base max-w-none text-ink prose-headings:text-ink prose-strong:text-ink">
                       <ReactMarkdown>{m.res.response}</ReactMarkdown>
                     </div>
-                    <p className="mt-3 text-sm text-ink-soft">{CONFIDENCE[m.res.confidence]}</p>
+                    <p className="mt-3 text-sm text-ink-soft">{t(CONFIDENCE_KEY[m.res.confidence] || 'chat.confInsufficient')}</p>
                     {m.res.sources.length > 0 && (
                       <ul className="mt-2 text-sm text-ink-soft space-y-0.5">
                         {m.res.sources.slice(0, 4).map((s, k) => (
-                          <li key={k}>Source: {s.url ? <a href={s.url} target="_blank" rel="noreferrer" className="underline">{s.title}</a> : s.title}{s.page ? `, p. ${s.page}` : ''}</li>
+                          <li key={k}>{t('chat.source', 'Source')}: {s.url ? <a href={s.url} target="_blank" rel="noreferrer" className="underline">{s.title}</a> : s.title}{s.page ? `, p. ${s.page}` : ''}</li>
                         ))}
                       </ul>
                     )}
                     {!!m.res.computed?.assumptions?.length && (
-                      <p className="mt-2 text-sm text-ink-muted">Assumed: {m.res.computed.assumptions.join(' ')}</p>
+                      <p className="mt-2 text-sm text-ink-muted">{t('chat.assumed', 'Assumed:')} {m.res.computed.assumptions.join(' ')}</p>
                     )}
                     {m.res.id > 0 && (
                       <div className="mt-3 flex items-center gap-1 text-ink-soft">
-                        <span className="text-sm mr-1">Helpful?</span>
-                        <button aria-label="Helpful" aria-pressed={m.feedback === 1} onClick={() => feedback(i, m.res.id, 1)}
+                        <span className="text-sm mr-1">{t('chat.helpful', 'Helpful?')}</span>
+                        <button aria-label={t('chat.helpfulYes', 'Helpful')} aria-pressed={m.feedback === 1} onClick={() => feedback(i, m.res.id, 1)}
                           className={`w-11 h-11 rounded-full flex items-center justify-center hover:bg-ash ${m.feedback === 1 ? 'text-good' : ''}`}><ThumbsUp size={18} /></button>
-                        <button aria-label="Not helpful" aria-pressed={m.feedback === -1} onClick={() => feedback(i, m.res.id, -1)}
+                        <button aria-label={t('chat.helpfulNo', 'Not helpful')} aria-pressed={m.feedback === -1} onClick={() => feedback(i, m.res.id, -1)}
                           className={`w-11 h-11 rounded-full flex items-center justify-center hover:bg-ash ${m.feedback === -1 ? 'text-bad' : ''}`}><ThumbsDown size={18} /></button>
                       </div>
                     )}
@@ -197,13 +206,13 @@ export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEdit
                 {m.kind === 'err' && (
                   <div className="max-w-[92%] rounded-2xl bg-bad-bg text-bad px-5 py-4 flex items-center justify-between gap-4">
                     <span>{m.text}</span>
-                    <button onClick={() => { setThread((t) => t.filter((_, j) => j !== i)); m.retry(); }} className="h-10 px-4 rounded-full bg-surface text-ink font-medium shrink-0">Try again</button>
+                    <button onClick={() => { setThread((t) => t.filter((_, j) => j !== i)); m.retry(); }} className="h-10 px-4 rounded-full bg-surface text-ink font-medium shrink-0">{t('chat.tryAgain', 'Try again')}</button>
                   </div>
                 )}
               </li>
             ))}
             {busy && (
-              <li className="flex items-center gap-2 text-ink-soft"><Loader2 size={18} className="animate-spin" /> Working on it…</li>
+              <li className="flex items-center gap-2 text-ink-soft"><Loader2 size={18} className="animate-spin" /> {t('chat.working', 'Working on it…')}</li>
             )}
           </ol>
           <div ref={endRef} />
@@ -213,16 +222,16 @@ export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEdit
             <div className="mx-auto max-w-3xl flex items-end gap-2 bg-surface rounded-2xl p-2 border border-line">
               <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) sendPhoto(f); e.target.value = ''; }} />
-              <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} aria-label="Send a leaf photo"
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} aria-label={t('chat.sendPhoto', 'Send a leaf photo')}
                 className="w-11 h-11 rounded-xl flex items-center justify-center text-brand hover:bg-ash disabled:opacity-50 shrink-0">
                 <Camera size={20} />
               </button>
-              <label htmlFor="advisor-q" className="sr-only">Your question</label>
+              <label htmlFor="advisor-q" className="sr-only">{t('chat.yourQuestion', 'Your question')}</label>
               <textarea id="advisor-q" rows={1} value={text} onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(text); } }}
-                placeholder={`Ask about ${crop?.name.toLowerCase() || 'your crop'}…`}
+                placeholder={t('chat.askAbout', { crop: crop?.name.toLowerCase() || t('chat.yourCrop', 'your crop'), defaultValue: 'Ask about {{crop}}…' })}
                 className="flex-1 min-w-0 resize-none border-0 bg-transparent px-2 py-2.5 text-base max-h-32 focus:shadow-none" />
-              <button type="submit" disabled={busy || !text.trim()} aria-label="Send"
+              <button type="submit" disabled={busy || !text.trim()} aria-label={t('chat.send', 'Send')}
                 className="w-11 h-11 rounded-xl bg-brand text-white flex items-center justify-center disabled:opacity-40 shrink-0">
                 <Send size={18} />
               </button>

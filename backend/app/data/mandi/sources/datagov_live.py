@@ -4,8 +4,8 @@ from typing import Any
 import httpx
 
 from app.core.config import get_settings
-from app.core.http import ProviderQuotaError, ProviderSchemaError, fetch_with_retry
-from app.core.timeutil import parse_date_ist, today_ist
+from app.core.http import ProviderQuotaError, fetch_with_retry
+from app.core.timeutil import parse_date_ist
 from app.data.types import MandiRecord, TrackedScope
 
 logger = logging.getLogger(__name__)

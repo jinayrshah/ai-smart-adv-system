@@ -4,21 +4,6 @@ const API_URL = '/api/auth';
 const APP_STORAGE_KEY = 'agri_app_data';
 
 export const authService = {
-  async sendOtp(identifier: string): Promise<{ message: string; expiresAt: number }> {
-    const response = await fetch(`${API_URL}/send-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to send OTP');
-    }
-
-    return response.json();
-  },
-
   async login(identifier: string, password: string): Promise<AuthResponse> {
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',

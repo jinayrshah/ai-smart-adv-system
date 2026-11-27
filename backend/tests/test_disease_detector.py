@@ -6,7 +6,6 @@ Architecture_Advisory.md §11, §14.
 from io import BytesIO
 import numpy as np
 from PIL import Image
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app

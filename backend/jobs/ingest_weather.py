@@ -1,8 +1,7 @@
-import logging
 import sys
 import time
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import Any
 
 from app.core.logging import setup_logger

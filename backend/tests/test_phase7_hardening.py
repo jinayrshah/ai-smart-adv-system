@@ -4,7 +4,6 @@ Architecture_Advisory.md §13, §18, §19, Implementationplan_Advisory.md Phase 
 """
 
 from datetime import date, timedelta
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -14,7 +13,6 @@ from app.domain.advisory.ratelimit import SlidingWindowRateLimiter, advisory_rat
 from app.domain.advisory.growth_stage_engine import current_growth_stage
 from app.domain.advisory.water_requirement_engine import calculate_irrigation_need
 from app.domain.advisory.soil_suitability_engine import check_soil_suitability
-from app.schemas.advisory import CropStageNorm
 from jobs.review_advisory_feedback import review_feedback
 from jobs.recompute_growth_stages import recompute_all_active_stages
 

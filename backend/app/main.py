@@ -1,5 +1,9 @@
-from fastapi import FastAPI
+import logging
+import uuid
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.routes.market import router as market_router
 from app.api.routes.weather import router as weather_router
@@ -41,6 +45,31 @@ app.add_middleware(
     trusted_proxies=settings.trusted_proxies,
 )
 
+logger = logging.getLogger("app")
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    """Tag every request with an id (kept from X-Request-ID when the Express proxy sends one) for log tracing."""
+    rid = (request.headers.get("x-request-id") or "")[:64] or uuid.uuid4().hex[:16]
+    request.state.request_id = rid
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = rid
+    return response
+
+
+@app.exception_handler(Exception)
+async def unhandled_error(request: Request, exc: Exception):
+    """Unexpected errors: log the details, return a plain message (no stack traces or internals)."""
+    rid = getattr(request.state, "request_id", None) or uuid.uuid4().hex[:16]
+    logger.exception(f"Unhandled error on {request.method} {request.url.path} [request_id={rid}]: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Something went wrong on our side. Please try again.", "request_id": rid},
+        headers={"X-Request-ID": rid},
+    )
+
+
 app.include_router(market_router)
 app.include_router(weather_router)
 app.include_router(context_router)
@@ -52,3 +81,20 @@ app.include_router(advisory_router)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/health/ready")
+def ready():
+    """What is configured, without making network or paid calls."""
+    from app.domain.advisory.disease_detector import get_disease_detector
+
+    checks = {
+        "supabase": bool(settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY),
+        "llm": bool(settings.groq_api_keys or settings.gemini_api_keys),
+        "auth": bool((settings.SUPABASE_JWT_SECRET or settings.JWT_SECRET).strip()),
+        "disease_model": get_disease_detector().available,
+        "translation": bool(settings.BHASHINI_USER_ID and settings.BHASHINI_API_KEY),
+    }
+    required = ("supabase", "llm", "auth")
+    ok = all(checks[k] for k in required)
+    return JSONResponse(status_code=200 if ok else 503, content={"status": "ok" if ok else "degraded", "checks": checks})

@@ -67,7 +67,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         # Exclude internal health and root endpoints from rate limiting
-        if request.url.path in ("/health", "/docs", "/redoc", "/openapi.json"):
+        if request.url.path in ("/health", "/health/ready", "/docs", "/redoc", "/openapi.json"):
             return await call_next(request)
 
         client_ip = client_ip_from_request(request, self.trusted_proxies)

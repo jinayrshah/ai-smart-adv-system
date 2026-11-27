@@ -9,7 +9,6 @@ Uses: MandiRepository.upsert_records() with chunk_size=1000 and source='agmarkne
 import argparse
 import glob
 import json
-import logging
 import sys
 import time
 from datetime import date

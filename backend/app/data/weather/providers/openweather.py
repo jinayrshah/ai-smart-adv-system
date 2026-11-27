@@ -5,7 +5,7 @@ from typing import Any
 import httpx
 
 from app.core.config import get_settings
-from app.core.timeutil import IST, today_ist
+from app.core.timeutil import today_ist
 from app.data.types import WeatherCurrent, WeatherDay
 
 logger = logging.getLogger(__name__)

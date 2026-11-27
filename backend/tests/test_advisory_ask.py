@@ -4,7 +4,6 @@ Architecture_Advisory.md §12, §13, §14, §17, §18.
 """
 
 from datetime import date, timedelta
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -12,7 +11,6 @@ from app.data.advisory.query_repo import get_query_repo
 from app.domain.advisory.audit import (
     audit_number_grounding,
     compute_advisory_confidence,
-    extract_numbers_from_text,
 )
 from app.domain.advisory.context import assemble_advisory_context
 from app.domain.advisory.generator import generate_advisory_response
