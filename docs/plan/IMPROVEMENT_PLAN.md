@@ -121,6 +121,44 @@ Run an a11y pass: icon-only buttons need `aria-label`, chart data needs a text f
 - Add Sentry (or similar) error reporting behind an env flag on both servers.
 - Make every ingestion workflow fail visibly when a job writes 0 rows, and add a weekly data-freshness check that opens an issue.
 
+## Phase 5b: Design and demo polish (3 to 4 days, before Phase 6)
+
+Checked 2026-11-27 with screenshots of every screen at 390 px and 1280 px. The visual style (`DESIGN.md`) is already clean and consistent on Today, Advisor and Farm. The problems are about **getting to the value fast** and **trusting what you see**, which is what a judge looks at in the first 2 minutes.
+
+**D1. One-tap demo farm (biggest win).**
+Today a new user must fill a long, required form (name, location search, state, district, soil, crop, sowing date) before seeing anything. Add a **"Try with a sample farm"** button on the sign-in page and at the top of farm setup. It creates an account with a realistic farm (for example, cotton in Surat, sown 1 Jul, drip irrigation) and lands on Today with everything filled in. Keep the full form for real farmers, but make it a 3-step wizard (Where → Crop → Soil, optional) with progress dots instead of one long sheet.
+*Done when:* a judge goes from the URL to a full Today screen in under 15 seconds without typing.
+
+**D2. Never show an empty card in a demo.**
+With no data, cards say "–", "No forecast on file" or "Prices are unavailable right now". Keep the honesty, but:
+- Make the live deployment always have data: the ingestion jobs run on a schedule, and a one-off backfill covers the demo districts.
+- Give each empty state one clear next step ("Weather loads in about a minute after setup. Refresh" or "Pick a nearby mandi").
+- Use skeleton placeholders while loading instead of spinners, so screens don't jump.
+
+**D3. Show the "why" behind every number.**
+Grounded, auditable advice is the project's main difference from a plain chatbot, but it's hidden. Add a small **"How we know"** link on each Today card that opens a short sheet: the stage from growing degree-days since sowing, water from the FAO-56 balance with its inputs, the price source and date. In Advisor answers, show sources as tappable chips and the confidence as a coloured badge, not a grey line.
+
+**D4. Prices screen: same look, less clutter.**
+Prices uses a different visual style (green section titles, boxed toolbars, a disabled Refresh button) and opens empty ("Choose a mandi"). Default to the mandi nearest the farm with the farm's crop, put the trend chart first, and move Compare and the calculators behind tabs or "More". Remove "Share View" unless it works without login.
+
+**D5. A desktop layout for laptops and projectors.**
+Judges usually see the app on a laptop or projector. On screens wider than 1024 px, move the tab bar from the bottom into the header (or a left rail), and use a two-column Today. Keep the bottom bar on phones.
+
+**D6. A short first-run guide.**
+On the first visit to Today, show 3 dismissible coach marks: your crop's stage, ask the advisor (text or photo), switch language. Store the dismissal per user.
+
+**D7. Finish the language story.**
+Translate every screen, not just the Advisor (see 4.2). Put the language switch on the sign-in page and in the first-run guide, since multilingual support is a headline feature. Check that long Hindi and Telugu strings don't break buttons.
+
+**D8. Name, icon and polish.**
+- Give the app a short name and icon instead of the generic "Smart Agriculture", and use it in the title, favicon and PWA manifest.
+- Add page transitions under 200 ms, with reduced motion respected.
+- Keep tap targets at 44 px or more.
+- Check text contrast against WCAG AA.
+
+**D9. Demo script.**
+Add `docs/DEMO.md`: a 3-minute path for presenters (sample farm, then Today and "How we know", a question in Hindi with a follow-up, a leaf photo, then the price trend), plus a backup set of screenshots in case the network fails on stage.
+
 ## Phase 6: Product features (pick in order; each is its own PR)
 
 1. **Voice questions and spoken answers in the Advisor.** Bhashini is already configured (`translation.py`). Add a mic button: speech to text, then the advisor, then text to speech. This removes the reading barrier.
@@ -148,6 +186,7 @@ Run an a11y pass: icon-only buttons need `aria-label`, chart data needs a text f
 | 3 Backend | 3-4 days | Advisor memory is the biggest quality win for users |
 | 4 Frontend | 3-4 days | Speed on cheap phones, full regional languages |
 | 5 Deploy | 2 days | The full stack can be run and recovered |
+| 5b Design and demo | 3-4 days | Judges see value in the first 2 minutes |
 | 6 Features | 1-2 weeks each | Voice and offline first: they suit the users best |
 | 7 Evals | ongoing | Proves answers are improving, not just changing |
 
