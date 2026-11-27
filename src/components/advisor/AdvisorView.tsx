@@ -57,6 +57,11 @@ export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEdit
 
   const ask = async (q: string, force = false) => {
     if (!q.trim() || (busy && !force)) return;
+    // Last few turns of this chat (before this question), so "and the next spray?" keeps its subject.
+    const history = thread
+      .flatMap((m): { role: 'user' | 'assistant'; text: string }[] => m.kind === 'q' && !m.photo ? [{ role: 'user' as const, text: m.text }]
+        : m.kind === 'a' ? [{ role: 'assistant' as const, text: m.res.response.slice(0, 1500) }] : [])
+      .slice(-6);
     setView('ask');
     setThread((t) => [...t, { kind: 'q', text: q }]);
     setText('');
@@ -73,6 +78,7 @@ export const AdvisorView: React.FC<Props> = ({ farmView, initialQuestion, onEdit
         lon: farm?.lon ?? undefined,
         disease_label: lastDisease ?? undefined,
         language: lang,
+        history,
       });
       setThread((t) => [...t, { kind: 'a', res }]);
     } catch (e: any) {

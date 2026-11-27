@@ -158,6 +158,12 @@ class AdvisoryComputedContext(BaseModel):
     assumptions: list[str] = Field(default_factory=list)
 
 
+class ChatTurn(BaseModel):
+    """One earlier message in the advisor chat, so follow-up questions keep their meaning."""
+    role: Literal["user", "assistant"]
+    text: str = Field(..., max_length=4000)
+
+
 class AdvisoryAskRequest(BaseModel):
     farm_id: int | None = None
     crop: str | None = None
@@ -169,6 +175,8 @@ class AdvisoryAskRequest(BaseModel):
     lat: float | None = None
     lon: float | None = None
     disease_label: str | None = None
+    # Earlier turns of this chat (oldest first). Only the last few are used.
+    history: list[ChatTurn] = Field(default_factory=list, max_length=20)
 
 
 class AdvisoryAskResponse(BaseModel):

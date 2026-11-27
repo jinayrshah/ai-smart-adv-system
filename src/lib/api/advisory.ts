@@ -280,6 +280,8 @@ export interface AdvisoryAskRequest {
   lat?: number | null;
   lon?: number | null;
   disease_label?: string | null;
+  /** earlier turns of this chat, oldest first, so follow-up questions keep their meaning */
+  history?: { role: 'user' | 'assistant'; text: string }[];
 }
 
 export interface AdvisoryAskResponse {

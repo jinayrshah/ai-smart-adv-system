@@ -453,6 +453,14 @@ def ask_government_scheme(payload: SchemeAskRequest):
     )
 
 
+def _retrieval_query(payload: AdvisoryAskRequest) -> str:
+    """Short follow-ups ("and for the next stage?") are searched together with the farmer's previous question."""
+    prev = next((t.text for t in reversed(payload.history) if t.role == "user"), None)
+    if prev and len(payload.query.split()) <= 8:
+        return f"{prev.strip()[:300]} {payload.query}"
+    return payload.query
+
+
 @router.post("/ask", response_model=AdvisoryAskResponse)
 def ask_crop_advisory(
     payload: AdvisoryAskRequest,
@@ -484,9 +492,10 @@ def ask_crop_advisory(
             detail=f"Rate limit exceeded. Too many advisory requests. Please retry in {retry_after} seconds.",
         )
 
+    retrieval_query = _retrieval_query(payload)
     try:
         ctx = assemble_advisory_context(
-            query=payload.query,
+            query=retrieval_query,
             farm_id=payload.farm_id,
             crop=payload.crop,
             farmer_id=payload.farmer_id,
@@ -505,7 +514,7 @@ def ask_crop_advisory(
         logger.info(f"Unsupported crop '{exc.crop}'; retrying without crop parameter")
         try:
             ctx = assemble_advisory_context(
-                query=payload.query,
+                query=retrieval_query,
                 farm_id=payload.farm_id,
                 crop=None,  # Drop the unsupported crop
                 farmer_id=payload.farmer_id,
@@ -529,6 +538,7 @@ def ask_crop_advisory(
             ctx=ctx,
             user_query=payload.query,
             query_id=0,
+            history=payload.history,
         )
     except Exception as exc:
         logger.error(f"Advisory generation failed: {exc}")

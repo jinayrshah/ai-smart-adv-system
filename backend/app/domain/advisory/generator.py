@@ -87,7 +87,32 @@ def _irrigation_line(ctx: AdvisoryContext) -> str:
     return f"{line}. Engine summary: {irr.recommendation} (confidence: {irr.confidence})"
 
 
-def build_system_prompt(ctx: AdvisoryContext, user_query: str) -> str:
+HISTORY_TURNS = 6
+HISTORY_CHARS = 600
+
+
+def _history_block(history: list | None) -> str:
+    """Earlier chat turns, trimmed, so a follow-up ("and the next spray?") keeps its subject."""
+    if not history:
+        return ""
+    lines = []
+    for turn in history[-HISTORY_TURNS:]:
+        role = getattr(turn, "role", None) or turn.get("role")
+        text = (getattr(turn, "text", None) or turn.get("text") or "").strip().replace("\n", " ")
+        if not text:
+            continue
+        if len(text) > HISTORY_CHARS:
+            text = text[:HISTORY_CHARS].rstrip() + "…"
+        lines.append(f"{'Farmer' if role == 'user' else 'Advisor'}: {text}")
+    if not lines:
+        return ""
+    return (
+        "EARLIER_CONVERSATION (for meaning only; numbers in it are NOT verified context — "
+        "use numbers only from CONTEXT and RETRIEVED_PASSAGES):\n" + "\n".join(lines) + "\n\n"
+    )
+
+
+def build_system_prompt(ctx: AdvisoryContext, user_query: str, history: list | None = None) -> str:
     """Grounded prompt per Architecture §12.2 (CONTEXT block + question)."""
     soil_flags_str = "; ".join(f"{f.flag_type}: {f.notes}" for f in ctx.soil_flags) or "none"
     passages = []
@@ -125,7 +150,7 @@ ASSUMPTIONS:
 RETRIEVED_PASSAGES:
 {passages_text}
 
-FARMER'S QUESTION: {user_query}
+{_history_block(history)}FARMER'S QUESTION: {user_query}
 """
 
 
@@ -243,6 +268,7 @@ def generate_advisory_response(
     user_query: str,
     query_id: int,
     use_mock: bool = False,
+    history: list | None = None,
 ) -> AdvisoryAskResponse:
     """Full generation flow with grounding checks and safety controls."""
     weather_degraded = bool(ctx.weather_summary.get("degraded")) or ctx.irrigation.method == "insufficient_data"
@@ -294,7 +320,7 @@ def generate_advisory_response(
         confidence = "partial"
 
     snapshot = ctx.to_snapshot()
-    prompt = build_system_prompt(ctx, user_query)
+    prompt = build_system_prompt(ctx, user_query, history)
     response_text, model_used = ("", None) if use_mock else generate_text(
         prompt, system_instruction=SYSTEM_INSTRUCTION, temperature=0.2, max_output_tokens=6000, timeout=45.0
     )

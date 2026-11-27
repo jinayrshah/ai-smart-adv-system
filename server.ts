@@ -428,7 +428,9 @@ export async function createApp() {
   const FASTAPI_URL = (process.env.FASTAPI_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
   const proxyToFastApi = async (req: any, res: any) => {
     try {
-      const headers: Record<string, string> = {};
+      const headers: Record<string, string> = {
+        'X-Request-ID': String(req.headers['x-request-id'] || crypto.randomUUID().slice(0, 16)),
+      };
       if (req.headers.authorization) headers['Authorization'] = req.headers.authorization;
       const clientIp = req.ip || req.socket?.remoteAddress;
       if (clientIp) headers['X-Forwarded-For'] = clientIp;
