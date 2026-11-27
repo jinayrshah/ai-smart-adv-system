@@ -434,6 +434,8 @@ export async function createApp() {
       if (req.headers.authorization) headers['Authorization'] = req.headers.authorization;
       const clientIp = req.ip || req.socket?.remoteAddress;
       if (clientIp) headers['X-Forwarded-For'] = clientIp;
+      // Lets FastAPI trust X-Forwarded-For when it runs on another host (e.g. Render).
+      if (process.env.PROXY_SHARED_SECRET) headers['X-Proxy-Secret'] = process.env.PROXY_SHARED_SECRET;
       if (req.headers['accept-language']) headers['Accept-Language'] = String(req.headers['accept-language']);
 
       const contentType = String(req.headers['content-type'] || '');

@@ -128,7 +128,8 @@ Run an a11y pass: icon-only buttons need `aria-label`, chart data needs a text f
 3. **Alerts.** Turn IMD warnings and price moves into a Today banner first, then web push. Use the plan in `docs/ROADMAP_data_integrations.md` §2.
 4. **More crops.** Only 6 crops are supported. Add 4 major ones for the existing mandi states (groundnut, onion, chilli, sugarcane) through `crop_catalog.json` and ICAR documents, following the "Adding a crop" steps in `README.md`.
 5. **Disease model.** No model file ships (`backend/models/` is missing), so leaf checks always use the vision LLM fallback. Train with `training/train_disease_model.py`, publish the `.keras` file as a release asset, download it at deploy time, and report the field-test accuracy in the UI's "how sure" text.
-6. **WhatsApp channel.** See `ROADMAP_data_integrations.md` §1. This needs Meta Business verification by the owner, so it comes last.
+
+**Future scope (not planned now):** WhatsApp channel, as in `ROADMAP_data_integrations.md` §1. It needs Meta Business verification by the owner.
 
 ## Phase 7: Measure answer quality (ongoing, starts with Phase 3)
 
@@ -154,4 +155,3 @@ Run an a11y pass: icon-only buttons need `aria-label`, chart data needs a text f
 
 - Whether to move `data/mandilens/` (33 MB) out of git (Phase 2).
 - Which backend host to use (Phase 5).
-- Whether to proceed with WhatsApp, which needs Meta verification (Phase 6.6).

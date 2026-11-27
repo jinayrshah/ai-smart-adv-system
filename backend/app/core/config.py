@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     # (the Express server that fronts FastAPI runs on the same host).
     TRUSTED_PROXY_IPS: str = "127.0.0.1,::1"
     RATE_LIMIT_PER_MINUTE: int = 300
+    # Shared with the Express server (server.ts) when the two run on different hosts:
+    # requests carrying it may set X-Forwarded-For, so rate limits stay per farmer, not per proxy.
+    PROXY_SHARED_SECRET: str = ""
 
     # Operational
     LOG_LEVEL: str = "INFO"
